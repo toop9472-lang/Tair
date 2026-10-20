@@ -113,10 +113,10 @@ export const tripsApi = {
     req(`/api/trips/${id}/book?user_id=${encodeURIComponent(userId)}`, {
       method: "POST",
     }),
-  updateStatus: (id, userId, status, note) =>
+  updateStatus: (id, userId, status, note, extra = {}) =>
     req(`/api/trips/${id}/status?user_id=${encodeURIComponent(userId)}`, {
       method: "PATCH",
-      body: JSON.stringify({ status, note }),
+      body: JSON.stringify({ status, note, motion: extra.motion, stop_index: extra.stop_index }),
     }),
   cancel: (id, userId) =>
     req(`/api/trips/${id}?user_id=${encodeURIComponent(userId)}`, {

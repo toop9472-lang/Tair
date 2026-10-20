@@ -1,19 +1,21 @@
 import { TAIR } from "../constants/tairTheme";
+import { journeyState } from "./tripJourney";
 
-export function tripPhase(status) {
+export function tripPhase(status, trip) {
   if (status === "completed") {
     return { key: "completed", label: "مكتملة", bg: TAIR.successSoft, fg: TAIR.success };
-  }
-  if (status === "arrived") {
-    return { key: "arrived", label: "وصلت", bg: TAIR.successSoft, fg: TAIR.success };
   }
   if (status === "cancelled") {
     return { key: "cancelled", label: "ملغاة", bg: TAIR.dangerSoft, fg: TAIR.error };
   }
-  if (status === "scheduled") {
-    return { key: "upcoming", label: "قادمة", bg: TAIR.goldWash, fg: TAIR.goldDark };
+  const motion = journeyState(trip || { status }).motion;
+  if (motion === "arrived") {
+    return { key: "arrived", label: "وصول", bg: TAIR.successSoft, fg: TAIR.success };
   }
-  return { key: "active", label: "جارية", bg: TAIR.emeraldWash, fg: TAIR.emerald };
+  if (motion === "moving") {
+    return { key: "moving", label: "تحرك", bg: TAIR.emeraldWash, fg: TAIR.emerald };
+  }
+  return { key: "stopped", label: "توقف", bg: TAIR.goldWash, fg: TAIR.goldDark };
 }
 
 export const TRIP_FLOW = ["scheduled", "departed", "in_transit", "arrived", "completed"];

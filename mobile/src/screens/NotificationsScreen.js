@@ -13,6 +13,8 @@ const ICONS = {
   chat: "chatbubble-ellipses",
   clinic_topic: "medkit",
   clinic_reply: "chatbox-ellipses",
+  listing_new: "pricetag",
+  story_new: "sparkles",
 };
 
 export default function NotificationsScreen({ user, onBack }) {

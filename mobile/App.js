@@ -194,6 +194,8 @@ function TairApp() {
           if (data?.topic_id) setModal({ name: "clinic_topic", params: { topicId: data.topic_id } });
           else setCurrentPage("clinic");
         }
+        else if (t === "listing_new" && data?.listing_id) setModal({ name: "listing_details", params: { listingId: data.listing_id } });
+        else if (t === "story_new") setCurrentPage("forum");
         else if (t.startsWith("chat")) setCurrentPage("messages");
         else if (t.startsWith("order")) setCurrentPage("orders");
         else if (t.startsWith("trip")) setCurrentPage("trips");

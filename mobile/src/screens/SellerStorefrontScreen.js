@@ -202,8 +202,10 @@ export default function SellerStorefrontScreen({
   const openMap = () => {
     const lat = profile.location?.lat;
     const lng = profile.location?.lng;
-    if (!lat || !lng) return Alert.alert("لا يوجد موقع", "لم يحدد البائع موقعاً على الخريطة.");
-    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`).catch(() =>
+    const place = profile.location?.city || profile.location?.address_label;
+    const query = lat && lng ? `${lat},${lng}` : place;
+    if (!query) return Alert.alert("لا يوجد موقع", "لم يحدد البائع مدينة المتجر.");
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`).catch(() =>
       Alert.alert("خطأ", "تعذّر فتح الخريطة"),
     );
   };
@@ -426,13 +428,13 @@ export default function SellerStorefrontScreen({
         </View>
 
         {/* ==== Location / Pickup ==== */}
-        {(profile.location?.lat || profile.pickup_enabled) ? (
+        {(profile.location?.city || profile.location?.address_label || profile.location?.lat || profile.pickup_enabled) ? (
           <SectionCard icon="map-outline" title="الموقع والاستلام" color={identity}>
-            {profile.location?.lat ? (
+            {(profile.location?.city || profile.location?.address_label || profile.location?.lat) ? (
               <TouchableOpacity style={s.locRow} onPress={openMap} testID="seller-open-map">
                 <Ionicons name="location" size={18} color={identity} />
                 <View style={{ flex: 1 }}>
-                  <Text style={s.locLabel}>{profile.location.address_label || "افتح الموقع على الخريطة"}</Text>
+                  <Text style={s.locLabel}>{profile.location.city || profile.location.address_label || "افتح الموقع على الخريطة"}</Text>
                   <Text style={s.locHint}>اضغط لفتح خرائط قوقل</Text>
                 </View>
                 <Ionicons name="chevron-back" size={18} color="#8A7B66" />

@@ -74,7 +74,7 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
   const rating = trip.carrier_rating_avg;
   const completed = trip.carrier_trips_completed || 0;
   const phone = trip.carrier_whatsapp || trip.carrier_phone;
-  const phase = tripPhase(trip.status);
+  const phase = tripPhase(trip.status, trip);
   const hasWaypoints = Array.isArray(trip.waypoints) && trip.waypoints.length > 0;
 
   return (

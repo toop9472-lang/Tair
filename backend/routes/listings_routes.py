@@ -100,6 +100,20 @@ async def create_listing(payload: ListingCreate, user_id: str = Query(...), acto
     )
     doc = listing.model_dump()
     await db.listings.insert_one(doc)
+    try:
+        from services.moderation import notify_staff
+        title = (payload.title or "إعلان").strip()
+        await notify_staff(
+            db,
+            {"market"},
+            [user_id],
+            "إعلان جديد في السوق",
+            f"{payload.city}: {title}",
+            "listing_new",
+            {"listing_id": listing_id},
+        )
+    except Exception as exc:
+        print(f"[listing notify] {exc}")
     return _serialize(doc)
 
 

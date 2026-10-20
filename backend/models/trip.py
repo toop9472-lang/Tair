@@ -87,6 +87,8 @@ class TripCreate(BaseModel):
 class TripStatusUpdate(BaseModel):
     status: TripStatus
     note: Optional[str] = None
+    motion: Optional[Literal["stopped", "moving", "arrived"]] = None
+    stop_index: Optional[int] = None
 
 
 RequestStatus = Literal["pending", "accepted", "in_progress", "completed", "cancelled"]

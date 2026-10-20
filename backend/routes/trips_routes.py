@@ -394,10 +394,31 @@ async def update_trip_status(
         raise HTTPException(403, "Not the carrier")
 
     event = TripStatusEvent(status=payload.status, note=payload.note).model_dump()
+    cities = [doc.get("from_city"), *(doc.get("waypoints") or []), doc.get("to_city")]
+    cities = [c for c in cities if c]
+    last = max(len(cities) - 1, 0)
+    motion = payload.motion
+    stop_index = payload.stop_index
+    if motion is None:
+        if payload.status in ("arrived", "completed"):
+            motion, stop_index = "arrived", last
+        elif payload.status in ("departed", "in_transit"):
+            motion = "moving"
+            stop_index = doc.get("stop_index") or 0
+        else:
+            motion, stop_index = "stopped", 0
+    stop_index = max(0, min(int(stop_index or 0), last))
+    if motion == "arrived":
+        stop_index = last
     await db.trips.update_one(
         {"trip_id": trip_id},
         {
-            "$set": {"status": payload.status, "updated_at": _now()},
+            "$set": {
+                "status": payload.status,
+                "motion": motion,
+                "stop_index": stop_index,
+                "updated_at": _now(),
+            },
             "$push": {"status_updates": event},
         },
     )

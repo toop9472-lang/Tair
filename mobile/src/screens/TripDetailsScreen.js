@@ -17,7 +17,9 @@ import { shareInApp } from "../services/shareContent";
 import { DetailSkeleton, ErrorState } from "../components/TairUI";
 import { TAIR } from "../constants/tairTheme";
 import { openWhatsApp, toTel } from "../utils/contactPhone";
-import { TRIP_FLOW, TRIP_NEXT, TRIP_STEP_LABEL, tripPhase } from "../utils/tripStatus";
+import { tripPhase } from "../utils/tripStatus";
+import { journeyState, nextJourneyAction } from "../utils/tripJourney";
+import TripsMapMobile from "../components/TripsMapMobile";
 
 const API_BASE =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -30,21 +32,26 @@ const resolveMediaUrl = (u) => {
   return u;
 };
 
-function StatusTrack({ status }) {
-  const current = status === "arrived" ? TRIP_FLOW.indexOf("completed") : TRIP_FLOW.indexOf(status);
+const MOTION_STEPS = [
+  { id: "stopped", label: "توقف" },
+  { id: "moving", label: "تحرك" },
+  { id: "arrived", label: "وصول" },
+];
+
+function StatusTrack({ trip }) {
+  const motion = journeyState(trip).motion;
+  const current = MOTION_STEPS.findIndex((step) => step.id === motion);
   return (
     <View style={styles.track}>
-      {TRIP_FLOW.filter((id) => id !== "arrived").map((id, index, arr) => {
-        const stepIndex = TRIP_FLOW.indexOf(id);
-        const done = current >= stepIndex && current >= 0;
-        const label = id === "completed" && status === "arrived" ? "وصلت" : TRIP_STEP_LABEL[id];
+      {MOTION_STEPS.map((step, index) => {
+        const done = current >= index && current >= 0;
         return (
-          <View key={id} style={styles.trackStep}>
+          <View key={step.id} style={styles.trackStep}>
             <View style={styles.trackRail}>
               <View style={[styles.trackDot, done && styles.trackDotOn]} />
-              {index < arr.length - 1 ? <View style={[styles.trackLine, done && current > stepIndex && styles.trackLineOn]} /> : null}
+              {index < MOTION_STEPS.length - 1 ? <View style={[styles.trackLine, done && current > index && styles.trackLineOn]} /> : null}
             </View>
-            <Text style={[styles.trackLabel, done && styles.trackLabelOn]}>{label}</Text>
+            <Text style={[styles.trackLabel, done && styles.trackLabelOn]}>{step.label}</Text>
           </View>
         );
       })}
@@ -107,10 +114,11 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
   const rating = trip.carrier_rating_avg;
   const completed = trip.carrier_trips_completed || 0;
   const rawPhone = trip.carrier_whatsapp || trip.carrier_phone;
-  const phase = tripPhase(trip.status);
-  const nextStatus = TRIP_NEXT[trip.status];
+  const phase = tripPhase(trip.status, trip);
+  const journey = journeyState(trip);
   const hasWaypoints = Array.isArray(trip.waypoints) && trip.waypoints.length > 0;
   const isOwner = (user?.user_id || user?.id) === trip.carrier_id;
+  const nextAction = isOwner ? nextJourneyAction(trip) : null;
 
   const shareTrip = () => {
     const id = trip.trip_id || trip.id;
@@ -163,16 +171,18 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
   };
 
   const advanceStatus = () => {
-    if (!nextStatus) return;
-    const label = TRIP_STEP_LABEL[nextStatus];
-    Alert.alert("تحديث الرحلة", `نقل الحالة إلى: ${label}؟`, [
+    if (!nextAction) return;
+    Alert.alert("تحديث الرحلة", `${nextAction.label}؟`, [
       { text: "لا", style: "cancel" },
       {
         text: "نعم",
         onPress: async () => {
           try {
             const uid = user?.user_id || user?.id;
-            await tripsApi.updateStatus(trip.trip_id, uid, nextStatus);
+            await tripsApi.updateStatus(trip.trip_id, uid, nextAction.status, nextAction.label, {
+              motion: nextAction.motion,
+              stop_index: nextAction.stop_index,
+            });
             const fresh = await tripsApi.get(trip.trip_id);
             setTrip(fresh);
           } catch (e) {
@@ -228,11 +238,12 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
 
           <View style={styles.heroStatus}>
             <View style={[styles.heroStatusDot, { backgroundColor: "#C6A15B" }]} />
-            <Text style={[styles.heroStatusText, { color: "#C6A15B" }]}>{phase.label}</Text>
+            <Text style={[styles.heroStatusText, { color: "#C6A15B" }]}>{phase.label}{journey.here ? ` · ${journey.here}` : ""}</Text>
           </View>
         </View>
 
-        {trip.status !== "cancelled" ? <StatusTrack status={trip.status} /> : null}
+        {trip.status !== "cancelled" ? <StatusTrack trip={trip} /> : null}
+        <TripsMapMobile trips={[trip]} height={280} focusedTripId={trip.trip_id} />
 
         {/* Carrier card */}
         <TouchableOpacity
@@ -350,15 +361,15 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
           </TouchableOpacity>
         ) : null}
 
-        {isOwner && nextStatus ? (
+        {isOwner && nextAction ? (
           <TouchableOpacity
             style={styles.endTripBtn}
             onPress={advanceStatus}
             activeOpacity={0.85}
             testID="end-trip-btn"
           >
-            <Ionicons name="checkmark-done-circle" size={20} color="#C6A15B" />
-            <Text style={styles.endTripText}>تحديث الحالة: {TRIP_STEP_LABEL[nextStatus]}</Text>
+            <Ionicons name={nextAction.motion === "moving" ? "navigate" : nextAction.motion === "arrived" ? "flag" : "pause"} size={20} color="#C6A15B" />
+            <Text style={styles.endTripText}>{nextAction.label}</Text>
           </TouchableOpacity>
         ) : null}
 

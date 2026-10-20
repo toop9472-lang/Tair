@@ -8,7 +8,9 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import ScreenHeader from "../components/ScreenHeader";
+import { CitySelectorSheet } from "../components/CitySelectorSheet";
 import { storefrontApi } from "../services/tairApi";
+import { coordsFor } from "../constants/cityCoords";
 
 const TEAL = "#1B3D2F";
 const BORDER = "#e2e8f0";
@@ -100,6 +102,7 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
   const [highlightTitle, setHighlightTitle] = useState("");
   const [stockName, setStockName] = useState("");
   const [stockQty, setStockQty] = useState("");
+  const [cityOpen, setCityOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!uid) return;
@@ -437,29 +440,22 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
         {tab === "location" && (
           <>
             <Section
-              title="موقع المتجر (GPS)"
+              title="مدينة المتجر"
               onSave={() => saveField({ location: s.location })}
             >
-              <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, { flex: 1, marginRight: 6 }]}
-                  value={String(s.location?.lat || "")}
-                  placeholder="خط العرض"
-                  keyboardType="numeric"
-                  onChangeText={(t) => setSettings({ ...s, location: { ...(s.location || {}), lat: parseFloat(t) || null } })}
-                />
-                <TextInput
-                  style={[styles.input, { flex: 1, marginLeft: 6 }]}
-                  value={String(s.location?.lng || "")}
-                  placeholder="خط الطول"
-                  keyboardType="numeric"
-                  onChangeText={(t) => setSettings({ ...s, location: { ...(s.location || {}), lng: parseFloat(t) || null } })}
-                />
-              </View>
+              <TouchableOpacity
+                style={styles.input}
+                onPress={() => setCityOpen(true)}
+                testID="store-city-btn"
+              >
+                <Text style={{ textAlign: "right", color: s.location?.city ? "#1B3D2F" : "#8A7B66", fontWeight: "800" }}>
+                  {s.location?.city || s.location?.address_label || "اختر المدينة"}
+                </Text>
+              </TouchableOpacity>
               <TextInput
                 style={styles.input}
                 value={s.location?.address_label || ""}
-                placeholder="العنوان (اختياري)"
+                placeholder="وصف قصير للموقع (اختياري)"
                 onChangeText={(t) => setSettings({ ...s, location: { ...(s.location || {}), address_label: t } })}
               />
             </Section>
@@ -728,6 +724,28 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
           </View>
         </View>
       </Modal>
+      <CitySelectorSheet
+        visible={cityOpen}
+        title="مدينة المتجر"
+        selected={settings?.location?.city || null}
+        onClose={() => setCityOpen(false)}
+        onSelect={(city) => {
+          if (!city) return;
+          const pos = coordsFor(city);
+          setSettings((prev) => ({
+            ...(prev || {}),
+            location: {
+              ...(prev?.location || {}),
+              city,
+              address_label: prev?.location?.address_label && prev.location.address_label !== prev.location.city
+                ? prev.location.address_label
+                : city,
+              lat: pos ? pos[0] : null,
+              lng: pos ? pos[1] : null,
+            },
+          }));
+        }}
+      />
     </View>
   );
 }

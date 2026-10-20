@@ -113,6 +113,20 @@ async def create_story(payload: StoryCreate, user_id: str = Query(...)):
         "views_count": 0,
     }
     await db.tair_stories.insert_one(doc)
+    try:
+        from services.moderation import notify_staff
+        caption = (payload.caption or "").strip()
+        await notify_staff(
+            db,
+            {"community"},
+            [user_id],
+            "قصة جديدة في المجتمع",
+            f"{user_name}: {caption or 'صورة جديدة'}"[:140],
+            "story_new",
+            {"story_id": story_id},
+        )
+    except Exception as exc:
+        print(f"[story notify] {exc}")
     return _serialize({**doc})
 
 
