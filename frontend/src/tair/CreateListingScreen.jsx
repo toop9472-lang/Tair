@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { X, Camera, MapPin, Bird, Video as VideoIcon, Play, Sparkles } from "lucide-react";
 import { T, S } from "./tairTheme";
-import { tairApi, ALL_LOCATIONS } from "./tairApi";
+import { tairApi } from "./tairApi";
+import { ALL_LOCATIONS, LocationPicker } from "./locations";
 import { TopBar, BottomSheet, SelectorItem } from "./TairUI";
 import { compressImage, getVideoDuration } from "./mediaUtils";
 import { AnalyticsEvents } from "./analytics";
@@ -561,16 +562,10 @@ export default function CreateListingScreen({ user, onBack, onCreated }) {
         onClose={() => setSheet(null)}
         title="اختر المدينة أو الدولة"
       >
-        {ALL_LOCATIONS.map((c) => (
-          <SelectorItem
-            key={c}
-            icon={<MapPin size={16} strokeWidth={2.2} />}
-            label={c}
-            active={form.city === c}
-            onClick={() => { setField("city", c); setSheet(null); }}
-            testId={`city-opt-${c}`}
-          />
-        ))}
+        <LocationPicker
+          selected={form.city}
+          onSelect={(c) => { if (c) { setField("city", c); setSheet(null); } }}
+        />
       </BottomSheet>
 
       <IdentifyBirdModal

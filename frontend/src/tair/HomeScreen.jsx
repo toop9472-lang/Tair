@@ -7,7 +7,8 @@ import {
   Store, Truck, LayoutGrid, Search, Boxes, Bed, GraduationCap, Zap, Footprints,
 } from "lucide-react";
 import { T, S } from "./tairTheme";
-import { tairApi, ALL_LOCATIONS } from "./tairApi";
+import { tairApi } from "./tairApi";
+import { LocationPicker } from "./locations";
 import { BottomSheet, SelectorItem, SearchField, EmptyState } from "./TairUI";
 import TairBanner, { BannerCircleBtn, PAGE_BG_STYLE } from "./TairBanner";
 import { Parrot, Canary, Dove, Falcon } from "./BirdArt";
@@ -195,23 +196,11 @@ export default function HomeScreen({ user, onOpenListing, onCreateListing, onOpe
         onClose={() => setCitySheet(false)}
         title="اختر المدينة أو الدولة"
       >
-        <SelectorItem
-          icon={<MapPin size={16} strokeWidth={2.2} />}
-          label="جميع المدن والدول"
-          active={!city}
-          onClick={() => { setCity(null); setCitySheet(false); }}
-          testId="city-item-all"
+        <LocationPicker
+          selected={city}
+          allowAll
+          onSelect={(c) => { setCity(c); setCitySheet(false); }}
         />
-        {ALL_LOCATIONS.map((c) => (
-          <SelectorItem
-            key={c}
-            icon={<MapPin size={16} strokeWidth={2.2} />}
-            label={c}
-            active={city === c}
-            onClick={() => { setCity(c); setCitySheet(false); }}
-            testId={`city-item-${c}`}
-          />
-        ))}
       </BottomSheet>
     </div>
   );

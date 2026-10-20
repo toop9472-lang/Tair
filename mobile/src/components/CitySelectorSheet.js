@@ -12,7 +12,7 @@ import {
   Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ALL_LOCATIONS } from "../constants/saudiCities";
+import { LOCATION_GROUPS, normalizePlace } from "../constants/saudiCities";
 
 /**
  * Trigger button — a large, tap-friendly icon+label pill.
@@ -63,15 +63,28 @@ export function CitySelectorSheet({
   selected,
   onSelect,
   onClose,
-  cities = ALL_LOCATIONS,
+  allowAll = false,
+  exclude = [],
 }) {
   const [query, setQuery] = useState("");
 
-  const filtered = useMemo(() => {
-    const q = query.trim();
-    if (!q) return cities;
-    return cities.filter((c) => c.includes(q));
-  }, [cities, query]);
+  const rows = useMemo(() => {
+    const q = normalizePlace(query);
+    const skip = new Set(exclude);
+    const out = [];
+    if (allowAll && !q) out.push({ key: "all", type: "all" });
+    LOCATION_GROUPS.forEach((group) => {
+      const cities = group.cities.filter((c) => {
+        if (skip.has(c)) return false;
+        if (!q) return true;
+        return normalizePlace(c).includes(q) || normalizePlace(group.label).includes(q);
+      });
+      if (!cities.length) return;
+      out.push({ key: `h-${group.id}`, type: "header", label: group.label });
+      cities.forEach((name) => out.push({ key: `${group.id}-${name}`, type: "city", name }));
+    });
+    return out;
+  }, [query, allowAll, exclude]);
 
   return (
     <Modal
@@ -114,22 +127,42 @@ export function CitySelectorSheet({
           </View>
 
           <FlatList
-            data={filtered}
-            keyExtractor={(c) => c}
+            data={rows}
+            keyExtractor={(row) => row.key}
             keyboardShouldPersistTaps="handled"
             style={{ maxHeight: 460 }}
             contentContainerStyle={{ paddingBottom: 24 }}
             renderItem={({ item }) => {
-              const isActive = item === selected;
+              if (item.type === "header") {
+                return <Text style={styles.group}>{item.label}</Text>;
+              }
+              if (item.type === "all") {
+                const isActive = !selected;
+                return (
+                  <TouchableOpacity
+                    style={[styles.item, isActive && styles.itemActive]}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      onSelect?.(null);
+                      onClose?.();
+                    }}
+                    data-testid="city-item-all"
+                  >
+                    <Ionicons name="earth-outline" size={18} color="#1B3D2F" />
+                    <Text style={[styles.itemText, isActive && styles.itemTextActive]}>كل المدن</Text>
+                  </TouchableOpacity>
+                );
+              }
+              const isActive = item.name === selected;
               return (
                 <TouchableOpacity
                   style={[styles.item, isActive && styles.itemActive]}
                   activeOpacity={0.7}
                   onPress={() => {
-                    onSelect?.(item);
+                    onSelect?.(item.name);
                     onClose?.();
                   }}
-                  data-testid={`city-item-${item}`}
+                  data-testid={`city-item-${item.name}`}
                 >
                   <Ionicons
                     name={isActive ? "checkmark-circle" : "location-outline"}
@@ -137,7 +170,7 @@ export function CitySelectorSheet({
                     color={isActive ? "#1B3D2F" : "#8A7B66"}
                   />
                   <Text style={[styles.itemText, isActive && styles.itemTextActive]}>
-                    {item}
+                    {item.name}
                   </Text>
                 </TouchableOpacity>
               );
@@ -223,6 +256,15 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "900",
     color: "#0F241C",
+  },
+  group: {
+    textAlign: "right",
+    color: "#8A6A2E",
+    fontSize: 12,
+    fontWeight: "800",
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 2,
   },
   closeBtn: {
     width: 36,

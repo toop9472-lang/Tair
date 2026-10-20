@@ -6,8 +6,9 @@ import {
   Map as MapIcon, List,
 } from "lucide-react";
 import { T, S } from "./tairTheme";
-import { tairApi, SAUDI_CITIES, ALL_LOCATIONS, TRIP_STATUS_LABEL } from "./tairApi";
-import { BottomSheet, SelectorItem, FilterChipButton, EmptyState, StatusPill } from "./TairUI";
+import { tairApi, SAUDI_CITIES, TRIP_STATUS_LABEL } from "./tairApi";
+import { LocationPicker } from "./locations";
+import { BottomSheet, FilterChipButton, EmptyState, StatusPill } from "./TairUI";
 import { toast } from "../hooks/use-toast";
 import TripsMap from "./TripsMap";
 import tripsHeader from "../assets/tair-design/headers/trips.jpg";
@@ -204,43 +205,19 @@ export default function TripsScreen({ user, onOpenTrip, onOpenNotifications }) {
       )}
 
       <BottomSheet open={sheet === "from"} onClose={() => setSheet(null)} title="مدينة الانطلاق">
-        <SelectorItem
-          icon={<MapPin size={16} strokeWidth={2.2} />}
-          label="الكل"
-          active={!fromCity}
-          onClick={() => { setFromCity(null); setSheet(null); }}
-          testId="from-city-all"
+        <LocationPicker
+          selected={fromCity}
+          allowAll
+          onSelect={(c) => { setFromCity(c); setSheet(null); }}
         />
-        {SAUDI_CITIES.map((c) => (
-          <SelectorItem
-            key={c}
-            icon={<MapPin size={16} strokeWidth={2.2} />}
-            label={c}
-            active={fromCity === c}
-            onClick={() => { setFromCity(c); setSheet(null); }}
-            testId={`from-city-${c}`}
-          />
-        ))}
       </BottomSheet>
 
       <BottomSheet open={sheet === "to"} onClose={() => setSheet(null)} title="مدينة الوصول">
-        <SelectorItem
-          icon={<MapPin size={16} strokeWidth={2.2} />}
-          label="الكل"
-          active={!toCity}
-          onClick={() => { setToCity(null); setSheet(null); }}
-          testId="to-city-all"
+        <LocationPicker
+          selected={toCity}
+          allowAll
+          onSelect={(c) => { setToCity(c); setSheet(null); }}
         />
-        {SAUDI_CITIES.map((c) => (
-          <SelectorItem
-            key={c}
-            icon={<MapPin size={16} strokeWidth={2.2} />}
-            label={c}
-            active={toCity === c}
-            onClick={() => { setToCity(c); setSheet(null); }}
-            testId={`to-city-${c}`}
-          />
-        ))}
       </BottomSheet>
 
       {showCreate && (
@@ -690,24 +667,21 @@ function CreateTripModal({ user, onClose, onCreated }) {
       </div>
 
       <BottomSheet open={fromSheetOpen} onClose={() => setFromSheetOpen(false)} title="مدينة الانطلاق">
-        {ALL_LOCATIONS.map((c) => (
-          <SelectorItem key={c} icon={<MapPin size={16} strokeWidth={2.2} />} label={c} active={form.from_city === c} onClick={() => { set("from_city", c); setFromSheetOpen(false); }} testId={`from-loc-${c}`} />
-        ))}
+        <LocationPicker selected={form.from_city} onSelect={(c) => { if (c) { set("from_city", c); setFromSheetOpen(false); } }} />
       </BottomSheet>
 
       <BottomSheet open={toSheetOpen} onClose={() => setToSheetOpen(false)} title="مدينة الوصول">
-        {ALL_LOCATIONS.map((c) => (
-          <SelectorItem key={c} icon={<MapPin size={16} strokeWidth={2.2} />} label={c} active={form.to_city === c} onClick={() => { set("to_city", c); setToSheetOpen(false); }} testId={`to-loc-${c}`} />
-        ))}
+        <LocationPicker selected={form.to_city} onSelect={(c) => { if (c) { set("to_city", c); setToSheetOpen(false); } }} />
       </BottomSheet>
 
       <BottomSheet open={waypointSheetOpen} onClose={() => setWaypointSheetOpen(false)} title="اختر المحافظات">
         <div style={{ padding: "6px 12px 12px", color: T.textMuted, fontSize: 12, textAlign: "right" }}>
           اختر المدن التي تمر بها الرحلة.
         </div>
-        {ALL_LOCATIONS.filter((c) => c !== form.from_city && c !== form.to_city).map((c) => (
-          <SelectorItem key={c} icon={<MapPin size={16} strokeWidth={2.2} />} label={c} active={form.waypoints.includes(c)} onClick={() => toggleWaypoint(c)} testId={`wp-loc-${c}`} />
-        ))}
+        <LocationPicker
+          exclude={[form.from_city, form.to_city]}
+          onSelect={(c) => { if (c) toggleWaypoint(c); }}
+        />
       </BottomSheet>
     </div>
   );

@@ -5,6 +5,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Search, MapPin, Feather, Music, Bird, Fish, Cat, Dog, Wheat, ShoppingBag, Landmark, Wrench, Rat, PawPrint, Bug, X, Sprout, Package, Bed, GraduationCap, Zap, Footprints } from "lucide-react";
 import { tairApi } from "./tairApi";
+import { LocationPicker } from "./locations";
 import marketHeader from "../assets/tair-design/headers/market.jpg";
 import auctionBanner from "../assets/tair-design/headers/auction_banner.jpg";
 import { TAIR, TAIR_PAGE_STYLE, TairAppHeader, TairAppBottomBar } from "./TairAppChrome";
@@ -50,7 +51,9 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [pickedCat, setPickedCat] = useState(null);
+  const [pickedCity, setPickedCity] = useState(null);
   const [catOpen, setCatOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
   const [families, setFamilies] = useState(FALLBACK_FAMILIES);
 
   useEffect(() => {
@@ -71,7 +74,7 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
     let alive = true;
     setLoading(true);
     tairApi
-      .feedListings({ limit: 40, family: pickedCat || undefined, q: query || undefined })
+      .feedListings({ limit: 40, family: pickedCat || undefined, city: pickedCity || undefined, q: query || undefined })
       .then((r) => {
         if (alive) setItems(Array.isArray(r?.items) ? r.items : []);
       })
@@ -80,7 +83,7 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
     return () => {
       alive = false;
     };
-  }, [pickedCat, query]);
+  }, [pickedCat, pickedCity, query]);
 
   const filtered = items;
 
@@ -115,12 +118,32 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
             <circle cx="16" cy="16" r="2.5" fill={TAIR.gold} />
           </svg>
         </button>
+        <button
+          onClick={() => setCityOpen(true)}
+          data-testid="market-city-btn"
+          aria-label="المدينة"
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            background: pickedCity ? TAIR.emerald : TAIR.card,
+            border: `1.5px solid ${TAIR.gold}`,
+            boxShadow: TAIR.softShadow,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          <MapPin size={18} color={TAIR.gold} />
+        </button>
 
         <div style={{ flex: 1, height: 44, borderRadius: 22, background: TAIR.card, border: `1px solid ${TAIR.divider}`, display: "flex", flexDirection: "row-reverse", alignItems: "center", gap: 8, padding: "0 14px", boxShadow: TAIR.softShadow }}>
           <Search size={18} color={TAIR.textSoft} />
           <input
             type="search"
-            placeholder={pickedCat ? families.find((c) => c.family_id === pickedCat)?.name_ar : "ابحث في السوق"}
+            placeholder={pickedCity || (pickedCat ? families.find((c) => c.family_id === pickedCat)?.name_ar : "ابحث في السوق")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             data-testid="market-search-input"
@@ -207,6 +230,24 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
 
       {/* الشريط السفلي */}
       <TairAppBottomBar active={activeTab} onChange={onTabChange} />
+
+      {cityOpen && (
+        <div onClick={() => setCityOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,36,28,0.35)", zIndex: 20, display: "flex", alignItems: "flex-end" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: TAIR.card, width: "100%", padding: 8, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 24, maxHeight: "80vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: "8px 8px 4px" }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: TAIR.emerald }}>مدينة الإعلان</div>
+              <button onClick={() => setCityOpen(false)} aria-label="إغلاق" style={{ width: 34, height: 34, borderRadius: 17, background: TAIR.bg, border: `1px solid ${TAIR.divider}`, cursor: "pointer", color: TAIR.emerald }}>
+                <X size={18} />
+              </button>
+            </div>
+            <LocationPicker
+              selected={pickedCity}
+              allowAll
+              onSelect={(c) => { setPickedCity(c); setCityOpen(false); }}
+            />
+          </div>
+        </div>
+      )}
 
       {catOpen && (
         <div onClick={() => setCatOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,36,28,0.35)", zIndex: 20, display: "flex", alignItems: "flex-end" }}>

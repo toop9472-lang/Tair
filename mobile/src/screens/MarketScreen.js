@@ -21,6 +21,7 @@ import { EmptyState, ErrorState, ListingSkeleton, PressableScale } from "../comp
 import AuctionMark from "../components/AuctionMark";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { listingsApi, speciesApi } from "../services/tairApi";
+import { CitySelectorSheet } from "../components/CitySelectorSheet";
 import { FALLBACK_FAMILIES, familyIcon, groupFamilies } from "../constants/marketFamilies";
 
 export default function MarketScreen({
@@ -44,6 +45,8 @@ export default function MarketScreen({
   const [searchFocus, setSearchFocus] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [pickedCat, setPickedCat] = useState(null);
+  const [pickedCity, setPickedCity] = useState(null);
+  const [cityOpen, setCityOpen] = useState(false);
   const [families, setFamilies] = useState(FALLBACK_FAMILIES);
 
   useEffect(() => {
@@ -68,7 +71,7 @@ export default function MarketScreen({
       setError(null);
     }
     try {
-      const r = await listingsApi.feed({ limit: 40, family: pickedCat, q: debouncedQuery });
+      const r = await listingsApi.feed({ limit: 40, family: pickedCat, city: pickedCity, q: debouncedQuery });
       setItems(Array.isArray(r?.items) ? r.items : []);
       setError(null);
     } catch (e) {
@@ -78,11 +81,11 @@ export default function MarketScreen({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [pickedCat, debouncedQuery]);
+  }, [pickedCat, pickedCity, debouncedQuery]);
 
   useEffect(() => {
     load();
-  }, [pickedCat, debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pickedCat, pickedCity, debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const listData = useMemo(() => items, [items]);
   const catLabel = families.find((c) => c.family_id === pickedCat)?.name_ar;
@@ -109,6 +112,16 @@ export default function MarketScreen({
             <Ionicons name="grid" size={18} color={TAIR.gold} />
           </PressableScale>
 
+          <PressableScale
+            style={[styles.catBtn, pickedCity && styles.catBtnOn]}
+            onPress={() => setCityOpen(true)}
+            haptic
+            scaleTo={0.94}
+            testID="market-city-btn"
+          >
+            <Ionicons name="location" size={18} color={TAIR.gold} />
+          </PressableScale>
+
           <View style={[styles.searchBox, searchFocus && styles.searchBoxOn]}>
             <Ionicons name="search" size={18} color={searchFocus ? TAIR.emerald : TAIR.faint} />
             <TextInput
@@ -131,19 +144,34 @@ export default function MarketScreen({
           </View>
         </View>
 
-        {pickedCat ? (
+        {pickedCat || pickedCity ? (
           <View style={styles.filterRow}>
-            <View style={styles.filterPill}>
-              <Text style={styles.filterPillText}>{catLabel}</Text>
-              <PressableScale
-                onPress={() => setPickedCat(null)}
-                scaleTo={0.9}
-                hitSlop={8}
-                testID="clear-category"
-              >
-                <Ionicons name="close" size={14} color={TAIR.gold} />
-              </PressableScale>
-            </View>
+            {pickedCat ? (
+              <View style={styles.filterPill}>
+                <Text style={styles.filterPillText}>{catLabel}</Text>
+                <PressableScale
+                  onPress={() => setPickedCat(null)}
+                  scaleTo={0.9}
+                  hitSlop={8}
+                  testID="clear-category"
+                >
+                  <Ionicons name="close" size={14} color={TAIR.gold} />
+                </PressableScale>
+              </View>
+            ) : null}
+            {pickedCity ? (
+              <View style={styles.filterPill}>
+                <Text style={styles.filterPillText}>{pickedCity}</Text>
+                <PressableScale
+                  onPress={() => setPickedCity(null)}
+                  scaleTo={0.9}
+                  hitSlop={8}
+                  testID="clear-city"
+                >
+                  <Ionicons name="close" size={14} color={TAIR.gold} />
+                </PressableScale>
+              </View>
+            ) : null}
           </View>
         ) : null}
 
@@ -221,10 +249,10 @@ export default function MarketScreen({
             ) : (
               <EmptyState
                 icon="storefront-outline"
-                title={pickedCat ? `لا توجد إعلانات في «${catLabel}»` : "لا توجد عروض حالياً"}
-                subtitle={pickedCat ? "جرّب فئة أخرى أو اعرض السوق كاملاً." : "كن أول من يعرض اليوم."}
-                actionLabel={pickedCat ? "عرض جميع الفئات" : undefined}
-                onAction={pickedCat ? () => setPickedCat(null) : undefined}
+                title={pickedCat || pickedCity ? "لا توجد إعلانات في هذا الاختيار" : "لا توجد عروض حالياً"}
+                subtitle={pickedCity ? `ما فيه عروض في ${pickedCity} حالياً.` : pickedCat ? "جرّب فئة أخرى أو اعرض السوق كاملاً." : "كن أول من يعرض اليوم."}
+                actionLabel={pickedCat || pickedCity ? "مسح التصفية" : undefined}
+                onAction={pickedCat || pickedCity ? () => { setPickedCat(null); setPickedCity(null); } : undefined}
                 testID="market-empty"
               />
             )
@@ -244,6 +272,15 @@ export default function MarketScreen({
       >
         <Ionicons name="add" size={28} color={TAIR.gold} />
       </PressableScale>
+
+      <CitySelectorSheet
+        visible={cityOpen}
+        title="مدينة الإعلان"
+        selected={pickedCity}
+        allowAll
+        onSelect={setPickedCity}
+        onClose={() => setCityOpen(false)}
+      />
 
       <Modal transparent visible={catOpen} animationType="slide" onRequestClose={() => setCatOpen(false)}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setCatOpen(false)}>
@@ -350,6 +387,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   filterRow: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: 8,
     paddingHorizontal: 16,
     paddingTop: 8,
     alignItems: "flex-end",

@@ -22,7 +22,6 @@ import { profileApi, tripsApi } from "../services/tairApi";
 import TripsMapMobile from "../components/TripsMapMobile";
 import TripRequestSection from "../components/TripRequestSection";
 import { CityTriggerButton, CitySelectorSheet } from "../components/CitySelectorSheet";
-import { SAUDI_CITIES, ALL_LOCATIONS } from "../constants/saudiCities";
 import ScreenHeader from "../components/ScreenHeader";
 import TairHeader from "../components/TairHeader";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
@@ -30,7 +29,6 @@ import { EmptyState, ErrorState, ListSkeleton } from "../components/TairUI";
 import { displayLocalPhone, openWhatsApp, savedContactPhone, toTel } from "../utils/contactPhone";
 import { tripPhase } from "../utils/tripStatus";
 
-const CITIES = ALL_LOCATIONS;
 const VEHICLES = ["سيدان", "SUV", "بيك أب", "شاحنة صغيرة"];
 
 function localDay(date) {
