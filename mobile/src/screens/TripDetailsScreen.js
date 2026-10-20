@@ -170,6 +170,32 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
     );
   };
 
+  const shareLiveLocation = async () => {
+    const uid = user?.user_id || user?.id;
+    if (!uid) return;
+    let Location;
+    try {
+      Location = require("expo-location");
+    } catch (e) {
+      Alert.alert("الموقع", "هذه النسخة لا تتضمن خدمة الموقع بعد.");
+      return;
+    }
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status !== "granted") {
+        Alert.alert("الموقع", "اسمح بقراءة الموقع ليظهر مكان المركبة على الخريطة.");
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      await tripsApi.shareLocation(trip.trip_id, uid, pos.coords.latitude, pos.coords.longitude);
+      const fresh = await tripsApi.get(trip.trip_id);
+      setTrip(fresh);
+      Alert.alert("تم", "ظهر موقعك على خريطة الرحلة.");
+    } catch (e) {
+      Alert.alert("تعذّر إرسال الموقع", e?.message || "حاول مرة أخرى");
+    }
+  };
+
   const advanceStatus = () => {
     if (!nextAction) return;
     Alert.alert("تحديث الرحلة", `${nextAction.label}؟`, [
@@ -358,6 +384,18 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
           >
             <Ionicons name="cube" size={20} color="#C6A15B" />
             <Text style={styles.endTripText}>أحجز قفصاً · متبقٍ {trip.available_cages}</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {isOwner && !["completed", "cancelled"].includes(trip.status) ? (
+          <TouchableOpacity
+            style={styles.endTripBtn}
+            onPress={shareLiveLocation}
+            activeOpacity={0.85}
+            testID="share-live-location-btn"
+          >
+            <Ionicons name="navigate-circle" size={20} color="#C6A15B" />
+            <Text style={styles.endTripText}>أرسل موقعي الآن</Text>
           </TouchableOpacity>
         ) : null}
 

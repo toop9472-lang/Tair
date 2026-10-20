@@ -29,6 +29,34 @@ export function journeyState(trip) {
   return { motion, stopIndex, last, cities, here, next, label };
 }
 
+const LIVE_WINDOW_MS = 12 * 60 * 60 * 1000;
+
+export function vehiclePosition(trip, journey, placed) {
+  const lat = Number(trip?.live_lat);
+  const lng = Number(trip?.live_lng);
+  const at = Date.parse(trip?.live_at || "");
+  const fresh = Number.isFinite(lat) && Number.isFinite(lng)
+    && Math.abs(lat) <= 90 && Math.abs(lng) <= 180
+    && Number.isFinite(at)
+    && Date.now() - at < LIVE_WINDOW_MS
+    && Date.now() - at > -60 * 1000;
+  if (fresh && journey?.motion !== "arrived" && placed?.length) {
+    return { pos: [lat, lng], live: true };
+  }
+  const current = [...(placed || [])].reverse().find((point) => point.index <= journey.stopIndex) || placed?.[0];
+  const upcoming = (placed || []).find((point) => point.index > journey.stopIndex);
+  if (journey.motion === "moving" && upcoming && current) {
+    return {
+      pos: [(current.pos[0] + upcoming.pos[0]) / 2, (current.pos[1] + upcoming.pos[1]) / 2],
+      live: false,
+    };
+  }
+  if (journey.motion === "arrived" && placed?.length) {
+    return { pos: placed[placed.length - 1].pos, live: false };
+  }
+  return { pos: current?.pos, live: false };
+}
+
 export function nextJourneyAction(trip) {
   if (!trip || trip.status === "cancelled" || trip.status === "completed") return null;
   const j = journeyState(trip);

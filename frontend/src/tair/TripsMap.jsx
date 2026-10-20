@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import { Truck, MapPin, Calendar } from "lucide-react";
 import { T } from "./tairTheme";
 import { coordsFor, SAUDI_CENTER, SAUDI_ZOOM } from "./saudiCityCoords";
-import { journeyState } from "./tripJourney";
+import { journeyState, vehiclePosition } from "./tripJourney";
 
 // Fix Leaflet's default icon path (breaks in webpack builds)
 delete L.Icon.Default.prototype._getIconUrl;
@@ -71,24 +71,20 @@ export default function TripsMap({
         .filter((point) => point.pos);
       if (placed.length < 2) continue;
       const positions = placed.map((point) => point.pos);
-      const current = [...placed].reverse().find((point) => point.index <= journey.stopIndex) || placed[0];
-      const upcoming = placed.find((point) => point.index > journey.stopIndex);
-      let marker = current.pos;
-      if (journey.motion === "moving" && upcoming) {
-        marker = [(current.pos[0] + upcoming.pos[0]) / 2, (current.pos[1] + upcoming.pos[1]) / 2];
-      }
-      if (journey.motion === "arrived") marker = positions[positions.length - 1];
+      const spot = vehiclePosition(t, journey, placed);
       routes.push({
         id: t.trip_id,
         trip: t,
         positions,
         done: placed.filter((point) => point.index <= journey.stopIndex).map((point) => point.pos),
         rest: placed.filter((point) => point.index >= journey.stopIndex).map((point) => point.pos),
-        marker,
+        marker: spot.pos,
+        live: spot.live,
         label: journey.label,
         here: journey.here,
       });
       allPositions.push(...positions);
+      if (spot.pos) allPositions.push(spot.pos);
       placed.forEach((point) => {
         const kind = point.index === 0 ? "from" : point.index === journey.last ? "to" : "stop";
         if (!seen.has(point.name)) seen.set(point.name, { pos: point.pos, type: kind });
@@ -139,7 +135,7 @@ export default function TripsMap({
           <Marker position={r.marker} icon={vehicleIcon} eventHandlers={{ click: () => onTripClick?.(r.trip.trip_id) }}>
             <Popup>
               <div style={styles.popup} dir="rtl">
-                <div style={styles.popupTitle}>{r.label}{r.here ? ` · ${r.here}` : ""}</div>
+                <div style={styles.popupTitle}>{r.label}{r.live ? " · موقع مباشر" : r.here ? ` · ${r.here}` : ""}</div>
               </div>
             </Popup>
           </Marker>

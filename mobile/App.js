@@ -198,7 +198,11 @@ function TairApp() {
         else if (t === "story_new") setCurrentPage("forum");
         else if (t.startsWith("chat")) setCurrentPage("messages");
         else if (t.startsWith("order")) setCurrentPage("orders");
-        else if (t.startsWith("trip")) setCurrentPage("trips");
+        else if (t.startsWith("trip")) {
+          if (data?.trip_id) setModal({ name: "trip_details", params: { tripId: data.trip_id } });
+          else setCurrentPage("trips");
+        }
+        else if (t === "community_chat") setCurrentPage("forum");
         else if (t.startsWith("listing") && data?.listing_id) {
           setModal({ name: "listing_details", params: { listingId: data.listing_id } });
         }

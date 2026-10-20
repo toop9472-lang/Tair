@@ -127,10 +127,18 @@ export const tairApi = {
     });
     return data.items || [];
   },
-  updateTripStatus: async (tripId, status, note, userId) => {
+  updateTripStatus: async (tripId, status, note, userId, extra = {}) => {
     const { data } = await client.patch(
       `/trips/${tripId}/status`,
-      { status, note },
+      { status, note, motion: extra.motion ?? null, stop_index: extra.stop_index ?? null },
+      { params: { user_id: userId } },
+    );
+    return data;
+  },
+  shareTripLocation: async (tripId, userId, lat, lng) => {
+    const { data } = await client.patch(
+      `/trips/${tripId}/location`,
+      { lat, lng },
       { params: { user_id: userId } },
     );
     return data;
@@ -430,14 +438,6 @@ export const tairApi = {
   },
   orderDispute: async (orderId, userId, payload) => {
     const { data } = await client.post(`/orders/${orderId}/dispute`, payload, {
-      params: { user_id: userId },
-    });
-    return data;
-  },
-
-  // Trip status
-  updateTripStatus: async (tripId, status, userId) => {
-    const { data } = await client.patch(`/trips/${tripId}/status`, { status }, {
       params: { user_id: userId },
     });
     return data;

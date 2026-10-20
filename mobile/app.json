@@ -60,6 +60,12 @@
       "expo-apple-authentication",
       "expo-asset",
       "expo-tracking-transparency",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "يستخدم طير موقعك أثناء الرحلة ليظهر مكان المركبة على الخريطة."
+        }
+      ],
       "./plugins/withFmtPodfileFix.js"
     ],
     "ios": {
@@ -76,6 +82,7 @@
         "NSPhotoLibraryUsageDescription": "يستخدم التطبيق مكتبة الصور لاختيار ورفع مقاطع الريلز",
         "NSPhotoLibraryAddUsageDescription": "يحتاج التطبيق صلاحية إضافة الوسائط عند مشاركة أو حفظ المحتوى",
         "NSUserTrackingUsageDescription": "يستخدم هذا التطبيق معرّف الإعلان لتقديم إعلانات مخصصة",
+        "NSLocationWhenInUseUsageDescription": "يستخدم طير موقعك أثناء الرحلة ليظهر مكان المركبة على الخريطة.",
         "GADApplicationIdentifier": "ca-app-pub-5132559433385403~1073385732",
         "UIRequiresFullScreen": false,
         "UISupportedInterfaceOrientations": [
@@ -209,7 +216,9 @@
       "permissions": [
         "INTERNET",
         "VIBRATE",
-        "AD_ID"
+        "AD_ID",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
       ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"

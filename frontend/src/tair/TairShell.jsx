@@ -32,6 +32,7 @@ export default function TairShell({ user, onLogout }) {
     () => !localStorage.getItem(ONBOARDING_KEY),
   );
   const [tab, setTab] = useState("home");
+  const [focusTripId, setFocusTripId] = useState(null);
   const [overlay, setOverlay] = useState(null);
   const [unread, setUnread] = useState(0);
   const [unreadNotifs, setUnreadNotifs] = useState(0);
@@ -92,6 +93,19 @@ export default function TairShell({ user, onLogout }) {
     document.title = "طير — سوق الطيور والحيوانات الأليفة";
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const listing = params.get("listing");
+    const trip = params.get("trip");
+    const nextTab = params.get("tab");
+    if (listing) setOverlay({ name: "listing-details", payload: { listingId: listing } });
+    if (trip) {
+      setFocusTripId(trip);
+      setTab("trips");
+    } else if (nextTab === "messages") setTab("messages");
+    else if (nextTab === "forum" || nextTab === "community") setTab("forum");
+  }, []);
+
   const completeOnboarding = () => {
     localStorage.setItem(ONBOARDING_KEY, "1");
     setShowOnboarding(false);
@@ -108,7 +122,10 @@ export default function TairShell({ user, onLogout }) {
 
   const openListing = (listingId) =>
     setOverlay({ name: "listing-details", payload: { listingId } });
-  const openTrip = () => setTab("trips");
+  const openTrip = (tripId) => {
+    if (typeof tripId === "string" && tripId) setFocusTripId(tripId);
+    setTab("trips");
+  };
   const openPost = (postId) =>
     setOverlay({ name: "post-details", payload: { postId } });
   const openForumCategory = (category, categoryName) =>
@@ -259,7 +276,7 @@ export default function TairShell({ user, onLogout }) {
         />
       )}
       {tab === "trips" && (
-        <TripsScreen user={user} onOpenTrip={openTrip} onOpenNotifications={() => setOverlay({ name: "notifications" })} />
+        <TripsScreen user={user} focusTripId={focusTripId} onOpenTrip={openTrip} onOpenNotifications={() => setOverlay({ name: "notifications" })} />
       )}
       {tab === "messages" && (
         <MessagesScreen user={user} onOpenThread={openThread} onOpenNotifications={() => setOverlay({ name: "notifications" })} />

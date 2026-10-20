@@ -118,6 +118,11 @@ export const tripsApi = {
       method: "PATCH",
       body: JSON.stringify({ status, note, motion: extra.motion, stop_index: extra.stop_index }),
     }),
+  shareLocation: (id, userId, lat, lng) =>
+    req(`/api/trips/${id}/location?user_id=${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ lat, lng }),
+    }),
   cancel: (id, userId) =>
     req(`/api/trips/${id}?user_id=${encodeURIComponent(userId)}`, {
       method: "DELETE",

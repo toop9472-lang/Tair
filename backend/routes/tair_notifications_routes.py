@@ -30,6 +30,22 @@ def _now():
     return datetime.now(timezone.utc)
 
 
+def notification_url(notif_type: str, data: Optional[Dict[str, Any]] = None) -> str:
+    """Where a closed-app tap should land. The web app reads these query keys."""
+    data = data or {}
+    if data.get("trip_id"):
+        return f"/?trip={data['trip_id']}"
+    if data.get("listing_id"):
+        return f"/?listing={data['listing_id']}"
+    if data.get("topic_id"):
+        return f"/?topic={data['topic_id']}"
+    if notif_type == "community_chat":
+        return "/?tab=forum"
+    if notif_type and str(notif_type).startswith("chat"):
+        return "/?tab=messages"
+    return "/"
+
+
 async def create_tair_notification(
     user_id: str,
     title: str,
@@ -59,6 +75,7 @@ async def create_tair_notification(
             title=title,
             body=body,
             data={"type": notif_type, **(data or {})},
+            url=notification_url(notif_type, data),
         )
     except Exception as exc:
         print(f"[tair_notification] web push failed: {exc}")

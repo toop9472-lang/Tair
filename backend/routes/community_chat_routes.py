@@ -7,11 +7,11 @@ import os
 import re
 import uuid
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 
-from services.moderation import moderator_scopes
+from services.moderation import moderator_scopes, notify_staff
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -136,6 +136,27 @@ async def send_chat(payload: ChatMessage, user_id: str = Query(...)):
         "created_at": _now(),
     }
     await db.tair_community_chat.insert_one(doc)
+    try:
+        since = _now() - timedelta(minutes=15)
+        recent = await db.tair_notifications.find_one({
+            "type": "community_chat",
+            "data.sender_id": user_id,
+            "created_at": {"$gte": since},
+        })
+        if not recent:
+            preview = text if len(text) <= 80 else text[:77] + "…"
+            sender = doc["user_name"]
+            await notify_staff(
+                db,
+                ["community"],
+                [user_id],
+                "رسالة في الدردشة العامة",
+                f"{sender}: {preview}",
+                "community_chat",
+                {"sender_id": user_id},
+            )
+    except Exception as exc:
+        logger.warning("community chat notify: %s", exc)
     return {"success": True, "msg_id": msg_id, "is_moderator": is_mod}
 
 

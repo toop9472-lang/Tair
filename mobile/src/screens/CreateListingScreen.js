@@ -704,10 +704,10 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             </Field>
           </View>
 
-          <Field label="الحي (اختياري)">
+          <Field label="حي أو قرية (اختياري)">
             <TextInput
               style={styles.input}
-              placeholder="حي النرجس"
+              placeholder="حي النرجس أو اسم القرية"
               placeholderTextColor="#8A7B66"
               value={form.district}
               onChangeText={(v) => set("district", v)}

@@ -17,10 +17,12 @@ from models.trip import (
     RequestStatusEvent,
     TripStatusEvent,
     TripStatusUpdate,
+    TripLocationUpdate,
 )
 from auth.actor import require_actor
 from services.moderation import moderator_scopes
 from models.places import city_match_values
+from services.trip_motion import motion_copy
 
 router = APIRouter(prefix="/trips", tags=["Tair-Trips"])
 
@@ -50,11 +52,39 @@ def _norm_digits(s):
     return "".join(out)
 
 
+async def _notify_bookers(doc: dict, title: str, body: str, notif_type: str = "trip_motion"):
+    if not doc or not title:
+        return
+    try:
+        from routes.tair_notifications_routes import create_tair_notification
+    except Exception as exc:
+        print(f"[trip bookers] import failed: {exc}")
+        return
+    carrier = doc.get("carrier_id")
+    seen = set()
+    for booking in doc.get("bookings") or []:
+        uid = (booking or {}).get("user_id")
+        if not uid or uid == carrier or uid in seen:
+            continue
+        seen.add(uid)
+        try:
+            await create_tair_notification(
+                user_id=uid,
+                title=title,
+                body=body,
+                notif_type=notif_type,
+                data={"trip_id": doc.get("trip_id"), "type": notif_type},
+            )
+        except Exception as exc:
+            print(f"[trip bookers] {exc}")
+
+
 def _serialize(doc: dict) -> dict:
     if not doc:
         return doc
     doc.pop("_id", None)
-    for key in ("depart_at", "eta_at", "created_at", "updated_at"):
+    doc.pop("bookings", None)
+    for key in ("depart_at", "eta_at", "created_at", "updated_at", "live_at"):
         val = doc.get(key)
         if isinstance(val, datetime):
             doc[key] = val.isoformat()
@@ -423,6 +453,37 @@ async def update_trip_status(
         },
     )
     fresh = await db.trips.find_one({"trip_id": trip_id})
+    if payload.status != "completed":
+        title, body = motion_copy(fresh, motion, stop_index)
+        await _notify_bookers(fresh, title, body)
+    return _serialize(fresh)
+
+
+@router.patch("/{trip_id}/location")
+async def update_trip_location(
+    trip_id: str,
+    payload: TripLocationUpdate,
+    user_id: str = Query(...),
+    actor: str = Depends(require_actor),
+):
+    """Carrier shares the vehicle's current point. The map prefers it while it is fresh."""
+    doc = await db.trips.find_one({"trip_id": trip_id})
+    if not doc:
+        raise HTTPException(404, "الرحلة غير موجودة")
+    if doc.get("carrier_id") != user_id:
+        raise HTTPException(403, "هذه الخطوة للموصل")
+    if doc.get("status") in ("completed", "cancelled"):
+        raise HTTPException(400, "هذه الرحلة مغلقة")
+    await db.trips.update_one(
+        {"trip_id": trip_id},
+        {"$set": {
+            "live_lat": payload.lat,
+            "live_lng": payload.lng,
+            "live_at": _now(),
+            "updated_at": _now(),
+        }},
+    )
+    fresh = await db.trips.find_one({"trip_id": trip_id})
     return _serialize(fresh)
 
 
@@ -463,18 +524,24 @@ async def book_cage(trip_id: str, user_id: str = Query(...), actor: str = Depend
     if doc.get("status") in ("completed", "cancelled", "arrived"):
         raise HTTPException(400, "هذه الرحلة لا تقبل الحجز")
     booking_id = f"book_{uuid.uuid4().hex[:12]}"
+    user = await _user_brief(user_id)
+    name = (user or {}).get("name") or "مربي"
+    booking = {
+        "booking_id": booking_id,
+        "user_id": user_id,
+        "name": name,
+        "created_at": _now(),
+    }
     res = await db.trips.update_one(
         {"trip_id": trip_id, "available_cages": {"$gte": 1}},
         {
             "$inc": {"available_cages": -1, "bookings_count": 1},
-            "$push": {"bookings_ids": booking_id},
+            "$push": {"bookings_ids": booking_id, "bookings": booking},
             "$set": {"updated_at": _now()},
         },
     )
     if res.modified_count != 1:
         raise HTTPException(400, "لا توجد أقفاص متاحة")
-    user = await _user_brief(user_id)
-    name = (user or {}).get("name") or "مربي"
     carrier_id = doc.get("carrier_id")
     try:
         from routes.tair_notifications_routes import create_tair_notification
@@ -530,4 +597,6 @@ async def cancel_trip(trip_id: str, user_id: str = Query(...), actor: str = Depe
         {"trip_id": trip_id},
         {"$set": {"status": "cancelled", "updated_at": _now()}},
     )
+    route = f"{doc.get('from_city') or ''} → {doc.get('to_city') or ''}".strip()
+    await _notify_bookers(doc, "أُلغيت الرحلة", f"ألغى الموصل الرحلة {route}", "trip_cancelled")
     return {"success": True, "trip_id": trip_id, "mode": "soft"}

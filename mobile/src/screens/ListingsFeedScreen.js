@@ -18,7 +18,6 @@ import Constants from "expo-constants";
 import { listingsApi, speciesApi } from "../services/tairApi";
 import { TairBanner } from "../components/TairBanner";
 import { CitySelectorSheet } from "../components/CitySelectorSheet";
-import { ALL_LOCATIONS } from "../constants/saudiCities";
 
 // Resolve possibly-relative media URLs from backend (when R2 is unavailable)
 const API_BASE =
@@ -31,20 +30,6 @@ const resolveMediaUrl = (u) => {
   if (u.startsWith("/")) return `${API_BASE}${u}`;
   return u;
 };
-
-const CITIES = [
-  "الكل",
-  "الرياض",
-  "جدة",
-  "مكة",
-  "المدينة",
-  "الدمام",
-  "الأحساء",
-  "الطائف",
-  "بريدة",
-  "تبوك",
-  "أبها",
-];
 
 const formatPrice = (sar) =>
   new Intl.NumberFormat("ar-SA", { maximumFractionDigits: 0 }).format(sar) + " ر.س";

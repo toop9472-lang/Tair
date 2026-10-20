@@ -132,7 +132,10 @@ async def feed_listings(
 ):
     query: dict = {"status": "active", "is_flagged": False}
     if city:
-        query["city"] = {"$in": city_match_values(city)}
+        names = city_match_values(city)
+        query.setdefault("$and", []).append(
+            {"$or": [{"city": {"$in": names}}, {"district": {"$in": names}}]}
+        )
     if category:
         query["category"] = category
     if species:
@@ -163,6 +166,8 @@ async def feed_listings(
         query["$or"] = [
             {"title": {"$regex": q, "$options": "i"}},
             {"description": {"$regex": q, "$options": "i"}},
+            {"district": {"$regex": q, "$options": "i"}},
+            {"city": {"$regex": q, "$options": "i"}},
         ]
 
     cursor = (

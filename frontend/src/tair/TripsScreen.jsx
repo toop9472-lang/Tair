@@ -1,7 +1,7 @@
 // طير — Trips list with premium standout cards + organized contact actions
 import React, { useEffect, useState } from "react";
 import {
-  Truck, Plus, MapPin, Calendar, Package, Snowflake, ArrowLeftRight,
+  Truck, Plus, MapPin, Calendar, Package, Snowflake, ArrowLeftRight, Navigation,
   X, Car, Wallet, Phone, MessageCircle, Star, Route, Send, Clock, Trash2,
   Map as MapIcon, List,
 } from "lucide-react";
@@ -11,11 +11,12 @@ import { LocationPicker } from "./locations";
 import { BottomSheet, FilterChipButton, EmptyState, StatusPill } from "./TairUI";
 import { toast } from "../hooks/use-toast";
 import TripsMap from "./TripsMap";
+import { nextJourneyAction } from "./tripJourney";
 import tripsHeader from "../assets/tair-design/headers/trips.jpg";
 import { TAIR, TAIR_PAGE_STYLE, TairAppHeader } from "./TairAppChrome";
 import { toWhatsAppPhone } from "./contactPhone";
 
-export default function TripsScreen({ user, onOpenTrip, onOpenNotifications }) {
+export default function TripsScreen({ user, onOpenTrip, onOpenNotifications, focusTripId }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fromCity, setFromCity] = useState(null);
@@ -38,6 +39,18 @@ export default function TripsScreen({ user, onOpenTrip, onOpenNotifications }) {
   };
 
   useEffect(load, [fromCity, toCity]);
+
+  useEffect(() => {
+    if (!focusTripId) return;
+    let alive = true;
+    setFocusedTripId(focusTripId);
+    setViewMode("map");
+    tairApi.getTrip(focusTripId).then((trip) => {
+      if (!alive || !trip?.trip_id) return;
+      setTrips((prev) => (prev.some((t) => t.trip_id === trip.trip_id) ? prev : [trip, ...prev]));
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [focusTripId]);
 
   const uid = user?.id || user?.user_id;
 
@@ -461,6 +474,58 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
         </button>
       )}
 
+      {isOwn && !["completed", "cancelled"].includes(trip.status) ? (
+        <div style={styles.ownerActions} onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            style={styles.ownerBtn}
+            data-testid={`share-location-${trip.trip_id}`}
+            onClick={() => {
+              if (!navigator.geolocation) {
+                toast({ title: "المتصفح لا يشارك الموقع", variant: "destructive" });
+                return;
+              }
+              navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                  await tairApi.shareTripLocation(trip.trip_id, userId, pos.coords.latitude, pos.coords.longitude);
+                  toast({ title: "ظهر موقعك على الخريطة" });
+                  onDeleted?.();
+                } catch (err) {
+                  toast({ title: "تعذّر إرسال الموقع", description: err.response?.data?.detail || err.message, variant: "destructive" });
+                }
+              }, () => toast({ title: "لم يُسمح بقراءة الموقع", variant: "destructive" }));
+            }}
+          >
+            <Navigation size={14} strokeWidth={2.4} />
+            <span>أرسل موقعي الآن</span>
+          </button>
+          {nextJourneyAction(trip) ? (
+            <button
+              type="button"
+              style={styles.ownerBtn}
+              data-testid={`advance-trip-${trip.trip_id}`}
+              onClick={async () => {
+                const action = nextJourneyAction(trip);
+                if (!action) return;
+                try {
+                  await tairApi.updateTripStatus(trip.trip_id, action.status, action.label, userId, {
+                    motion: action.motion,
+                    stop_index: action.stop_index,
+                  });
+                  toast({ title: action.label });
+                  onDeleted?.();
+                } catch (err) {
+                  toast({ title: "تعذّر تحديث الرحلة", description: err.response?.data?.detail || err.message, variant: "destructive" });
+                }
+              }}
+            >
+              <Truck size={14} strokeWidth={2.4} />
+              <span>{nextJourneyAction(trip).label}</span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* Organized Contact Actions — 3 clear buttons */}
       {(trip.carrier_whatsapp || trip.carrier_phone) && (
         <div style={styles.contactRow}>
@@ -876,6 +941,19 @@ const styles = {
     padding: "12px 16px 16px",
     borderTop: `1px solid ${T.divider}`,
     background: "#fafafa",
+  },
+  ownerActions: {
+    display: "flex", flexDirection: "row-reverse", gap: 8,
+    margin: "0 20px 12px",
+  },
+  ownerBtn: {
+    flex: 1,
+    display: "flex", flexDirection: "row-reverse",
+    alignItems: "center", justifyContent: "center", gap: 6,
+    padding: "10px 8px", borderRadius: 12,
+    background: "#1B3D2F",
+    color: "#C6A15B", fontSize: 13, fontWeight: 800,
+    border: "none", cursor: "pointer", fontFamily: "inherit",
   },
   viewOnMapBtn: {
     display: "flex", flexDirection: "row-reverse",

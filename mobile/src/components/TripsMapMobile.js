@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { WebView } from "react-native-webview";
 import { coordsFor } from "../constants/cityCoords";
-import { journeyState } from "../utils/tripJourney";
+import { journeyState, vehiclePosition } from "../utils/tripJourney";
 
 function buildHtml(trips, focusedTripId) {
   const routes = [];
@@ -16,17 +16,12 @@ function buildHtml(trips, focusedTripId) {
       .map((name, index) => ({ name, index, pos: coordsFor(name) }))
       .filter((point) => point.pos);
     if (placed.length < 2) continue;
-    const current = placed.filter((point) => point.index <= journey.stopIndex).pop() || placed[0];
-    const upcoming = placed.find((point) => point.index > journey.stopIndex);
-    let marker = current.pos;
-    if (journey.motion === "moving" && upcoming) {
-      marker = [(current.pos[0] + upcoming.pos[0]) / 2, (current.pos[1] + upcoming.pos[1]) / 2];
-    }
-    if (journey.motion === "arrived") marker = placed[placed.length - 1].pos;
+    const spot = vehiclePosition(t, journey, placed);
     routes.push({
       id: t.trip_id,
       points: placed,
-      marker,
+      marker: spot.pos,
+      live: spot.live,
       motion: journey.motion,
       label: journey.label,
       here: journey.here,
@@ -122,12 +117,13 @@ function buildHtml(trips, focusedTripId) {
         L.polyline(positions, { color: '#C6A15B', weight: 3, opacity: 0.8, dashArray: '7 7' }).addTo(map);
       }
       bounds.push(...positions);
+      if (r.marker) bounds.push(r.marker);
       const vehicle = L.marker(r.marker, {
         icon: L.divIcon({ className: '', html: '<div class="pin vehicle"></div>', iconSize: [26, 26], iconAnchor: [13, 13] })
       }).addTo(map);
       vehicle.bindPopup(
         '<div class="popup-title">' + r.from + ' → ' + r.to + '</div>' +
-        '<div class="popup-meta">' + r.label + (r.here ? ' · ' + r.here : '') + '</div>' +
+        '<div class="popup-meta">' + r.label + (r.live ? ' · موقع مباشر' : (r.here ? ' · ' + r.here : '')) + '</div>' +
         (r.when ? '<div class="popup-meta">📅 ' + r.when + '</div>' : '') +
         '<div class="popup-meta">🚗 ' + r.carrier + '</div>' +
         '<a href="#" class="open-btn" onclick="window.__openTrip(\\'' + r.id + '\\');return false;">فتح الرحلة</a>'

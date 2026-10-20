@@ -485,12 +485,12 @@ export default function CreateListingScreen({ user, onBack, onCreated }) {
               </button>
             </div>
             <div>
-              <label style={S.label}>الحي</label>
+              <label style={S.label}>حي أو قرية</label>
               <input
                 style={S.input}
                 value={form.district}
                 onChange={(e) => setField("district", e.target.value)}
-                placeholder="اختياري"
+                placeholder="اسم الحي أو القرية"
                 data-testid="input-district"
               />
             </div>
