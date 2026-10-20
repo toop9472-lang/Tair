@@ -5,11 +5,12 @@
  *  - وسط: صورة الهدر (طير + الشاشة)
  *  - أسفل: تدرّج تلاشي إلى الخلفية الكريمية
  */
-import React from "react";
-import { View, Image, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useEffect } from "react";
+import { View, Image, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { TAIR, TAIR_ELEVATION, TAIR_HEADERS } from "../constants/tairTheme";
+import { subscribeUnread } from "../services/unreadNotifications";
 
 export default function TairHeader({
   variant = "market",
@@ -20,6 +21,9 @@ export default function TairHeader({
   hasUnreadMsgs = false,
   testID,
 }) {
+  const [unreadCount, setLocalCount] = React.useState(0);
+
+  useEffect(() => subscribeUnread(setLocalCount), []);
   const source = TAIR_HEADERS[variant] || TAIR_HEADERS.market;
   return (
     <View style={styles.wrap} testID={testID || `tair-header-${variant}`}>
@@ -54,7 +58,11 @@ export default function TairHeader({
         testID="header-bell"
       >
         <Ionicons name="notifications" size={22} color={TAIR.gold} />
-        {hasUnread ? <View style={styles.unreadDot} /> : null}
+        {unreadCount > 0 ? (
+          <View style={styles.countBadge} testID="header-unread-count">
+            <Text style={styles.countText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+          </View>
+        ) : hasUnread ? <View style={styles.unreadDot} /> : null}
       </TouchableOpacity>
     </View>
   );
@@ -162,6 +170,21 @@ const styles = StyleSheet.create({
     zIndex: 10,
     ...TAIR_ELEVATION.raised,
   },
+  countBadge: {
+    position: "absolute",
+    top: -4,
+    left: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: "#C4493A",
+    borderWidth: 1.5,
+    borderColor: TAIR.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countText: { color: "#fff", fontSize: 10, fontWeight: "900" },
   unreadDot: {
     position: "absolute",
     top: "10%",

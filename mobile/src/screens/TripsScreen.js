@@ -609,7 +609,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
 
   const renderHeader = (
     <View>
-      <TairHeader variant="trips" onBellPress={onOpenNotifications} onMessagesPress={onOpenMessages} />
+      <TairHeader variant="trips" userId={user?.user_id || user?.id} onBellPress={onOpenNotifications} onMessagesPress={onOpenMessages} />
       <View style={styles.sectionSwitch} testID="trips-section-switch">
         <TouchableOpacity
           style={[styles.sectionBtn, section === "trips" && styles.sectionBtnOn]}

@@ -101,6 +101,7 @@ export default function MarketScreen({
     <View style={styles.page}>
       <TairHeader
         variant="market"
+        userId={user?.user_id || user?.id}
         onBellPress={onOpenNotifications}
         onMessagesPress={onOpenMessages}
       />
@@ -231,20 +232,7 @@ export default function MarketScreen({
               ) : null}
             </>
           }
-          ListFooterComponent={
-            <View style={styles.footer}>
-              <PressableScale
-                style={styles.tripsCta}
-                onPress={onOpenTrips}
-                haptic
-                testID="market-trips-cta"
-              >
-                <Ionicons name="airplane-outline" size={16} color={TAIR.emerald} />
-                <Text style={styles.tripsCtaText}>رحلات الطيور القادمة</Text>
-                <Ionicons name="chevron-back" size={16} color={TAIR.goldDark} />
-              </PressableScale>
-            </View>
-          }
+          ListFooterComponent={<View style={{ height: 24 }} />}
           ListEmptyComponent={
             error ? (
               <ErrorState

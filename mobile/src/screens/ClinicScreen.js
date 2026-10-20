@@ -104,7 +104,7 @@ export default function ClinicScreen({
 
   return (
     <View style={s.page}>
-      <TairHeader variant="clinic" onBellPress={onBellPress} onMessagesPress={onOpenMessages} />
+      <TairHeader variant="clinic" userId={user?.user_id || user?.id} onBellPress={onBellPress} onMessagesPress={onOpenMessages} />
 
       <FlatList
         data={items}

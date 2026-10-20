@@ -448,7 +448,7 @@ const PrivateMessagesScreen = ({ user, onClose, initialFriend, onOpenUserProfile
   return (
     <View style={styles.container}>
       {/* Tair Inbox header */}
-      <TairHeader variant="messages" onBellPress={onOpenNotifications} />
+      <TairHeader variant="messages" userId={user?.user_id || user?.id} onBellPress={onOpenNotifications} />
       <View style={styles.inboxHeaderBar}>
         <TouchableOpacity onPress={onClose} style={{ padding: 6 }}>
           <Ionicons name="chevron-forward" size={22} color={TAIR.emerald} />

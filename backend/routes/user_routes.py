@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Body
 from motor.motor_asyncio import AsyncIOMotorClient
 from auth.dependencies import get_current_user_id
 from datetime import datetime
@@ -8,6 +8,7 @@ import os
 import uuid
 
 from services.r2_storage import r2
+from services.display_names import assert_unique_name, is_placeholder_name
 
 router = APIRouter(prefix='/users', tags=['Users'])
 
@@ -53,6 +54,31 @@ async def get_profile(user_id: str = Depends(get_current_user_id)):
         }
     }
 
+
+@router.post('/claim-name', response_model=dict)
+async def claim_name(data: dict = Body(...), user_id: str = Depends(get_current_user_id)):
+    """أول اسم حقيقي بدل «ضيف طير». يُرفض الاسم المكرر والاسم الافتراضي."""
+    db = get_db()
+    user = await db.users.find_one({'$or': [{'id': user_id}, {'user_id': user_id}, {'email': user_id}]})
+    if not user:
+        raise HTTPException(status_code=404, detail='المستخدم غير موجود')
+    try:
+        new_name = await assert_unique_name(
+            db, (data or {}).get('name') or '', user.get('id'), user.get('user_id'), user.get('email'),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    await db.users.update_one(
+        {'_id': user['_id']},
+        {'$set': {
+            'name': new_name,
+            'name_key': new_name.casefold(),
+            'needs_name_setup': False,
+            'updated_at': datetime.utcnow(),
+        }},
+    )
+    return {'success': True, 'name': new_name, 'needs_name_setup': False}
+
 @router.put('/profile', response_model=dict)
 async def update_profile(
     data: dict,
@@ -75,12 +101,15 @@ async def update_profile(
     update_data = {}
     
     if 'name' in data:
-        new_name = (data.get('name') or '').strip()
-        if not new_name:
-            raise HTTPException(status_code=400, detail='الاسم لا يمكن أن يكون فارغاً')
+        try:
+            new_name = await assert_unique_name(db, data.get('name') or '', user.get('id'), user.get('user_id'), user.get('email'))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
         if new_name != (user.get('name') or ''):
             # تقييد تغيير الاسم: مرة واحدة كل 7 أيام
             last_name_change = user.get('last_name_change')
+            if is_placeholder_name(user.get('name') or ''):
+                last_name_change = None
             if last_name_change:
                 from datetime import timedelta
                 if isinstance(last_name_change, str):
@@ -100,7 +129,10 @@ async def update_profile(
                             detail=f'يمكنك تغيير الاسم مرة واحدة كل أسبوع. تبقى {remaining} يوم.',
                         )
             update_data['name'] = new_name
-            update_data['last_name_change'] = datetime.utcnow()
+            update_data['name_key'] = new_name.casefold()
+            update_data['needs_name_setup'] = False
+            if not is_placeholder_name(user.get('name') or ''):
+                update_data['last_name_change'] = datetime.utcnow()
     
     if 'avatar' in data:
         # التحقق من تقييد تغيير الصورة (مرة أسبوعياً)

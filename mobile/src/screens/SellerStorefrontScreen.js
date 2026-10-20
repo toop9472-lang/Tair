@@ -19,16 +19,12 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import Constants from "expo-constants";
-import api from "../services/api";
+import api, { API_URL } from "../services/api";
 import { TAIR_PALETTE, TAIR_BANNER_IMAGE } from "../constants/tairDesign";
 import { shareInApp } from "../services/shareContent";
 import { openWhatsApp, toTel, toWhatsAppPhone } from "../utils/contactPhone";
 
-const API_BASE =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
-  process.env.EXPO_PUBLIC_BACKEND_URL ||
-  "";
+const API_BASE = API_URL || "";
 const resolveMediaUrl = (u) => {
   if (!u || typeof u !== "string") return "";
   if (u.startsWith("http") || u.startsWith("data:")) return u;
@@ -156,9 +152,24 @@ export default function SellerStorefrontScreen({
 
   const identity = profile.identity_color || TAIR_PALETTE.primary;
   const bannerSlides = Array.isArray(profile.banner_slides) ? profile.banner_slides : [];
+  const slideUrls = [];
+  const addSlide = (u) => {
+    const r = resolveMediaUrl(u);
+    if (r && !slideUrls.includes(r)) slideUrls.push(r);
+  };
+  addSlide(profile.profile_bg_url);
+  addSlide(profile.bg_image);
+  bannerSlides.forEach(addSlide);
+  const verifiedShop = !!(profile.is_verified_shop || profile.is_verified_merchant);
+  const scopes = Array.isArray(profile.moderator_scopes) ? profile.moderator_scopes : [];
+  const modBadges = scopes.includes("general")
+    ? [{ id: "general", label: "مشرف عام", icon: "shield-checkmark" }]
+    : [
+        scopes.includes("clinic_admin") || scopes.includes("clinic") ? { id: "clinic", label: "مشرف العيادة", icon: "medkit" } : null,
+        scopes.includes("market") ? { id: "market", label: "مشرف السوق", icon: "storefront" } : null,
+        scopes.includes("community") ? { id: "community", label: "مشرف المجتمع", icon: "people" } : null,
+      ].filter(Boolean);
   const highlights = Array.isArray(profile.highlights) ? profile.highlights : [];
-  const backgroundImage = profile.profile_bg_url || profile.bg_image; // full-page bg
-  const banner = bannerSlides[0];
   const rawPhone = profile.whatsapp || profile.phone;
   const digits = toWhatsAppPhone(rawPhone);
   const prefs = profile.contact_prefs || { whatsapp: true, call: false, chat: true };
@@ -196,6 +207,7 @@ export default function SellerStorefrontScreen({
       kind: "store",
       id: userId,
       title: profile.name || "متجر طير",
+      image: resolveMediaUrl(profile.logo_url || profile.profile_bg_url || profile.avatar),
       lines: [profile.city || profile.storefront_settings?.city || "متجر على طير"],
     });
   };
@@ -223,19 +235,13 @@ export default function SellerStorefrontScreen({
       >
         {/* ==== Hero banner — auto-sliding carousel OR profile background image ==== */}
         <BannerCarousel
-          slides={
-            bannerSlides.length > 0
-              ? bannerSlides.map(resolveMediaUrl).filter(Boolean)
-              : backgroundImage
-                ? [resolveMediaUrl(backgroundImage)]
-                : []
-          }
+          slides={slideUrls}
           identity={identity}
           height={260}
           hasBg={false}
         >
           <View style={s.bannerContent} pointerEvents="box-none">
-            <View style={[s.logoWrap, { borderColor: "#ffffff" }]}>
+            <View style={[s.logoWrap, verifiedShop && s.logoVerified, { borderColor: verifiedShop ? "#C6A15B" : "#ffffff" }]}>
               {profile.logo_url || profile.avatar ? (
                 <Image
                   source={{ uri: resolveMediaUrl(profile.logo_url || profile.avatar) }}
@@ -251,9 +257,15 @@ export default function SellerStorefrontScreen({
             </View>
             <Text style={s.bannerName} numberOfLines={1}>{profile.name}</Text>
             <View style={s.badgesRow}>
-              {profile.is_verified_shop && (
-                <Badge icon="storefront" text="متجر موثوق" color={identity} />
+              {verifiedShop && (
+                <Badge icon="shield-checkmark" text="متجر موثّق" solid />
               )}
+              {profile.is_admin && (
+                <Badge icon="ribbon" text="مدير طير" solid />
+              )}
+              {modBadges.map((b) => (
+                <Badge key={b.id} icon={b.icon} text={b.label} solid />
+              ))}
               {profile.is_verified_carrier && (
                 <Badge icon="car" text="موصل معتمد" color="#1B3D2F" />
               )}
@@ -759,8 +771,8 @@ function BannerCarousel({ slides, identity, height = 260, hasBg, children }) {
           renderItem={({ item }) => (
             <ImageBackground
               source={{ uri: item }}
-              style={{ width: screenW, height }}
-              resizeMode="cover"
+              style={{ width: screenW, height, backgroundColor: "#0F241C" }}
+              resizeMode="contain"
             >
               <LinearGradient
                 colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.25)", "rgba(0,0,0,0.55)"]}
@@ -960,11 +972,11 @@ function TopBar({ onBack, title, onShare, color }) {
   );
 }
 
-function Badge({ icon, text, color }) {
+function Badge({ icon, text, solid }) {
   return (
-    <View style={[s.badge, { borderColor: "rgba(255,255,255,0.4)" }]}>
-      <Ionicons name={icon} size={11} color="#fff" />
-      <Text style={s.badgeText}>{text}</Text>
+    <View style={[s.badge, solid ? s.badgeSolid : { borderColor: "rgba(255,255,255,0.4)" }]}>
+      <Ionicons name={icon} size={12} color={solid ? "#1B3D2F" : "#fff"} />
+      <Text style={[s.badgeText, solid && { color: "#1B3D2F" }]}>{text}</Text>
     </View>
   );
 }
@@ -1113,6 +1125,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   hvCaptionText: { color: "#fff", fontSize: 13, lineHeight: 20, textAlign: "right" },
+  logoVerified: { borderWidth: 3 },
   logoWrap: {
     width: 96, height: 96, borderRadius: 48,
     backgroundColor: "#fff",
@@ -1125,6 +1138,7 @@ const s = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.4)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3,
   },
   badgesRow: { flexDirection: "row-reverse", gap: 6, marginTop: 8, flexWrap: "wrap", justifyContent: "center" },
+  badgeSolid: { backgroundColor: "#C6A15B", borderColor: "#8A6A2E" },
   badge: {
     flexDirection: "row-reverse", alignItems: "center", gap: 4,
     backgroundColor: "rgba(15,36,28,0.55)",

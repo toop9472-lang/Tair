@@ -221,6 +221,7 @@ export default function CommunityScreen({
       <View style={s.page}>
         <TairHeader
           variant="community"
+          userId={user?.user_id || user?.id}
           onBellPress={onOpenNotifications}
           onMessagesPress={onOpenMessages}
         />
@@ -334,12 +335,16 @@ export default function CommunityScreen({
                       testID="community-chat-error"
                     />
                   ) : (
-                    <EmptyState
-                      icon="chatbubbles-outline"
-                      title="الدردشة هادئة الآن"
-                      subtitle="ابدأ الحديث مع المربّين. الرسائل نص فقط، وتبقى يوماً واحداً."
-                      testID="community-chat-empty"
-                    />
+                    <View style={s.welcome} testID="community-chat-empty">
+                      <Text style={s.welcomeTitle}>حديث المربّين</Text>
+                      <Text style={s.welcomeSub}>المكان هادئ الآن. اكتب سؤالاً عن التغذية أو التفريخ أو الرحلات.</Text>
+                      <View style={s.hintBubble}>
+                        <Text style={s.hintText}>مثال: ما أنسب عجينة للكناري في هذا الجو؟</Text>
+                      </View>
+                      <View style={[s.hintBubble, s.hintMine]}>
+                        <Text style={[s.hintText, { color: TAIR.gold }]}>الرسائل نصية، وتبقى ظاهرة يوماً واحداً.</Text>
+                      </View>
+                    </View>
                   )}
                 </View>
               }
@@ -518,7 +523,27 @@ const s = StyleSheet.create({
 
   chatSkeleton: { padding: 16, gap: 12 },
   chatList: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 16, flexGrow: 1 },
-  emptyWrap: { flexGrow: 1, justifyContent: "center" },
+  emptyWrap: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 8 },
+  welcome: {
+    backgroundColor: TAIR.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(198,161,91,0.4)",
+    padding: 16,
+    gap: 8,
+  },
+  welcomeTitle: { color: TAIR.emerald, fontSize: 16, fontWeight: "900", textAlign: "right" },
+  welcomeSub: { color: TAIR.muted, fontSize: 12, fontWeight: "700", textAlign: "right", lineHeight: 18 },
+  hintBubble: {
+    alignSelf: "flex-end",
+    maxWidth: "88%",
+    backgroundColor: TAIR.creamDeep,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  hintMine: { alignSelf: "flex-start", backgroundColor: TAIR.emerald },
+  hintText: { color: TAIR.emerald, fontSize: 12, fontWeight: "700", textAlign: "right", lineHeight: 18 },
 
   msgRow: { flexDirection: "row-reverse", gap: 8, marginBottom: 10, alignItems: "flex-end" },
   msgRowMine: { flexDirection: "row" },

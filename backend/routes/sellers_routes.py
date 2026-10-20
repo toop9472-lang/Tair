@@ -16,6 +16,8 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Query
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from services.moderation import moderator_scopes
+
 router = APIRouter(prefix="/sellers", tags=["sellers"])
 
 mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
@@ -89,6 +91,17 @@ async def get_seller_profile(user_id: str, viewer_id: Optional[str] = None):
 
     # === Include storefront customizations (from Storefront Manager) ===
     sf = u.get("storefront_settings") or {}
+    seller_key = u.get("user_id") or u.get("id") or u.get("email") or user_id
+    scopes = await moderator_scopes(db, seller_key)
+    admin_doc = await db.admins.find_one(
+        {"$or": [
+            {"id": seller_key},
+            {"user_id": seller_key},
+            {"email": u.get("email") or seller_key},
+        ]},
+        {"_id": 0, "id": 1},
+    )
+    is_admin = bool(admin_doc or u.get("is_admin") or u.get("role") in ("admin", "super_admin"))
 
     return {
         "user_id": u.get("user_id") or u.get("id"),
@@ -103,6 +116,8 @@ async def get_seller_profile(user_id: str, viewer_id: Optional[str] = None):
         "is_verified_merchant": bool(u.get("is_verified_merchant") or u.get("is_verified_shop")),
         "is_verified_shop": bool(u.get("is_verified_shop")),
         "is_verified_carrier": bool(u.get("is_verified_carrier")),
+        "is_admin": is_admin,
+        "moderator_scopes": scopes,
         "joined_at": _iso(u.get("created_at")),
         "listings_count": listings_count,
         "sold_count": sold_count,

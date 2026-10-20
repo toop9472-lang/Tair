@@ -56,7 +56,9 @@ import WholesaleScreen from "./src/screens/WholesaleScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import UpdateNoticeModal from "./src/components/UpdateNoticeModal";
 import TairShareSheet from "./src/components/TairShareSheet";
+import NameGate, { needsDisplayName } from "./src/components/NameGate";
 import { parseIncomingLink } from "./src/services/shareContent";
+import { watchUnread } from "./src/services/unreadNotifications";
 import api from "./src/services/api";
 import {
   installErrorReporter,
@@ -102,6 +104,17 @@ function TairApp() {
   useEffect(() => {
     setMountedTabs((prev) => (prev[currentPage] ? prev : { ...prev, [currentPage]: true }));
   }, [currentPage]);
+
+  useEffect(() => {
+    const uid = user?.user_id || user?.id;
+    if (!uid) return;
+    watchUnread(uid, async (id) => {
+      const res = await api.fetch(`/api/tair-notifications/list?user_id=${encodeURIComponent(id)}&limit=1`);
+      if (!res?.ok) return 0;
+      const data = await res.json().catch(() => null);
+      return data?.unread_count || 0;
+    });
+  }, [user]);
 
   // Boot: load token and user
   useEffect(() => {
@@ -191,32 +204,31 @@ function TairApp() {
     openFromLink(url);
   }, [booting, user, openFromLink]);
 
-  // Handle notification taps — navigate to the right screen based on payload.type
-  useEffect(() => {
-    const unsub = onNotificationTap((data) => {
-      try {
-        const t = data?.type || "";
-        if (t === "admin_broadcast" || t === "app_update") setModal({ name: "notifications" });
-        else if (t === "clinic_topic" || t === "clinic_reply") {
-          if (data?.topic_id) setModal({ name: "clinic_topic", params: { topicId: data.topic_id } });
-          else setCurrentPage("clinic");
-        }
-        else if (t === "listing_new" && data?.listing_id) setModal({ name: "listing_details", params: { listingId: data.listing_id } });
-        else if (t === "story_new") setCurrentPage("forum");
-        else if (t.startsWith("chat")) setCurrentPage("messages");
-        else if (t.startsWith("order")) setCurrentPage("orders");
-        else if (t.startsWith("trip")) {
-          if (data?.trip_id) setModal({ name: "trip_details", params: { tripId: data.trip_id } });
-          else setCurrentPage("trips");
-        }
-        else if (t === "community_chat") setCurrentPage("forum");
-        else if (t.startsWith("listing") && data?.listing_id) {
-          setModal({ name: "listing_details", params: { listingId: data.listing_id } });
-        }
-      } catch {}
-    });
-    return unsub;
+  const openNotification = useCallback((data) => {
+    const t = data?.type || "";
+    if (t === "admin_broadcast" || t === "app_update") setModal({ name: "notifications" });
+    else if (t === "clinic_topic" || t === "clinic_reply") {
+      if (data?.topic_id) setModal({ name: "clinic_topic", params: { topicId: data.topic_id } });
+      else setCurrentPage("clinic");
+    }
+    else if ((t === "listing_new" || t.startsWith("listing")) && data?.listing_id) {
+      setModal({ name: "listing_details", params: { listingId: data.listing_id } });
+    }
+    else if (t === "story_new" || t === "story") setCurrentPage("forum");
+    else if (t.startsWith("chat")) setCurrentPage("messages");
+    else if (t.startsWith("order")) setCurrentPage("orders");
+    else if (t.startsWith("trip")) {
+      if (data?.trip_id) setModal({ name: "trip_details", params: { tripId: data.trip_id } });
+      else setCurrentPage("trips");
+    }
+    else if (t === "community_chat") setCurrentPage("forum");
+    else if (data?.topic_id) setModal({ name: "clinic_topic", params: { topicId: data.topic_id } });
+    else if (data?.listing_id) setModal({ name: "listing_details", params: { listingId: data.listing_id } });
+    else if (data?.trip_id) setModal({ name: "trip_details", params: { tripId: data.trip_id } });
   }, []);
+
+  // Handle notification taps — navigate to the right screen based on payload.type
+  useEffect(() => onNotificationTap(openNotification), [openNotification]);
 
   // Keep the reporter's "current screen" tag in sync with active tab / modal
   useEffect(() => {
@@ -534,7 +546,16 @@ function TairApp() {
           />
         );
       case "notifications":
-        return <NotificationsScreen user={user} onBack={closeModal} />;
+        return (
+          <NotificationsScreen
+            user={user}
+            onBack={closeModal}
+            onOpenItem={(item) => {
+              closeModal();
+              openNotification({ type: item?.type, ...(item?.data || {}) });
+            }}
+          />
+        );
       default:
         return null;
     }
@@ -694,6 +715,7 @@ function TairApp() {
       {!modal && user && currentPage !== "messages" && currentPage !== "forum" && (
         <MessagesFab user={user} onPress={() => setCurrentPage("messages")} />
       )}
+      {needsDisplayName(user) ? <NameGate user={user} onSaved={updateUser} /> : null}
     </View>
   );
 }

@@ -62,7 +62,7 @@ export default function ListingDetailsScreen({ user, listingId, onBack, onOpenTh
   };
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/?listing=${listing.listing_id}`;
+    const url = `https://saqr-ui-sync.emergent.host/share/listing/${listing.listing_id}`;
     const shareData = {
       title: `طير — ${listing.title}`,
       text: `شاهد هذا الإعلان على منصة طير: ${listing.title} — ${listing.price_sar} ر.س`,
@@ -81,7 +81,7 @@ export default function ListingDetailsScreen({ user, listingId, onBack, onOpenTh
   };
 
   const shareToWhatsApp = () => {
-    const url = `${window.location.origin}/?listing=${listing.listing_id}`;
+    const url = `https://saqr-ui-sync.emergent.host/share/listing/${listing.listing_id}`;
     const text = `شاهد هذا الإعلان على منصة طير: ${listing.title} — ${listing.price_sar} ر.س\n${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
     AnalyticsEvents.shareListing("whatsapp");

@@ -13,6 +13,7 @@ import uuid
 import asyncio
 import logging
 from typing import Optional
+from services.display_names import assert_unique_name
 
 logger = logging.getLogger(__name__)
 
@@ -308,6 +309,7 @@ async def guest_login(request: Request):
                     "user_id": uid,
                     "email": existing.get("email"),
                     "name": existing.get("name") or "ضيف طير",
+                    "needs_name_setup": bool(existing.get("needs_name_setup")) or (existing.get("name") or "ضيف طير") == "ضيف طير",
                     "avatar": existing.get("avatar"),
                     "is_guest": True,
                     "joined_date": (existing.get("created_at") or datetime.utcnow()).isoformat(),
@@ -320,6 +322,7 @@ async def guest_login(request: Request):
         'id': user_id,
         'email': f'{user_id}@guest.tair.app',
         'name': 'ضيف طير',
+        'needs_name_setup': True,
         'is_guest': True,
         'provider': 'guest',
         'avatar': f'https://ui-avatars.com/api/?name=Guest&background=0f766e&color=fff',
@@ -343,6 +346,7 @@ async def guest_login(request: Request):
             'user_id': user_id,
             'email': doc['email'],
             'name': doc['name'],
+            'needs_name_setup': True,
             'avatar': doc['avatar'],
             'is_guest': True,
             'joined_date': now.isoformat(),
@@ -402,6 +406,11 @@ async def register_email(data: EmailRegister, request: Request):
             detail='البريد الإلكتروني مسجل بالفعل'
         )
     
+    try:
+        chosen_name = await assert_unique_name(db, data.name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
     # Hash password
     password_hash = bcrypt.hash(data.password)
     
@@ -414,7 +423,7 @@ async def register_email(data: EmailRegister, request: Request):
     user_doc = {
         'id': user_id,
         'email': data.email,
-        'name': data.name,
+        'name': chosen_name,
         'password_hash': password_hash,
         'provider': 'email',
         'provider_id': data.email,

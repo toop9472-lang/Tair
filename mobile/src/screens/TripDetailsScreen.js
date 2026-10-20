@@ -126,6 +126,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
       kind: "trip",
       id,
       title: `${trip.from_city || ""} ← ${trip.to_city || ""}`.trim(),
+      image: resolveMediaUrl(trip.carrier_avatar),
       lines: [
         dt ? dt.toLocaleString("ar-SA") : null,
         carrierName ? `الموصل: ${carrierName}` : null,

@@ -10,7 +10,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from models.listing import Listing, ListingCreate, ListingUpdate
 from models.places import city_match_values
-from models.species import FAMILY_QUERY_ALIASES, listing_category
+from models.species import family_match, listing_category
 from models.listing_comment import ListingComment, ListingCommentCreate
 from services.r2_storage import r2
 from auth.actor import require_actor
@@ -131,31 +131,24 @@ async def feed_listings(
     skip: int = 0,
 ):
     query: dict = {"status": "active", "is_flagged": False}
+    filters = []
     if city:
         names = city_match_values(city)
-        query.setdefault("$and", []).append(
-            {"$or": [{"city": {"$in": names}}, {"district": {"$in": names}}]}
-        )
+        filters.append({"$or": [{"city": {"$in": names}}, {"district": {"$in": names}}]})
     if category:
         query["category"] = category
     if species:
         query["species"] = species
     if family:
-        # Match either listings tagged directly with this family, OR listings whose species is in this family.
+        aliases, seed_ids = family_match(family)
         fam_species = await db.species_catalog.find(
-            {"family": family}, {"_id": 0, "species_id": 1}
+            {"family": {"$in": aliases}}, {"_id": 0, "species_id": 1}
         ).to_list(500)
-        species_ids = [s["species_id"] for s in fam_species]
-        aliases = [family, *FAMILY_QUERY_ALIASES.get(family, [])]
+        species_ids = list({*seed_ids, *(s["species_id"] for s in fam_species)})
         family_clauses = [{"family": {"$in": aliases}}]
         if species_ids:
             family_clauses.append({"species": {"$in": species_ids}})
-        # Compose with any existing $and clauses safely.
-        existing_or = query.pop("$or", None)
-        if existing_or:
-            query["$and"] = [{"$or": existing_or}, {"$or": family_clauses}]
-        else:
-            query["$or"] = family_clauses
+        filters.append({"$or": family_clauses})
     if min_price is not None or max_price is not None:
         query["price_sar"] = {}
         if min_price is not None:
@@ -163,12 +156,14 @@ async def feed_listings(
         if max_price is not None:
             query["price_sar"]["$lte"] = max_price
     if q:
-        query["$or"] = [
+        filters.append({"$or": [
             {"title": {"$regex": q, "$options": "i"}},
             {"description": {"$regex": q, "$options": "i"}},
             {"district": {"$regex": q, "$options": "i"}},
             {"city": {"$regex": q, "$options": "i"}},
-        ]
+        ]})
+    if filters:
+        query.setdefault("$and", []).extend(filters)
 
     cursor = (
         db.listings.find(query).sort("posted_at", -1).skip(skip).limit(min(limit, 100))

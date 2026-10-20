@@ -177,9 +177,11 @@ async def _collect_tokens(user_ids: List[str], include_guests: bool) -> List[str
     async for t in db.mobile_push_tokens.find(q, {"_id": 0, "token": 1}):
         if t.get("token"):
             tokens.add(t["token"])
-    async for t in db.push_tokens.find(q, {"_id": 0, "token": 1}):
+    async for t in db.push_tokens.find(q, {"_id": 0, "token": 1, "expo_push_token": 1}):
         if t.get("token"):
             tokens.add(t["token"])
+        if t.get("expo_push_token"):
+            tokens.add(t["expo_push_token"])
     return list(tokens)
 
 

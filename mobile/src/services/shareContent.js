@@ -6,6 +6,7 @@
 import { Alert, Platform, Share } from "react-native";
 
 export const APP_SCHEME = "saqr";
+export const SHARE_ORIGIN = "https://saqr-ui-sync.emergent.host";
 
 const KINDS = new Set(["listing", "auction", "story", "trip", "store"]);
 
@@ -35,6 +36,10 @@ export function deepLink(kind, id) {
   return `${APP_SCHEME}://${kind}/${encodeURIComponent(String(id))}`;
 }
 
+export function pageLink(kind, id) {
+  return `${SHARE_ORIGIN}/share/${kind}/${encodeURIComponent(String(id))}`;
+}
+
 export function parseIncomingLink(raw) {
   if (!raw || typeof raw !== "string") return null;
   let url;
@@ -62,18 +67,12 @@ export function parseIncomingLink(raw) {
   return null;
 }
 
-export function buildSharePayload({ kind, id, title, lines = [] }) {
-  const link = deepLink(kind, id);
+export function buildSharePayload({ kind, id, title, lines = [], image }) {
+  const link = pageLink(kind, id);
   const cleanTitle = (title || KIND_LABEL[kind] || "طير").trim();
   const cleanLines = (lines || []).map((l) => String(l || "").trim()).filter(Boolean).slice(0, 4);
-  const message = [
-    cleanTitle,
-    ...cleanLines,
-    "",
-    "افتحه داخل تطبيق طير:",
-    link,
-  ].join("\n");
-  return { kind, id, title: cleanTitle, lines: cleanLines, link, message };
+  const message = [cleanTitle, ...cleanLines, "", link].join("\n");
+  return { kind, id, title: cleanTitle, lines: cleanLines, link, image: image || "", message };
 }
 
 export async function nativeShare(input) {

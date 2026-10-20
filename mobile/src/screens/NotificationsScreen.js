@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, FlatList, RefreshControl, Platform } from "reac
 import { Ionicons } from "@expo/vector-icons";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { tairNotificationsApi } from "../services/tairApi";
+import { setUnreadCount } from "../services/unreadNotifications";
 import { EmptyState, ErrorState, ListSkeleton, PressableScale } from "../components/TairUI";
 
 const ICONS = {
@@ -17,7 +18,7 @@ const ICONS = {
   story_new: "sparkles",
 };
 
-export default function NotificationsScreen({ user, onBack }) {
+export default function NotificationsScreen({ user, onBack, onOpenItem }) {
   const uid = user?.user_id || user?.id || user?.email;
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +30,11 @@ export default function NotificationsScreen({ user, onBack }) {
       const r = await tairNotificationsApi.list(uid, 100);
       setItems(r?.items || []);
       setLoadError(null);
-      if (r?.unread_count) tairNotificationsApi.readAll(uid).catch(() => null);
+      if (r?.unread_count) {
+        tairNotificationsApi.readAll(uid).then(() => setUnreadCount(0)).catch(() => null);
+      } else {
+        setUnreadCount(0);
+      }
     } catch (e) {
       setLoadError(e?.message || "تعذّر تحميل الإشعارات");
     } finally {
@@ -41,7 +46,12 @@ export default function NotificationsScreen({ user, onBack }) {
   useEffect(() => { load(); }, [load]);
 
   const renderItem = ({ item }) => (
-    <View style={[s.card, !item.is_read && s.cardUnread]} testID={`notif-${item.notif_id}`}>
+    <PressableScale
+      style={[s.card, !item.is_read && s.cardUnread]}
+      scaleTo={0.985}
+      onPress={() => onOpenItem?.(item)}
+      testID={`notif-${item.notif_id}`}
+    >
       <View style={s.icon}>
         <Ionicons name={ICONS[item.type] || "notifications"} size={18} color={TAIR.gold} />
       </View>
@@ -51,7 +61,7 @@ export default function NotificationsScreen({ user, onBack }) {
         <Text style={s.body}>{item.body}</Text>
         <Text style={s.time}>{item.created_at ? new Date(item.created_at).toLocaleString("ar-SA") : ""}</Text>
       </View>
-    </View>
+    </PressableScale>
   );
 
   return (
