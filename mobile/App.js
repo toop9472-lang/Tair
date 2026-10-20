@@ -87,14 +87,21 @@ try {
 } catch {}
 
 const TABS = ["listings", "trips", "messages", "forum", "account"];
+const KEEP_TABS = ["listings", "trips", "messages", "clinic", "forum", "orders", "account"];
+const hiddenTab = { display: "none" };
 
 function TairApp() {
   const [booting, setBooting] = useState(true);
   const [user, setUser] = useState(null);
   const [seenOnboarding, setSeenOnboarding] = useState(false);
   const [currentPage, setCurrentPage] = useState("listings");
+  const [mountedTabs, setMountedTabs] = useState({ listings: true });
   // Modal stack (route + params)
   const [modal, setModal] = useState(null);
+
+  useEffect(() => {
+    setMountedTabs((prev) => (prev[currentPage] ? prev : { ...prev, [currentPage]: true }));
+  }, [currentPage]);
 
   // Boot: load token and user
   useEffect(() => {
@@ -334,8 +341,8 @@ function TairApp() {
     return <AuthScreen onAuthenticated={onAuthed} />;
   }
 
-  // Modal stack
-  if (modal) {
+  const renderModal = () => {
+    if (!modal) return null;
     switch (modal.name) {
       case "create_listing":
         return (
@@ -531,13 +538,12 @@ function TairApp() {
       default:
         return null;
     }
-  }
+  };
 
-  // Main tabs
-  let content = null;
-  switch (currentPage) {
+  const renderTab = (page) => {
+    switch (page) {
     case "listings":
-      content = (
+      return (
         <MarketScreen
           user={user}
           activeTab="market"
@@ -560,9 +566,8 @@ function TairApp() {
           onCreateListing={() => setModal({ name: "create_listing" })}
         />
       );
-      break;
     case "trips":
-      content = (
+      return (
         <TripsScreen
           user={user}
           onOpenTrip={openTrip}
@@ -572,9 +577,8 @@ function TairApp() {
           onOpenAskExperts={() => setModal({ name: "ask_experts" })}
         />
       );
-      break;
     case "messages":
-      content = (
+      return (
         <PrivateMessagesScreen
           user={user}
           onClose={() => setCurrentPage("listings")}
@@ -586,9 +590,8 @@ function TairApp() {
           }
         />
       );
-      break;
     case "clinic":
-      content = (
+      return (
         <ClinicScreen
           user={user}
           onBellPress={() => setModal({ name: "notifications" })}
@@ -598,9 +601,8 @@ function TairApp() {
           onOpenTopic={(tid) => setModal({ name: "clinic_topic", params: { topicId: tid } })}
         />
       );
-      break;
     case "forum":
-      content = (
+      return (
         <CommunityScreen
           user={user}
           onOpenStories={(storyId) => setModal({ name: "story_viewer", params: { storyId } })}
@@ -613,12 +615,10 @@ function TairApp() {
           onOpenProfile={(uid) => setModal({ name: "seller_profile", params: { userId: uid } })}
         />
       );
-      break;
     case "orders":
-      content = <OrdersScreen user={user} onOpenOrder={openOrder} />;
-      break;
+      return <OrdersScreen user={user} onOpenOrder={openOrder} />;
     case "account":
-      content = (
+      return (
         <ProfileScreen
           user={user}
           onOpenSettings={() => setModal({ name: "settings" })}
@@ -643,16 +643,32 @@ function TairApp() {
           }}
         />
       );
-      break;
     default:
-      content = null;
+      return null;
   }
+  };
+
+  const modalNode = renderModal();
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F7F1E8" }}>
       <StatusBar style="dark" backgroundColor="transparent" translucent />
-      {content}
-      <UpdateNoticeModal />
+      <View style={{ flex: 1 }} pointerEvents={modal ? "none" : "auto"}>
+        {KEEP_TABS.map((tab) => {
+          if (!mountedTabs[tab]) return null;
+          return (
+            <View key={tab} style={currentPage === tab ? { flex: 1 } : hiddenTab}>
+              {renderTab(tab)}
+            </View>
+          );
+        })}
+      </View>
+      {modalNode ? (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#F7F1E8", zIndex: 20 }}>
+          {modalNode}
+        </View>
+      ) : null}
+      {!modal ? <UpdateNoticeModal /> : null}
       {!modal && (
         <TairBottomBar
           active={

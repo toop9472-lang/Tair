@@ -404,6 +404,14 @@ export function InjectAnimations() {
         to { transform: translateY(0); }
       }
       @keyframes tair-spin { to { transform: rotate(360deg); } }
+      @keyframes tair-ring {
+        0% { transform: scale(1); opacity: 0.55; }
+        100% { transform: scale(2.2); opacity: 0; }
+      }
+      @keyframes tair-rise {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
       body { -webkit-tap-highlight-color: transparent; }
       button:active { transform: scale(0.98); transition: transform 0.06s; }
       input:focus, textarea:focus, select:focus {

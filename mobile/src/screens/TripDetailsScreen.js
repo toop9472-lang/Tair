@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Linking,
   Alert,
 } from "react-native";
@@ -14,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { tripsApi } from "../services/tairApi";
 import { shareInApp } from "../services/shareContent";
-import { DetailSkeleton, ErrorState } from "../components/TairUI";
+import { DetailSkeleton, ErrorState, TairImage } from "../components/TairUI";
 import { TAIR } from "../constants/tairTheme";
 import { openWhatsApp, toTel } from "../utils/contactPhone";
 import { tripPhase } from "../utils/tripStatus";
@@ -280,7 +279,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
         >
           <View style={styles.carrierAvatarWrap}>
             {trip.carrier_avatar ? (
-              <Image source={{ uri: resolveMediaUrl(trip.carrier_avatar) }} style={styles.carrierAvatarImg} />
+              <TairImage uri={resolveMediaUrl(trip.carrier_avatar)} style={styles.carrierAvatarImg} icon="person" iconSize={18} />
             ) : (
               <View style={styles.carrierAvatarPh}>
                 <Text style={styles.carrierInitial}>{carrierName.charAt(0)}</Text>

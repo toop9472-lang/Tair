@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Image,
   TouchableOpacity,
   RefreshControl,
   TextInput,
@@ -17,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 import { listingsApi, speciesApi } from "../services/tairApi";
 import { TairBanner } from "../components/TairBanner";
+import { TairImage } from "../components/TairUI";
 import { CitySelectorSheet } from "../components/CitySelectorSheet";
 
 // Resolve possibly-relative media URLs from backend (when R2 is unavailable)
@@ -44,7 +44,7 @@ function ListingCard({ item, onPress }) {
     >
       <View style={styles.imageWrap}>
         {item.cover_image ? (
-          <Image source={{ uri: resolveMediaUrl(item.cover_image) }} style={styles.image} />
+          <TairImage uri={resolveMediaUrl(item.cover_image)} style={styles.image} iconSize={28} />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
             <Ionicons name="images-outline" size={40} color="#8A7B66" />
