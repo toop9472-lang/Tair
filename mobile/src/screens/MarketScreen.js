@@ -20,27 +20,8 @@ import ListingCard from "../components/ListingCard";
 import { EmptyState, ErrorState, ListingSkeleton, PressableScale } from "../components/TairUI";
 import AuctionMark from "../components/AuctionMark";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
-import { listingsApi } from "../services/tairApi";
-
-const CATEGORIES = [
-  { key: "livestock",       label: "مواشي",                          icon: "paw-outline" },
-  { key: "songbirds",       label: "طيور مغردة",                       icon: "musical-notes-outline" },
-  { key: "poultry",         label: "دواجن",                          icon: "egg-outline" },
-  { key: "pigeons",         label: "حمام",                           icon: "airplane-outline" },
-  { key: "parrots",         label: "ببغاوات",                         icon: "flower-outline" },
-  { key: "fish",            label: "أسماك",                          icon: "fish-outline" },
-  { key: "small_mammals",   label: "ثدييات صغيرة",                     icon: "bonfire-outline" },
-  { key: "pets",            label: "حيوانات أليفة",                     icon: "heart-outline" },
-  { key: "reptiles",        label: "زواحف",                          icon: "bug-outline" },
-  { key: "insects",         label: "حشرات",                          icon: "prism-outline" },
-  { key: "cats",            label: "قطط",                            icon: "paw" },
-  { key: "dogs",            label: "كلاب",                           icon: "logo-octocat" },
-  { key: "feed",            label: "أعلاف",                          icon: "leaf-outline" },
-  { key: "bird_supplies",   label: "مستلزمات الطيور",                   icon: "basket-outline" },
-  { key: "animal_supplies", label: "مستلزمات الحيوانات",                 icon: "cube-outline" },
-  { key: "reserves",        label: "المحميات",                        icon: "earth-outline" },
-  { key: "services",        label: "خدمات تركيب الأقفاص والمحميات",       icon: "construct-outline" },
-];
+import { listingsApi, speciesApi } from "../services/tairApi";
+import { FALLBACK_FAMILIES, familyIcon, groupFamilies } from "../constants/marketFamilies";
 
 export default function MarketScreen({
   user,
@@ -63,6 +44,17 @@ export default function MarketScreen({
   const [searchFocus, setSearchFocus] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [pickedCat, setPickedCat] = useState(null);
+  const [families, setFamilies] = useState(FALLBACK_FAMILIES);
+
+  useEffect(() => {
+    speciesApi
+      .families()
+      .then((r) => {
+        const items = Array.isArray(r) ? r : r?.items || [];
+        if (items.length) setFamilies(items);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 320);
@@ -93,7 +85,8 @@ export default function MarketScreen({
   }, [pickedCat, debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const listData = useMemo(() => items, [items]);
-  const catLabel = CATEGORIES.find((c) => c.key === pickedCat)?.label;
+  const catLabel = families.find((c) => c.family_id === pickedCat)?.name_ar;
+  const familyGroups = useMemo(() => groupFamilies(families), [families]);
   const showSkeleton = loading && items.length === 0 && !error;
 
   return (
@@ -266,33 +259,38 @@ export default function MarketScreen({
               </PressableScale>
             </View>
             <ScrollView
-              style={{ maxHeight: 420 }}
+              style={{ maxHeight: 520 }}
               contentContainerStyle={{ paddingBottom: 24 }}
               showsVerticalScrollIndicator={false}
             >
-              {CATEGORIES.map((c) => {
-                const on = pickedCat === c.key;
-                return (
-                  <PressableScale
-                    key={c.key}
-                    style={[styles.sheetRow, on && styles.sheetRowOn]}
-                    onPress={() => {
-                      setPickedCat(on ? null : c.key);
-                      setCatOpen(false);
-                    }}
-                    haptic
-                    scaleTo={0.99}
-                  >
-                    <View style={styles.sheetRowMain}>
-                      <View style={[styles.sheetIconWrap, on && styles.sheetIconOn]}>
-                        <Ionicons name={c.icon} size={18} color={on ? TAIR.gold : TAIR.emerald} />
-                      </View>
-                      <Text style={[styles.sheetRowText, on && styles.sheetRowTextOn]}>{c.label}</Text>
-                    </View>
-                    {on ? <Ionicons name="checkmark-circle" size={20} color={TAIR.gold} /> : null}
-                  </PressableScale>
-                );
-              })}
+              {familyGroups.map((group) => (
+                <View key={group.id}>
+                  <Text style={styles.sheetGroup}>{group.label}</Text>
+                  {group.items.map((c) => {
+                    const on = pickedCat === c.family_id;
+                    return (
+                      <PressableScale
+                        key={c.family_id}
+                        style={[styles.sheetRow, on && styles.sheetRowOn]}
+                        onPress={() => {
+                          setPickedCat(on ? null : c.family_id);
+                          setCatOpen(false);
+                        }}
+                        haptic
+                        scaleTo={0.99}
+                      >
+                        <View style={styles.sheetRowMain}>
+                          <View style={[styles.sheetIconWrap, on && styles.sheetIconOn]}>
+                            <Ionicons name={familyIcon(c.family_id)} size={18} color={on ? TAIR.gold : TAIR.emerald} />
+                          </View>
+                          <Text style={[styles.sheetRowText, on && styles.sheetRowTextOn]}>{c.name_ar}</Text>
+                        </View>
+                        {on ? <Ionicons name="checkmark-circle" size={20} color={TAIR.gold} /> : null}
+                      </PressableScale>
+                    );
+                  })}
+                </View>
+              ))}
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -482,6 +480,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sheetTitle: { color: TAIR.emerald, fontSize: 17, fontWeight: "800" },
+  sheetGroup: {
+    color: TAIR.goldDark || TAIR.gold,
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "right",
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
   sheetClearInline: { color: TAIR.goldDark, fontSize: 13, fontWeight: "800" },
   sheetRow: {
     flexDirection: "row-reverse",

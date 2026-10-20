@@ -200,7 +200,7 @@ export default function WholesaleScreen({ onBack }) {
             <View style={styles.empty}>
               <Ionicons name="storefront-outline" size={64} color="#a7f3d0" />
               <Text style={styles.emptyTitle}>لا يوجد موردون في هذه الفئة</Text>
-              <Text style={styles.emptyText}>جرّب تصفح فئة أخرى قريباً</Text>
+              <Text style={styles.emptyText}>ما فيه موردين بهالفئة الحين. جرّب فئة ثانية.</Text>
             </View>
           )
         }

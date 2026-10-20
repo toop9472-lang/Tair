@@ -353,7 +353,10 @@ async def update_inventory(user_id: str, payload: InventoryUpdateIn):
     db = get_db()
     settings = await _get_user_settings(db, user_id)
     inv = settings.get("inventory", {}) or {}
-    inv[payload.species_id] = {"available": payload.available, "reserved": payload.reserved}
+    if payload.available == 0 and payload.reserved == 0:
+        inv.pop(payload.species_id, None)
+    else:
+        inv[payload.species_id] = {"available": payload.available, "reserved": payload.reserved}
     await _update_settings(db, user_id, {"inventory": inv})
     return {"ok": True, "inventory": inv}
 

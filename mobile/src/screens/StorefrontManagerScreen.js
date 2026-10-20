@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Switch, ActivityIndicator, Alert, Image, Modal, RefreshControl,
+  Switch, ActivityIndicator, Alert, Image, Modal, RefreshControl, Share,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -97,6 +97,9 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
   const [flashTitle, setFlashTitle] = useState("");
   const [flashPct, setFlashPct] = useState("10");
   const [flashHours, setFlashHours] = useState("24");
+  const [highlightTitle, setHighlightTitle] = useState("");
+  const [stockName, setStockName] = useState("");
+  const [stockQty, setStockQty] = useState("");
 
   const load = useCallback(async () => {
     if (!uid) return;
@@ -376,8 +379,56 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
               </View>
             </Section>
 
-            <Section title="قصص المتجر (Highlights)">
-              <Text style={styles.hint}>مثل ستوري إنستقرام — قريباً</Text>
+            <Section title="قصص المتجر">
+              <Text style={styles.hint}>دوائر فوق واجهة المتجر. اكتب العنوان ثم اختر صورة.</Text>
+              {(s.highlights || []).map((h, i) => (
+                <View key={`${h.title}-${i}`} style={styles.saleCard}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.saleTitle}>{h.title || "قصة"}</Text>
+                    <Text style={styles.saleMeta}>{h.cover ? "فيها صورة" : "بلا صورة"}</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const next = (s.highlights || []).filter((_, x) => x !== i);
+                      saveField({ highlights: next });
+                    }}
+                  >
+                    <Ionicons name="trash" size={18} color="#8B3A2F" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {(s.highlights || []).length < 8 ? (
+                <View style={{ marginTop: 8 }}>
+                  <TextInput
+                    style={styles.input}
+                    value={highlightTitle}
+                    onChangeText={setHighlightTitle}
+                    placeholder="عنوان القصة، مثل: وصول كاسكو"
+                    placeholderTextColor="#8A7B66"
+                  />
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { marginTop: 8 }]}
+                    onPress={async () => {
+                      const title = highlightTitle.trim();
+                      if (!title) {
+                        Alert.alert("تنبيه", "اكتب عنوان القصة أولاً");
+                        return;
+                      }
+                      const url = await uploadImage("portfolio");
+                      if (!url) return;
+                      const next = [
+                        ...(s.highlights || []),
+                        { title, cover: url, items: [{ image: url, caption: title }] },
+                      ];
+                      await saveField({ highlights: next });
+                      setHighlightTitle("");
+                    }}
+                  >
+                    <Ionicons name="add" size={16} color="#fff" />
+                    <Text style={styles.primaryBtnText}>أضف القصة</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
             </Section>
           </>
         )}
@@ -457,9 +508,65 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
               ))}
             </Section>
 
-            <Section title="إدارة المخزون">
-              <Text style={styles.hint}>يظهر عدد الطيور المتاحة في كل إعلان.</Text>
-              <Text style={styles.hint}>الحقول الكاملة قريباً — استخدم إعلاناتك مؤقتاً.</Text>
+            <Section title="المخزون">
+              <Text style={styles.hint}>عدد المتاح من كل نوع في متجرك. الصفر يحذف السطر.</Text>
+              {Object.entries(s.inventory || {}).map(([name, row]) => (
+                <View key={name} style={styles.saleCard}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.saleTitle}>{name}</Text>
+                    <Text style={styles.saleMeta}>متاح {row?.available ?? 0}</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      await storefrontApi.updateInventory(uid, { species_id: name, available: 0, reserved: 0 });
+                      setSettings((prev) => {
+                        const inventory = { ...(prev?.inventory || {}) };
+                        delete inventory[name];
+                        return { ...prev, inventory };
+                      });
+                    }}
+                  >
+                    <Ionicons name="trash" size={18} color="#8B3A2F" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TextInput
+                style={styles.input}
+                value={stockName}
+                onChangeText={setStockName}
+                placeholder="النوع، مثل: بادجي"
+                placeholderTextColor="#8A7B66"
+              />
+              <TextInput
+                style={styles.input}
+                value={stockQty}
+                onChangeText={setStockQty}
+                placeholder="العدد المتاح"
+                placeholderTextColor="#8A7B66"
+                keyboardType="number-pad"
+              />
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={async () => {
+                  const name = stockName.trim();
+                  const qty = parseInt(String(stockQty).replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d)), 10);
+                  if (!name || !Number.isFinite(qty) || qty < 0) {
+                    Alert.alert("تنبيه", "اكتب النوع والعدد");
+                    return;
+                  }
+                  try {
+                    const res = await storefrontApi.updateInventory(uid, { species_id: name, available: qty, reserved: 0 });
+                    setSettings((prev) => ({ ...prev, inventory: res?.inventory || { ...(prev?.inventory || {}), [name]: { available: qty, reserved: 0 } } }));
+                    setStockName("");
+                    setStockQty("");
+                  } catch (e) {
+                    Alert.alert("تعذّر الحفظ", e?.message || "حاول مرة أخرى");
+                  }
+                }}
+              >
+                <Ionicons name="add" size={16} color="#fff" />
+                <Text style={styles.primaryBtnText}>احفظ الكمية</Text>
+              </TouchableOpacity>
             </Section>
           </>
         )}
@@ -551,9 +658,27 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
                   </Section>
                 )}
 
-                <TouchableOpacity style={styles.primaryBtn} onPress={() => Alert.alert("قريباً", "تصدير PDF شهري قيد التطوير")}>
-                  <Ionicons name="download" size={16} color="#fff" />
-                  <Text style={styles.primaryBtnText}>تصدير تقرير PDF</Text>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={async () => {
+                    const lines = [
+                      "تقرير متجر طير — آخر ٣٠ يوم",
+                      `الزوار: ${analytics.total_visitors ?? 0}`,
+                      `مشاهدات الإعلانات: ${analytics.total_listings_views ?? 0}`,
+                      `الطلبات المكتملة: ${analytics.completed_orders_count ?? 0}`,
+                      `توقع الشهر القادم: ${analytics.predicted_next_month_sar ?? 0} ر.س`,
+                    ];
+                    (analytics.top_cities || []).forEach(([city, count]) => lines.push(`${city}: ${count} زائر`));
+                    (analytics.top_listings || []).forEach((l) => lines.push(`${l.title}: ${l.views} مشاهدة`));
+                    try {
+                      await Share.share({ message: lines.join("\n"), title: "تقرير المتجر" });
+                    } catch (e) {
+                      Alert.alert("تعذّرت المشاركة", e?.message || "حاول مرة أخرى");
+                    }
+                  }}
+                >
+                  <Ionicons name="share-social" size={16} color="#fff" />
+                  <Text style={styles.primaryBtnText}>مشاركة التقرير</Text>
                 </TouchableOpacity>
               </>
             )}

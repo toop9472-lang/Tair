@@ -4,7 +4,7 @@ import {
   MapPin, Bird, Plus, Heart, Clock, MessageCircle, Bell,
   Music2, Feather, Fish, Rabbit, Shell, Bug, Cat, Dog,
   Wheat, Package, ShoppingBag, Trees, Wrench, Milk, Drumstick,
-  Store, Truck, LayoutGrid, Search, Boxes,
+  Store, Truck, LayoutGrid, Search, Boxes, Bed, GraduationCap, Zap, Footprints,
 } from "lucide-react";
 import { T, S } from "./tairTheme";
 import { tairApi, ALL_LOCATIONS } from "./tairApi";
@@ -16,10 +16,11 @@ import { AnalyticsEvents } from "./analytics";
 import VerifiedTick from "./VerifiedTick";
 import AppDownloadBanner from "./AppDownloadBanner";
 const FAMILY_ICONS = {
-  livestock: Milk, songbirds: Music2, poultry: Drumstick, pigeons: Feather,
-  parrots: Bird, fish: Fish, small_mammals: Rabbit, pets: Heart,
+  livestock: Milk, horses: Footprints, songbirds: Music2, poultry: Drumstick, pigeons: Feather,
+  parrots: Bird, falcons: Zap, fish: Fish, small_mammals: Rabbit, pets: Heart,
   reptiles: Shell, insects: Bug, cats: Cat, dogs: Dog, feed: Wheat,
   bird_supplies: Package, animal_supplies: ShoppingBag, reserves: Trees, services: Wrench,
+  hotel_services: Bed, training: GraduationCap,
 };
 
 function timeAgo(iso) {

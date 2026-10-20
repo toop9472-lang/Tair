@@ -86,14 +86,15 @@ async def wholesale_categories():
     """Static list of high-value wholesale categories."""
     return {
         "items": [
-            {"id": "feed",          "name_ar": "أعلاف وحبوب"},
-            {"id": "cages",         "name_ar": "أقفاص ومستلزمات"},
             {"id": "parrots",       "name_ar": "ببغاوات"},
-            {"id": "songbirds",     "name_ar": "طيور مغردة"},
+            {"id": "songbirds",     "name_ar": "طيور صغيرة"},
+            {"id": "falcons",       "name_ar": "صقور"},
             {"id": "pigeons",       "name_ar": "حمام"},
             {"id": "poultry",       "name_ar": "دواجن"},
-            {"id": "vitamins",      "name_ar": "فيتامينات وأدوية"},
-            {"id": "incubators",    "name_ar": "فقّاسات"},
+            {"id": "feed",          "name_ar": "أعلاف وحبوب"},
+            {"id": "cages",         "name_ar": "أقفاص ومستلزمات"},
+            {"id": "vitamins",      "name_ar": "فيتامينات ومقويات"},
+            {"id": "incubators",    "name_ar": "فقاسات"},
             {"id": "accessories",   "name_ar": "إكسسوارات"},
         ]
     }

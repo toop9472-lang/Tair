@@ -93,7 +93,7 @@ export default function WholesaleScreen({ onBack }) {
           <EmptyState
             icon={<Package size={36} strokeWidth={1.5} />}
             title="لا يوجد موردون حالياً"
-            desc="نعمل على إضافة موردي الطيور والمستلزمات بالجملة قريباً. ترقّبوا التحديثات!"
+            desc="ما فيه موردين بهالفئة الحين. جرّب فئة ثانية أو تصفّح السوق."
           />
         ) : (
           <div style={styles.list}>

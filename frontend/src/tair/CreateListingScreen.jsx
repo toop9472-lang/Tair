@@ -14,6 +14,23 @@ const GENDERS = [
   { id: "female", label: "أنثى" },
   { id: "pair", label: "زوج" },
 ];
+const FAMILY_GROUP = {
+  parrots: "طيور", songbirds: "طيور", pigeons: "طيور", poultry: "طيور", falcons: "طيور",
+  livestock: "حيوانات", horses: "حيوانات", cats: "حيوانات", dogs: "حيوانات",
+  small_mammals: "حيوانات", pets: "حيوانات", reptiles: "حيوانات", fish: "حيوانات", insects: "حيوانات",
+};
+
+function categoryForFamily(id) {
+  if (["hotel_services", "training", "services", "reserves"].includes(id)) return "services";
+  if (["feed", "bird_supplies", "animal_supplies"].includes(id)) return "supplies";
+  if (["livestock", "horses"].includes(id)) return "livestock";
+  if (["cats", "dogs", "small_mammals", "pets"].includes(id)) return "mammals";
+  if (id === "fish") return "fish";
+  if (id === "reptiles") return "reptiles";
+  if (id === "insects") return "insects";
+  return "birds";
+}
+
 const HEALTH_STATUS = [
   { id: "excellent", label: "ممتازة" },
   { id: "good", label: "جيدة" },
@@ -62,7 +79,7 @@ export default function CreateListingScreen({ user, onBack, onCreated }) {
     tairApi.listSpecies(undefined, form.family).then((s) => {
       setSpecies(s);
       // reset species selection when family changes
-      setForm((prev) => ({ ...prev, species: s[0]?.species_id || "" }));
+      setForm((prev) => ({ ...prev, species: s[0]?.species_id || "", breed: "" }));
     });
   }, [form.family]);
 
@@ -140,6 +157,7 @@ export default function CreateListingScreen({ user, onBack, onCreated }) {
 
     const payload = {
       ...form,
+      category: categoryForFamily(form.family),
       species: form.species || null,
       price_sar: Number(form.price_sar),
       age_months: form.age_months ? Number(form.age_months) : null,
@@ -339,11 +357,38 @@ export default function CreateListingScreen({ user, onBack, onCreated }) {
           <div style={styles.row2}>
             <div>
               <label style={S.label}>السلالة</label>
+              {(currentSpecies?.common_breeds || []).length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8, justifyContent: "flex-end" }}>
+                  {currentSpecies.common_breeds.map((b) => {
+                    const on = form.breed === b;
+                    return (
+                      <button
+                        type="button"
+                        key={b}
+                        onClick={() => setField("breed", on ? "" : b)}
+                        style={{
+                          borderRadius: 999,
+                          border: `1px solid ${on ? "#C6A15B" : "#E6DCC8"}`,
+                          background: on ? "#1B3D2F" : "#F0EAD8",
+                          color: on ? "#C6A15B" : "#6B5E4A",
+                          padding: "6px 12px",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {b}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <input
                 style={S.input}
                 value={form.breed}
                 onChange={(e) => setField("breed", e.target.value)}
-                placeholder="ألماني"
+                placeholder="أو اكتب السلالة"
                 data-testid="input-breed"
               />
             </div>
@@ -469,16 +514,29 @@ export default function CreateListingScreen({ user, onBack, onCreated }) {
         onClose={() => setSheet(null)}
         title="اختر الفئة"
       >
-        {families.map((f) => (
-          <SelectorItem
-            key={f.family_id}
-            icon={<Bird size={16} strokeWidth={2.2} />}
-            label={f.name_ar}
-            active={form.family === f.family_id}
-            onClick={() => { setField("family", f.family_id); setSheet(null); }}
-            testId={`family-opt-${f.family_id}`}
-          />
-        ))}
+        {families.flatMap((f, idx) => {
+          const group = f.group_ar || FAMILY_GROUP[f.family_id] || "عناية وخدمات";
+          const prev = idx > 0 ? (families[idx - 1].group_ar || FAMILY_GROUP[families[idx - 1].family_id] || "عناية وخدمات") : "";
+          const nodes = [];
+          if (group !== prev) {
+            nodes.push(
+              <div key={`group-${group}`} style={{ padding: "10px 8px 4px", color: "#8A6A2E", fontWeight: 800, fontSize: 12, textAlign: "right" }}>
+                {group}
+              </div>
+            );
+          }
+          nodes.push(
+            <SelectorItem
+              key={f.family_id}
+              icon={<Bird size={16} strokeWidth={2.2} />}
+              label={f.name_ar}
+              active={form.family === f.family_id}
+              onClick={() => { setField("family", f.family_id); setSheet(null); }}
+              testId={`family-opt-${f.family_id}`}
+            />
+          );
+          return nodes;
+        })}
       </BottomSheet>
 
       <BottomSheet
@@ -492,7 +550,7 @@ export default function CreateListingScreen({ user, onBack, onCreated }) {
             icon={<Bird size={16} strokeWidth={2.2} />}
             label={s.name_ar}
             active={form.species === s.species_id}
-            onClick={() => { setField("species", s.species_id); setSheet(null); }}
+            onClick={() => { setForm((f) => ({ ...f, species: s.species_id, breed: "" })); setSheet(null); }}
             testId={`species-opt-${s.species_id}`}
           />
         ))}

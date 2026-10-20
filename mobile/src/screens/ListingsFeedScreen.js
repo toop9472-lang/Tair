@@ -200,10 +200,10 @@ export default function ListingsFeedScreen({
                 <Ionicons
                   name="storefront"
                   size={13}
-                  color="#ec4899"
+                  color="#8A6A2E"
                   style={{ marginLeft: 4 }}
                 />
-                <Text style={[styles.speciesChipText, { color: "#ec4899", fontWeight: "800" }]}>
+                <Text style={[styles.speciesChipText, { color: "#1B3D2F", fontWeight: "800" }]}>
                   الموردون
                 </Text>
               </TouchableOpacity>
@@ -396,11 +396,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   speciesChipActive: { backgroundColor: "#1B3D2F", borderColor: "#1B3D2F" },
-  speciesChipText: { color: "#0e7490", fontWeight: "600", fontSize: 12 },
+  speciesChipText: { color: "#1B3D2F", fontWeight: "600", fontSize: 12 },
   speciesChipTextActive: { color: "#fff" },
   suppliersChip: {
-    backgroundColor: "#fdf2f8",
-    borderColor: "rgba(236,72,153,0.35)",
+    backgroundColor: "#F7F1E8",
+    borderColor: "rgba(198,161,91,0.7)",
   },
 
   resultBar: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 4 },

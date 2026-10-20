@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form, Dep
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from models.listing import Listing, ListingCreate, ListingUpdate
+from models.species import FAMILY_QUERY_ALIASES, listing_category
 from models.listing_comment import ListingComment, ListingCommentCreate
 from services.r2_storage import r2
 from auth.actor import require_actor
@@ -72,6 +73,9 @@ async def create_listing(payload: ListingCreate, user_id: str = Query(...), acto
 
     listing_id = f"lst_{uuid.uuid4().hex[:12]}"
     payload_dict = payload.model_dump()
+    mapped = listing_category(payload_dict.get("family"))
+    if mapped:
+        payload_dict["category"] = mapped
     if not payload_dict.get("cover_image"):
         imgs = payload_dict.get("images") or []
         payload_dict["cover_image"] = imgs[0] if imgs else None
@@ -123,7 +127,8 @@ async def feed_listings(
             {"family": family}, {"_id": 0, "species_id": 1}
         ).to_list(500)
         species_ids = [s["species_id"] for s in fam_species]
-        family_clauses = [{"family": family}]
+        aliases = [family, *FAMILY_QUERY_ALIASES.get(family, [])]
+        family_clauses = [{"family": {"$in": aliases}}]
         if species_ids:
             family_clauses.append({"species": {"$in": species_ids}})
         # Compose with any existing $and clauses safely.
