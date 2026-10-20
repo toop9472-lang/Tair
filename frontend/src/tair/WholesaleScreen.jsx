@@ -5,6 +5,7 @@ import { T, S } from "./tairTheme";
 import { tairApi } from "./tairApi";
 import TairBanner, { BannerCircleBtn, PAGE_BG_STYLE } from "./TairBanner";
 import { EmptyState } from "./TairUI";
+import { toWhatsAppPhone } from "./contactPhone";
 
 export default function WholesaleScreen({ onBack }) {
   const [suppliers, setSuppliers] = useState([]);
@@ -109,7 +110,8 @@ export default function WholesaleScreen({ onBack }) {
 function SupplierCard({ supplier }) {
   const openWhatsApp = () => {
     if (!supplier.whatsapp) return;
-    const num = String(supplier.whatsapp).replace(/[^\d]/g, "");
+    const num = toWhatsAppPhone(supplier.whatsapp);
+    if (!num) return;
     window.open(`https://wa.me/${num}`, "_blank", "noopener");
   };
   const openPhone = () => {

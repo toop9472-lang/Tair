@@ -12,6 +12,7 @@ import { TopBar, StatusPill } from "./TairUI";
 import { toast } from "../hooks/use-toast";
 import { AnalyticsEvents } from "./analytics";
 import VerifiedTick from "./VerifiedTick";
+import { toWhatsAppPhone } from "./contactPhone";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -186,11 +187,11 @@ export default function ListingDetailsScreen({ user, listingId, onBack, onOpenTh
   };
 
   const openWhatsApp = () => {
-    if (!listing?.seller_phone) return;
-    const phone = String(listing.seller_phone).replace(/[^\d+]/g, "");
-    const clean = phone.startsWith("+") ? phone.slice(1) : phone;
+    const raw = listing?.seller_whatsapp || listing?.whatsapp || listing?.seller_phone;
+    const phone = toWhatsAppPhone(raw);
+    if (!phone) return;
     const text = encodeURIComponent(`السلام عليكم، بخصوص إعلانك: ${listing.title}`);
-    window.open(`https://wa.me/${clean}?text=${text}`, "_blank");
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
   };
 
   const postComment = async () => {

@@ -12,6 +12,7 @@ import { toast } from "../hooks/use-toast";
 import TripsMap from "./TripsMap";
 import tripsHeader from "../assets/tair-design/headers/trips.jpg";
 import { TAIR, TAIR_PAGE_STYLE, TairAppHeader } from "./TairAppChrome";
+import { toWhatsAppPhone } from "./contactPhone";
 
 export default function TripsScreen({ user, onOpenTrip, onOpenNotifications }) {
   const [trips, setTrips] = useState([]);
@@ -311,9 +312,8 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
   const isOwn = trip.carrier_id === userId;
   const [deleting, setDeleting] = useState(false);
 
-  const cleanPhone = (trip.carrier_phone || "").replace(/[^\d+]/g, "");
-  const intl = cleanPhone.startsWith("+") ? cleanPhone.slice(1) :
-              (cleanPhone.startsWith("0") ? "966" + cleanPhone.slice(1) : cleanPhone);
+  const cleanPhone = trip.carrier_whatsapp || trip.carrier_phone || "";
+  const intl = toWhatsAppPhone(cleanPhone);
   const waText = encodeURIComponent(`السلام عليكم، بخصوص رحلتك من ${trip.from_city} إلى ${trip.to_city}`);
 
   const openWhatsApp = (e) => {
@@ -322,7 +322,8 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
   };
   const openCall = (e) => {
     e.stopPropagation();
-    window.open(`tel:${cleanPhone}`, "_self");
+    const tel = intl.startsWith("966") ? `+${intl}` : intl;
+    if (tel) window.open(`tel:${tel}`, "_self");
   };
   const openChat = async (e) => {
     e.stopPropagation();
@@ -484,7 +485,7 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
       )}
 
       {/* Organized Contact Actions — 3 clear buttons */}
-      {trip.carrier_phone && (
+      {(trip.carrier_whatsapp || trip.carrier_phone) && (
         <div style={styles.contactRow}>
           <button
             onClick={openChat}
@@ -543,7 +544,7 @@ function CreateTripModal({ user, onClose, onCreated }) {
     is_direct: false,
     waypoints: [],
     carrier_name: user?.name && user.name !== "زائر" ? user.name : "",
-    carrier_phone: user?.phone || "",
+    carrier_phone: user?.whatsapp || user?.phone || "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -668,7 +669,7 @@ function CreateTripModal({ user, onClose, onCreated }) {
             </div>
             <div>
               <label style={S.label}>واتساب / جوال *</label>
-              <input style={S.input} type="tel" value={form.carrier_phone} onChange={(e) => set("carrier_phone", e.target.value)} placeholder="+9665xxxxxxxx" data-testid="trip-carrier-phone" />
+              <input style={S.input} type="tel" value={form.carrier_phone} onChange={(e) => set("carrier_phone", e.target.value)} placeholder="05xxxxxxxx" data-testid="trip-carrier-phone" />
             </div>
           </div>
 

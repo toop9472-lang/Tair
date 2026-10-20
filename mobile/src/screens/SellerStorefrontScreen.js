@@ -23,6 +23,7 @@ import Constants from "expo-constants";
 import api from "../services/api";
 import { TAIR_PALETTE, TAIR_BANNER_IMAGE } from "../constants/tairDesign";
 import { shareInApp } from "../services/shareContent";
+import { openWhatsApp, toTel, toWhatsAppPhone } from "../utils/contactPhone";
 
 const API_BASE =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -159,7 +160,7 @@ export default function SellerStorefrontScreen({
   const backgroundImage = profile.profile_bg_url || profile.bg_image; // full-page bg
   const banner = bannerSlides[0];
   const rawPhone = profile.whatsapp || profile.phone;
-  const digits = rawPhone ? String(rawPhone).replace(/[^0-9]/g, "") : "";
+  const digits = toWhatsAppPhone(rawPhone);
   const prefs = profile.contact_prefs || { whatsapp: true, call: false, chat: true };
   const hours = profile.business_hours || [];
   const openToday = (() => {
@@ -173,37 +174,19 @@ export default function SellerStorefrontScreen({
     return { closed: false, open: row.open, close: row.close };
   })();
 
-  const openWhatsapp = async () => {
+  const openWhatsapp = () => {
     if (!digits) {
       return Alert.alert(
         "لا يوجد رقم",
         "لم يشارك البائع رقم واتساب. يمكنك التواصل عبر المحادثة الداخلية.",
       );
     }
-    // Try native WhatsApp scheme first — if the app is installed AND the
-    // number is registered on WhatsApp, this opens the chat instantly.
-    // Otherwise we fall through to wa.me which shows a friendly error page.
-    const msg = encodeURIComponent(`السلام عليكم، أنا مهتم بمتجرك: ${profile.name || ""}`);
-    const nativeUrl = `whatsapp://send?phone=${digits}&text=${msg}`;
-    const webUrl = `https://wa.me/${digits}?text=${msg}`;
-    try {
-      const canNative = await Linking.canOpenURL(nativeUrl);
-      if (canNative) {
-        return Linking.openURL(nativeUrl).catch(() => Linking.openURL(webUrl));
-      }
-    } catch {}
-    try {
-      await Linking.openURL(webUrl);
-    } catch {
-      Alert.alert(
-        "تعذّر فتح واتساب",
-        "قد يكون الرقم لا يستخدم واتساب أو أن التطبيق غير مثبّت على جهازك.",
-      );
-    }
+    openWhatsApp(rawPhone, `السلام عليكم، أنا مهتم بمتجرك: ${profile.name || ""}`);
   };
   const openCall = () => {
-    if (!digits) return Alert.alert("لا يوجد رقم", "لم يشارك البائع رقم اتصال.");
-    Linking.openURL(`tel:${digits}`).catch(() => Alert.alert("خطأ", "تعذّر إجراء الاتصال"));
+    const tel = toTel(rawPhone);
+    if (!tel) return Alert.alert("لا يوجد رقم", "لم يشارك البائع رقم اتصال.");
+    Linking.openURL(`tel:${tel}`).catch(() => Alert.alert("خطأ", "تعذّر إجراء الاتصال"));
   };
   const openChat = () => onContactSeller?.(profile.user_id, profile.name);
   const isOwnStore = !!viewerId && viewerId === userId;

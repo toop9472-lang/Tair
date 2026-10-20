@@ -3,6 +3,7 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
+import { openWhatsApp } from "../utils/contactPhone";
 
 const TEAL = "#1B3D2F";
 const SUPPORT_EMAIL = "sky-321@hotmail.com";
@@ -44,8 +45,7 @@ function ContactRow({ icon, color, label, value, onPress }) {
 
 export default function SupportScreen({ onBack }) {
   const openWhatsapp = () => {
-    const url = `https://wa.me/${SUPPORT_WHATSAPP.replace(/\+/g, "")}?text=${encodeURIComponent("مرحباً، أحتاج مساعدة في تطبيق طير")}`;
-    Linking.openURL(url).catch(() => Alert.alert("خطأ", "تعذّر فتح واتساب"));
+    openWhatsApp(SUPPORT_WHATSAPP, "مرحباً، أحتاج مساعدة في تطبيق طير");
   };
   const openEmail = () => {
     Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=استفسار عن تطبيق طير`).catch(() =>

@@ -118,6 +118,22 @@ export const tripsApi = {
     req(`/api/trips/${id}?user_id=${encodeURIComponent(userId)}`, {
       method: "DELETE",
     }),
+  listRequests: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ""),
+    ).toString();
+    return req(`/api/trips/requests${qs ? `?${qs}` : ""}`);
+  },
+  createRequest: (userId, payload) =>
+    req(`/api/trips/requests?user_id=${encodeURIComponent(userId)}`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateRequestStatus: (id, userId, status, note) =>
+    req(`/api/trips/requests/${id}/status?user_id=${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, note: note || null }),
+    }),
 };
 
 // ==================== Orders ====================

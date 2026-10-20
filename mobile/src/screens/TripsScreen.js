@@ -18,36 +18,27 @@ import {
   Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { tripsApi } from "../services/tairApi";
+import { profileApi, tripsApi } from "../services/tairApi";
 import TripsMapMobile from "../components/TripsMapMobile";
+import TripRequestSection from "../components/TripRequestSection";
 import { CityTriggerButton, CitySelectorSheet } from "../components/CitySelectorSheet";
 import { SAUDI_CITIES, ALL_LOCATIONS } from "../constants/saudiCities";
 import ScreenHeader from "../components/ScreenHeader";
 import TairHeader from "../components/TairHeader";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { EmptyState, ErrorState, ListSkeleton } from "../components/TairUI";
+import { displayLocalPhone, openWhatsApp, savedContactPhone, toTel } from "../utils/contactPhone";
+import { tripPhase } from "../utils/tripStatus";
 
 const CITIES = ALL_LOCATIONS;
 const VEHICLES = ["سيدان", "SUV", "بيك أب", "شاحنة صغيرة"];
 
-const statusColor = (s) =>
-  ({
-    scheduled: "#3D6B54",
-    departed: "#eab308",
-    in_transit: "#f59e0b",
-    arrived: "#3D6B54",
-    completed: "#064e3b",
-    cancelled: "#8B3A2F",
-  }[s] || "#6B5E4A");
-const statusLabel = (s) =>
-  ({
-    scheduled: "مجدولة",
-    departed: "انطلقت",
-    in_transit: "في الطريق",
-    arrived: "وصلت",
-    completed: "مكتملة",
-    cancelled: "ملغاة",
-  }[s] || s);
+const STATUS_FILTERS = [
+  { id: "active", label: "المتاحة" },
+  { id: "upcoming", label: "قادمة" },
+  { id: "live", label: "جارية" },
+  { id: "completed", label: "مكتملة" },
+];
 
 function TripCard({ trip, onPress, onViewOnMap, onContact }) {
   const dt = trip.depart_at ? new Date(trip.depart_at) : null;
@@ -55,8 +46,8 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
   const carrierAvatar = trip.carrier_avatar;
   const rating = trip.carrier_rating_avg;
   const completed = trip.carrier_trips_completed || 0;
-  const phone = trip.carrier_phone || trip.carrier_whatsapp;
-  const digits = phone ? String(phone).replace(/[^0-9]/g, "") : "";
+  const phone = trip.carrier_whatsapp || trip.carrier_phone;
+  const phase = tripPhase(trip.status);
   const hasWaypoints = Array.isArray(trip.waypoints) && trip.waypoints.length > 0;
 
   return (
@@ -89,11 +80,9 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
             <Text style={styles.carrierSub}>{completed} رحلة مكتملة</Text>
           </View>
         </View>
-        <View style={[styles.statusPill, { backgroundColor: statusColor(trip.status) + "22" }]}>
-          <View style={[styles.statusDot, { backgroundColor: statusColor(trip.status) }]} />
-          <Text style={[styles.statusText, { color: statusColor(trip.status) }]}>
-            {statusLabel(trip.status)}
-          </Text>
+        <View style={[styles.statusPill, { backgroundColor: phase.bg }]}>
+          <View style={[styles.statusDot, { backgroundColor: phase.fg }]} />
+          <Text style={[styles.statusText, { color: phase.fg }]}>{phase.label}</Text>
         </View>
       </View>
 
@@ -149,45 +138,43 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
             <Text style={[styles.metaText, { color: "#d97706" }]}>مباشرة</Text>
           </View>
         )}
-        {trip.price_hint_sar && (
-          <View style={[styles.metaChip, { backgroundColor: "#f0fdfa" }]}>
-            <Ionicons name="cash-outline" size={12} color="#1B3D2F" />
-            <Text style={[styles.metaText, { color: "#1B3D2F", fontWeight: "800" }]}>
-              {trip.price_hint_sar} ر.س
-            </Text>
-          </View>
-        )}
+        <View style={[styles.metaChip, { backgroundColor: TAIR.goldWash }]}>
+          <Ionicons name="cash-outline" size={12} color={TAIR.goldDark} />
+          <Text style={[styles.metaText, { color: TAIR.goldDark, fontWeight: "800" }]}>
+            {trip.price_hint_sar ? `${trip.price_hint_sar} ر.س` : "عند الاتفاق"}
+          </Text>
+        </View>
       </View>
 
       {/* Contact action buttons */}
       <View style={styles.contactRow}>
-        {digits && (
+        {phone ? (
           <TouchableOpacity
             style={[styles.contactBtn, { backgroundColor: "#25D366" }]}
             onPress={(e) => {
               e?.stopPropagation?.();
-              const msg = encodeURIComponent(`السلام عليكم، أنا مهتم برحلتك من ${trip.from_city} إلى ${trip.to_city}`);
-              Linking.openURL(`https://wa.me/${digits}?text=${msg}`);
+              openWhatsApp(phone, `السلام عليكم، أنا مهتم برحلتك من ${trip.from_city} إلى ${trip.to_city}`);
             }}
             data-testid={`trip-whatsapp-${trip.trip_id}`}
           >
             <Ionicons name="logo-whatsapp" size={16} color="#fff" />
             <Text style={styles.contactBtnText}>واتساب</Text>
           </TouchableOpacity>
-        )}
-        {digits && (
+        ) : null}
+        {phone ? (
           <TouchableOpacity
             style={[styles.contactBtn, { backgroundColor: "#1B3D2F" }]}
             onPress={(e) => {
               e?.stopPropagation?.();
-              Linking.openURL(`tel:${digits}`);
+              const tel = toTel(phone);
+              if (tel) Linking.openURL(`tel:${tel}`);
             }}
             data-testid={`trip-call-${trip.trip_id}`}
           >
             <Ionicons name="call" size={16} color="#fff" />
             <Text style={styles.contactBtnText}>اتصال</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
         <TouchableOpacity
           style={[styles.contactBtn, { backgroundColor: "#0F241C" }]}
           onPress={(e) => {
@@ -201,7 +188,7 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
         </TouchableOpacity>
         {onViewOnMap && (
           <TouchableOpacity
-            style={[styles.contactBtn, { backgroundColor: "#7c3aed" }]}
+            style={[styles.contactBtn, { backgroundColor: TAIR.goldDark }]}
             onPress={(e) => {
               e?.stopPropagation?.();
               onViewOnMap(trip);
@@ -237,8 +224,15 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
     price_hint_sar: "",
     is_direct: false,
     waypoints: [],
+    contact_phone: "",
   });
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
+
+  useEffect(() => {
+    if (!visible || editingTrip) return;
+    const saved = displayLocalPhone(savedContactPhone(user));
+    if (saved) setForm((prev) => ({ ...prev, contact_phone: saved }));
+  }, [visible, editingTrip, user]);
 
   // Pre-fill when editing
   useEffect(() => {
@@ -257,9 +251,10 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
         price_hint_sar: editingTrip.price_hint_sar ? String(editingTrip.price_hint_sar) : "",
         is_direct: !!editingTrip.is_direct,
         waypoints: editingTrip.waypoints || [],
+        contact_phone: displayLocalPhone(editingTrip.carrier_whatsapp || editingTrip.carrier_phone || savedContactPhone(user)),
       });
     }
-  }, [visible, editingTrip]);
+  }, [visible, editingTrip, user]);
 
   const addWaypoint = (city) => {
     if (!city) return;
@@ -288,7 +283,12 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
         price_hint_sar: form.price_hint_sar ? Number(form.price_hint_sar) : null,
         is_direct: form.is_direct,
         waypoints: form.is_direct ? [] : (form.waypoints || []),
+        carrier_name: user?.name || null,
+        carrier_phone: form.contact_phone.trim() || null,
       };
+      if (form.contact_phone.trim()) {
+        profileApi.update(userId, { whatsapp: form.contact_phone.trim() }).catch(() => {});
+      }
       let saved;
       if (editingTrip?.trip_id) {
         saved = await tripsApi.update(editingTrip.trip_id, userId, payload);
@@ -476,6 +476,17 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
             <Text style={styles.checkLabel}>أقبل الطيور الحساسة</Text>
           </TouchableOpacity>
 
+          <FormLabel>واتساب للتواصل — من متجرك</FormLabel>
+          <TextInput
+            style={styles.input}
+            keyboardType="phone-pad"
+            placeholder="05xxxxxxxx"
+            placeholderTextColor="#8A7B66"
+            value={form.contact_phone}
+            onChangeText={(v) => set("contact_phone", v)}
+            testID="create-trip-phone"
+          />
+
           <FormLabel>ملاحظات</FormLabel>
           <TextInput
             style={[styles.input, { minHeight: 80, textAlignVertical: "top" }]}
@@ -515,6 +526,9 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
   const [toCity, setToCity] = useState(null);
   const [createOpen, setCreateOpen] = useState(!!initialCreateOpen);
   const [editingTrip, setEditingTrip] = useState(initialEditingTrip || null);
+  const [section, setSection] = useState("trips"); // trips | request
+  const [requestRefresh, setRequestRefresh] = useState(0);
+  const [statusFilter, setStatusFilter] = useState("active");
   const [viewMode, setViewMode] = useState("list"); // 'list' | 'map'
   const [focusedTripId, setFocusedTripId] = useState(null);
   const [citySheet, setCitySheet] = useState(null); // 'from' | 'to' | null
@@ -532,7 +546,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
 
   const load = useCallback(async () => {
     try {
-      const params = { status: "active", limit: 50 };
+      const params = { status: statusFilter, limit: 50 };
       if (fromCity) params.from_city = fromCity;
       if (toCity) params.to_city = toCity;
       const res = await tripsApi.list(params);
@@ -544,7 +558,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
       setLoading(false);
       setRefreshing(false);
     }
-  }, [fromCity, toCity]);
+  }, [fromCity, toCity, statusFilter]);
 
   useEffect(() => {
     load();
@@ -553,6 +567,23 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
   const renderHeader = (
     <View>
       <TairHeader variant="trips" onBellPress={onOpenNotifications} onMessagesPress={onOpenMessages} />
+      <View style={styles.sectionSwitch} testID="trips-section-switch">
+        <TouchableOpacity
+          style={[styles.sectionBtn, section === "trips" && styles.sectionBtnOn]}
+          onPress={() => setSection("trips")}
+          testID="trips-tab-available"
+        >
+          <Text style={[styles.sectionBtnText, section === "trips" && styles.sectionBtnTextOn]}>الرحلات</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.sectionBtn, section === "request" && styles.sectionBtnOn]}
+          onPress={() => setSection("request")}
+          testID="trips-tab-request"
+        >
+          <Text style={[styles.sectionBtnText, section === "request" && styles.sectionBtnTextOn]}>طلب رحلة</Text>
+        </TouchableOpacity>
+      </View>
+      {section === "trips" ? (
       <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4, flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center" }}>
         <Text style={{ color: TAIR.emerald, fontSize: 18, fontWeight: "900" }}>الرحلات المتاحة</Text>
         <TouchableOpacity
@@ -567,7 +598,9 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
           <Ionicons name="add" size={22} color={TAIR.gold} />
         </TouchableOpacity>
       </View>
+      ) : null}
 
+      {section === "trips" ? (
       <View style={styles.filters}>
         <View style={styles.viewToggle} data-testid="trips-view-toggle">
           <TouchableOpacity
@@ -609,6 +642,22 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
             </Text>
           </TouchableOpacity>
         </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
+          {STATUS_FILTERS.map((f) => {
+            const on = statusFilter === f.id;
+            return (
+              <TouchableOpacity
+                key={f.id}
+                style={[styles.filterChip, on && styles.filterChipOn]}
+                onPress={() => setStatusFilter(f.id)}
+                testID={`trips-filter-${f.id}`}
+              >
+                <Text style={[styles.filterChipText, on && styles.filterChipTextOn]}>{f.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
           <View style={styles.cityPickerRow}>
@@ -655,6 +704,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
           <Text style={styles.addTripCtaText}>أضف رحلة</Text>
         </TouchableOpacity>
       </View>
+      ) : null}
     </View>
   );
 
@@ -674,7 +724,24 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
         onSelect={(c) => setToCity(c)}
         onClose={() => setCitySheet(null)}
       />
-      {viewMode === "map" ? (
+      {section === "request" ? (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 120 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRequestRefresh((n) => n + 1);
+                setRefreshing(false);
+              }}
+              tintColor={TAIR.emerald}
+            />
+          }
+        >
+          {renderHeader}
+          <TripRequestSection user={user} refreshKey={requestRefresh} />
+        </ScrollView>
+      ) : viewMode === "map" ? (
         <ScrollView
           contentContainerStyle={{ paddingBottom: 120 }}
           refreshControl={
@@ -775,6 +842,29 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: "#0F241C", fontWeight: "700", fontSize: 13 },
 
+  sectionSwitch: {
+    flexDirection: "row-reverse",
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: TAIR.creamDeep,
+    borderRadius: 14,
+    padding: 4,
+    gap: 4,
+  },
+  sectionBtn: { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: "center" },
+  sectionBtnOn: { backgroundColor: TAIR.emerald },
+  sectionBtnText: { color: TAIR.emerald, fontWeight: "800", fontSize: 14 },
+  sectionBtnTextOn: { color: TAIR.gold },
+  filterChips: { flexDirection: "row-reverse", gap: 8, paddingVertical: 8 },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: TAIR.creamDeep,
+  },
+  filterChipOn: { backgroundColor: TAIR.emerald },
+  filterChipText: { color: TAIR.emerald, fontWeight: "800", fontSize: 12 },
+  filterChipTextOn: { color: TAIR.gold },
   filters: { backgroundColor: TAIR.card, paddingHorizontal: 14, paddingVertical: 10 },
   cityPickerRow: {
     flexDirection: "row-reverse",

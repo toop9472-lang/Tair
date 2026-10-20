@@ -18,12 +18,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { Video, ResizeMode } from "expo-av";
-import { listingsApi, speciesApi } from "../services/tairApi";
+import { listingsApi, profileApi, speciesApi } from "../services/tairApi";
 import api from "../services/api";
 import IdentifyBirdModal from "../components/IdentifyBirdModal";
 import { CityTriggerButton, CitySelectorSheet } from "../components/CitySelectorSheet";
 import { ALL_LOCATIONS } from "../constants/saudiCities";
 import { TAIR } from "../constants/tairTheme";
+import { displayLocalPhone, savedContactPhone, toStoredPhone } from "../utils/contactPhone";
 
 const GENDERS = [
   { id: "male", label: "ذكر" },
@@ -70,6 +71,12 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
     district: "",
     health: { status: "good", vaccinated: false, ring_number: "", notes: "" },
   });
+
+  useEffect(() => {
+    const saved = savedContactPhone(user);
+    if (!saved) return;
+    setForm((prev) => (prev.whatsapp ? prev : { ...prev, whatsapp: displayLocalPhone(saved) }));
+  }, [user]);
 
   // Load families once
   useEffect(() => {
@@ -253,15 +260,10 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
       }
 
       const userId = user?.user_id || user?.id;
-      // Normalize WhatsApp to +966 format
-      const rawWa = (form.whatsapp || "").trim().replace(/[^\d+]/g, "");
-      let wa = null;
-      if (rawWa) {
-        if (rawWa.startsWith("+")) wa = rawWa;
-        else if (rawWa.startsWith("00")) wa = "+" + rawWa.slice(2);
-        else if (rawWa.startsWith("966")) wa = "+" + rawWa;
-        else if (rawWa.startsWith("0")) wa = "+966" + rawWa.slice(1);
-        else wa = "+966" + rawWa;
+      const typedWa = (form.whatsapp || "").trim();
+      const wa = typedWa ? toStoredPhone(typedWa) : null;
+      if (typedWa) {
+        profileApi.update(userId, { whatsapp: typedWa }).catch(() => {});
       }
       const payload = {
         title: form.title.trim(),
@@ -638,11 +640,11 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
           </View>
 
           {/* واتساب — بدون مفتاح الدولة */}
-          <Field label="رقم الواتساب (بدون مفتاح الدولة — نضيف +966 تلقائياً)">
+          <Field label="واتساب للتواصل — يُؤخذ من متجرك، وبلا مفتاح دولة">
             <TextInput
               style={styles.input}
               keyboardType="phone-pad"
-              placeholder="مثال: 0501234567"
+              placeholder="05xxxxxxxx"
               placeholderTextColor="#8A7B66"
               value={form.whatsapp}
               onChangeText={(v) => set("whatsapp", v)}

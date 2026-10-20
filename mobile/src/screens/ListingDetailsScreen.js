@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
-  Linking,
   Modal,
   Pressable,
 } from "react-native";
@@ -23,6 +22,7 @@ import { SafetyNotice, OwnerStatsCard } from "../components/TairShared";
 import { shareInApp } from "../services/shareContent";
 import { DetailSkeleton, ErrorState, TairImage } from "../components/TairUI";
 import { TAIR } from "../constants/tairTheme";
+import { openWhatsApp } from "../utils/contactPhone";
 
 const { width } = Dimensions.get("window");
 
@@ -490,15 +490,7 @@ export default function ListingDetailsScreen({
               style={styles.whatsappBtn}
               onPress={() => {
                 const raw = listing.seller_whatsapp || listing.whatsapp || listing.seller_phone;
-                const digits = String(raw).replace(/[^0-9]/g, "");
-                if (!digits) {
-                  Alert.alert("لا يوجد رقم", "لم يشارك البائع رقم واتساب.");
-                  return;
-                }
-                const msg = encodeURIComponent(`السلام عليكم، أنا مهتم بإعلانك: ${listing.title}`);
-                Linking.openURL(`https://wa.me/${digits}?text=${msg}`).catch(() =>
-                  Alert.alert("خطأ", "تعذّر فتح واتساب"),
-                );
+                openWhatsApp(raw, `السلام عليكم، أنا مهتم بإعلانك: ${listing.title}`);
               }}
               data-testid="whatsapp-seller-btn"
             >

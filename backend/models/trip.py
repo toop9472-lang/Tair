@@ -87,3 +87,43 @@ class TripCreate(BaseModel):
 class TripStatusUpdate(BaseModel):
     status: TripStatus
     note: Optional[str] = None
+
+
+RequestStatus = Literal["pending", "accepted", "in_progress", "completed", "cancelled"]
+
+
+class RequestStatusEvent(BaseModel):
+    status: RequestStatus
+    at: datetime = Field(default_factory=_now)
+    note: Optional[str] = None
+
+
+class TripRequest(BaseModel):
+    request_id: str
+    requester_id: str
+    requester_name: Optional[str] = None
+    from_city: str
+    to_city: str
+    depart_on: str
+    details: Optional[str] = None
+    contact_phone: Optional[str] = None
+    status: RequestStatus = "pending"
+    status_updates: List[RequestStatusEvent] = []
+    accepted_by: Optional[str] = None
+    accepted_name: Optional[str] = None
+    created_at: datetime = Field(default_factory=_now)
+    updated_at: datetime = Field(default_factory=_now)
+
+
+class TripRequestCreate(BaseModel):
+    from_city: str
+    to_city: str
+    depart_on: str
+    details: Optional[str] = None
+    contact_phone: Optional[str] = None
+    requester_name: Optional[str] = None
+
+
+class TripRequestStatusUpdate(BaseModel):
+    status: RequestStatus
+    note: Optional[str] = None

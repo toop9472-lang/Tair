@@ -5,6 +5,7 @@ import { T, S } from "./tairTheme";
 import { tairApi } from "./tairApi";
 import { EmptyState } from "./TairUI";
 import VerifiedTick from "./VerifiedTick";
+import { toWhatsAppPhone } from "./contactPhone";
 
 const money = (v) => new Intl.NumberFormat("ar-SA").format(v || 0);
 
@@ -538,7 +539,7 @@ function ContactBar({ profile, viewerId, onContactSeller, brand }) {
   if (isSelf) return null;
   const prefs = profile.contact_prefs || { whatsapp: true, call: false, chat: true };
   const rawPhone = profile.whatsapp || profile.phone;
-  const digits = rawPhone ? String(rawPhone).replace(/[^0-9]/g, "") : "";
+  const digits = toWhatsAppPhone(rawPhone);
   const openWhatsapp = () => {
     if (!digits) return;
     const msg = encodeURIComponent(`السلام عليكم، أنا مهتم بمتجرك: ${profile.name || ""}`);
@@ -546,7 +547,7 @@ function ContactBar({ profile, viewerId, onContactSeller, brand }) {
   };
   const openCall = () => {
     if (!digits) return;
-    window.location.href = `tel:${digits}`;
+    window.location.href = `tel:${digits.startsWith("966") ? `+${digits}` : digits}`;
   };
   const openChat = () => {
     if (onContactSeller) onContactSeller(profile.user_id, profile.name);

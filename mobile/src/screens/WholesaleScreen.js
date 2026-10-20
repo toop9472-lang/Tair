@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import api from "../services/api";
 import ScreenHeader from "../components/ScreenHeader";
+import { openWhatsApp, toTel } from "../utils/contactPhone";
 
 const req = (path) => api.fetch(path);
 
@@ -75,7 +76,7 @@ function SupplierCard({ supplier, onPress }) {
             style={[styles.actionBtn, { backgroundColor: "#25d366" }]}
             onPress={(e) => {
               e?.stopPropagation?.();
-              Linking.openURL(`https://wa.me/${supplier.whatsapp.replace(/\D/g, "")}`);
+              openWhatsApp(supplier.whatsapp, "السلام عليكم، أستفسر عن التوريد بالجملة");
             }}
           >
             <Ionicons name="logo-whatsapp" size={16} color="#fff" />
@@ -87,7 +88,8 @@ function SupplierCard({ supplier, onPress }) {
             style={[styles.actionBtn, { backgroundColor: "#1B3D2F" }]}
             onPress={(e) => {
               e?.stopPropagation?.();
-              Linking.openURL(`tel:${supplier.phone}`);
+              const tel = toTel(supplier.phone);
+              if (tel) Linking.openURL(`tel:${tel}`);
             }}
           >
             <Ionicons name="call" size={16} color="#fff" />

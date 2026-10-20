@@ -15,6 +15,9 @@ import Constants from "expo-constants";
 import { tripsApi } from "../services/tairApi";
 import { shareInApp } from "../services/shareContent";
 import { DetailSkeleton, ErrorState } from "../components/TairUI";
+import { TAIR } from "../constants/tairTheme";
+import { openWhatsApp, toTel } from "../utils/contactPhone";
+import { TRIP_FLOW, TRIP_NEXT, TRIP_STEP_LABEL, tripPhase } from "../utils/tripStatus";
 
 const API_BASE =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -27,24 +30,27 @@ const resolveMediaUrl = (u) => {
   return u;
 };
 
-const statusColor = (s) =>
-  ({
-    scheduled: "#0891b2",
-    departed: "#eab308",
-    in_transit: "#f59e0b",
-    arrived: "#2F6B45",
-    completed: "#064e3b",
-    cancelled: "#8B3A2F",
-  }[s] || "#6B5E4A");
-const statusLabel = (s) =>
-  ({
-    scheduled: "مجدولة",
-    departed: "انطلقت",
-    in_transit: "في الطريق",
-    arrived: "وصلت",
-    completed: "مكتملة",
-    cancelled: "ملغاة",
-  }[s] || s);
+function StatusTrack({ status }) {
+  const current = status === "arrived" ? TRIP_FLOW.indexOf("completed") : TRIP_FLOW.indexOf(status);
+  return (
+    <View style={styles.track}>
+      {TRIP_FLOW.filter((id) => id !== "arrived").map((id, index, arr) => {
+        const stepIndex = TRIP_FLOW.indexOf(id);
+        const done = current >= stepIndex && current >= 0;
+        const label = id === "completed" && status === "arrived" ? "وصلت" : TRIP_STEP_LABEL[id];
+        return (
+          <View key={id} style={styles.trackStep}>
+            <View style={styles.trackRail}>
+              <View style={[styles.trackDot, done && styles.trackDotOn]} />
+              {index < arr.length - 1 ? <View style={[styles.trackLine, done && current > stepIndex && styles.trackLineOn]} /> : null}
+            </View>
+            <Text style={[styles.trackLabel, done && styles.trackLabelOn]}>{label}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 export default function TripDetailsScreen({ user, tripId, onBack, onContactCarrier, onOpenCarrier }) {
   const [loading, setLoading] = useState(true);
@@ -101,7 +107,8 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
   const rating = trip.carrier_rating_avg;
   const completed = trip.carrier_trips_completed || 0;
   const rawPhone = trip.carrier_whatsapp || trip.carrier_phone;
-  const digits = rawPhone ? String(rawPhone).replace(/[^0-9]/g, "") : "";
+  const phase = tripPhase(trip.status);
+  const nextStatus = TRIP_NEXT[trip.status];
   const hasWaypoints = Array.isArray(trip.waypoints) && trip.waypoints.length > 0;
   const isOwner = (user?.user_id || user?.id) === trip.carrier_id;
 
@@ -119,65 +126,42 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
     });
   };
 
-  const openWhatsapp = async () => {
-    if (!digits) {
+  const openWhatsapp = () => {
+    if (!rawPhone) {
       Alert.alert("لا يوجد رقم", "لم يشارك الموصل رقم واتساب.");
       return;
     }
-    const msg = encodeURIComponent(
-      `السلام عليكم، أنا مهتم برحلتك من ${trip.from_city} إلى ${trip.to_city}`,
-    );
-    const nativeUrl = `whatsapp://send?phone=${digits}&text=${msg}`;
-    const webUrl = `https://wa.me/${digits}?text=${msg}`;
-    try {
-      const canNative = await Linking.canOpenURL(nativeUrl);
-      if (canNative) {
-        return Linking.openURL(nativeUrl).catch(() => Linking.openURL(webUrl));
-      }
-    } catch {
-      // إن تعذّر فحص التطبيق نكمل برابط الويب
-    }
-    try {
-      await Linking.openURL(webUrl);
-    } catch {
-      Alert.alert(
-        "تعذّر فتح واتساب",
-        "قد يكون الرقم لا يستخدم واتساب أو أن التطبيق غير مثبّت على جهازك.",
-      );
-    }
+    openWhatsApp(rawPhone, `السلام عليكم، أنا مهتم برحلتك من ${trip.from_city} إلى ${trip.to_city}`);
   };
 
-  const markArrived = async () => {
-    Alert.alert(
-      "إنهاء الرحلة",
-      "هل وصلت وأتممت التسليم؟ لن تتمكن من تعديل الحالة بعد ذلك.",
-      [
-        { text: "لا", style: "cancel" },
-        {
-          text: "نعم، وصلت",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const uid = user?.user_id || user?.id;
-              await tripsApi.updateStatus(trip.trip_id, uid, "arrived");
-              const fresh = await tripsApi.get(trip.trip_id);
-              setTrip(fresh);
-              Alert.alert("تم", "تم تحديث حالة الرحلة إلى: وصلت ✅");
-            } catch (e) {
-              Alert.alert("خطأ", e?.message || "تعذّر تحديث الحالة");
-            }
-          },
+  const advanceStatus = () => {
+    if (!nextStatus) return;
+    const label = TRIP_STEP_LABEL[nextStatus];
+    Alert.alert("تحديث الرحلة", `نقل الحالة إلى: ${label}؟`, [
+      { text: "لا", style: "cancel" },
+      {
+        text: "نعم",
+        onPress: async () => {
+          try {
+            const uid = user?.user_id || user?.id;
+            await tripsApi.updateStatus(trip.trip_id, uid, nextStatus);
+            const fresh = await tripsApi.get(trip.trip_id);
+            setTrip(fresh);
+          } catch (e) {
+            Alert.alert("خطأ", e?.message || "تعذّر تحديث الحالة");
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const openCall = () => {
-    if (!digits) {
+    const tel = toTel(rawPhone);
+    if (!tel) {
       Alert.alert("لا يوجد رقم", "لم يشارك الموصل رقم اتصال.");
       return;
     }
-    Linking.openURL(`tel:${digits}`).catch(() =>
+    Linking.openURL(`tel:${tel}`).catch(() =>
       Alert.alert("خطأ", "تعذّر إجراء الاتصال"),
     );
   };
@@ -216,9 +200,11 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
 
           <View style={styles.heroStatus}>
             <View style={[styles.heroStatusDot, { backgroundColor: "#C6A15B" }]} />
-            <Text style={[styles.heroStatusText, { color: "#C6A15B" }]}>{statusLabel(trip.status)}</Text>
+            <Text style={[styles.heroStatusText, { color: "#C6A15B" }]}>{phase.label}</Text>
           </View>
         </View>
+
+        {trip.status !== "cancelled" ? <StatusTrack status={trip.status} /> : null}
 
         {/* Carrier card */}
         <TouchableOpacity
@@ -283,7 +269,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
             highlight
           />
           {trip.has_ac ? (
-            <DetailCard icon="snow-outline" label="التكييف" value="متوفر" color="#0891b2" />
+            <DetailCard icon="snow-outline" label="التكييف" value="متوفر" color={TAIR.emeraldSoft} />
           ) : null}
           {trip.is_direct ? (
             <DetailCard icon="flash" label="الرحلة" value="مباشرة" color="#d97706" />
@@ -324,17 +310,17 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
         ) : null}
 
         {/* Carrier action: end / arrived */}
-        {isOwner && trip.status !== "arrived" && trip.status !== "completed" && trip.status !== "cancelled" && (
+        {isOwner && nextStatus ? (
           <TouchableOpacity
             style={styles.endTripBtn}
-            onPress={markArrived}
+            onPress={advanceStatus}
             activeOpacity={0.85}
             testID="end-trip-btn"
           >
             <Ionicons name="checkmark-done-circle" size={20} color="#C6A15B" />
-            <Text style={styles.endTripText}>أنهيت الرحلة — وصلت</Text>
+            <Text style={styles.endTripText}>تحديث الحالة: {TRIP_STEP_LABEL[nextStatus]}</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
 
         {/* Safety notice */}
         <View style={styles.safetyBox}>
@@ -356,7 +342,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
       {/* Bottom bar — show contact buttons to owner too so they can preview
           how buyers see the trip, and easily share/test their own contacts. */}
       <View style={styles.bottomBar}>
-        {digits ? (
+        {rawPhone ? (
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: "#25D366" }]}
             onPress={openWhatsapp}
@@ -366,7 +352,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
             <Text style={styles.actionText}>واتساب</Text>
           </TouchableOpacity>
         ) : null}
-        {digits ? (
+        {rawPhone ? (
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: "#1B3D2F" }]}
             onPress={openCall}
@@ -378,7 +364,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
         ) : null}
         {!isOwner ? (
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: "#C6A15B", flex: digits ? 1 : 2 }]}
+            style={[styles.actionBtn, { backgroundColor: "#C6A15B", flex: rawPhone ? 1 : 2 }]}
             onPress={() => onContactCarrier && onContactCarrier(trip.carrier_id, carrierName)}
             testID="trip-message"
           >
@@ -386,7 +372,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
             <Text style={[styles.actionText, { color: "#0F241C" }]}>مراسلة</Text>
           </TouchableOpacity>
         ) : (
-          <View style={[styles.ownerBadge, { flex: digits ? 1 : 2 }]}>
+          <View style={[styles.ownerBadge, { flex: rawPhone ? 1 : 2 }]}>
             <Ionicons name="checkmark-circle" size={16} color="#1B3D2F" />
             <Text style={styles.ownerBadgeText}>رحلتك</Text>
           </View>
@@ -592,6 +578,33 @@ const styles = StyleSheet.create({
   },
   notesText: { color: "#475569", fontSize: 13, lineHeight: 22, textAlign: "right" },
 
+  track: {
+    flexDirection: "row-reverse",
+    marginHorizontal: 14,
+    marginTop: -18,
+    marginBottom: 8,
+    backgroundColor: TAIR.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: TAIR.line,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  trackStep: { flex: 1, alignItems: "center" },
+  trackRail: { flexDirection: "row-reverse", alignItems: "center", width: "100%" },
+  trackDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: TAIR.creamDeep,
+    borderWidth: 2,
+    borderColor: TAIR.gold,
+  },
+  trackDotOn: { backgroundColor: TAIR.emerald, borderColor: TAIR.emerald },
+  trackLine: { flex: 1, height: 2, backgroundColor: TAIR.line },
+  trackLineOn: { backgroundColor: TAIR.emerald },
+  trackLabel: { marginTop: 6, color: TAIR.faint, fontSize: 10, fontWeight: "800", textAlign: "center" },
+  trackLabelOn: { color: TAIR.emerald },
   endTripBtn: {
     marginHorizontal: 14,
     marginTop: 6,
@@ -615,7 +628,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "flex-start",
     gap: 8,
-    backgroundColor: "#f0f9ff",
+    backgroundColor: TAIR.emeraldWash,
     borderWidth: 1,
     borderColor: "#bae6fd",
     marginHorizontal: 14,

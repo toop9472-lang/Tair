@@ -1,5 +1,6 @@
 """طير — Trips API routes (carrier delivery network)."""
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -7,7 +8,16 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from models.trip import Trip, TripCreate, TripStatusEvent, TripStatusUpdate
+from models.trip import (
+    Trip,
+    TripCreate,
+    TripRequest,
+    TripRequestCreate,
+    TripRequestStatusUpdate,
+    RequestStatusEvent,
+    TripStatusEvent,
+    TripStatusUpdate,
+)
 from auth.actor import require_actor
 
 router = APIRouter(prefix="/trips", tags=["Tair-Trips"])
@@ -101,8 +111,14 @@ async def list_trips(
     skip: int = 0,
 ):
     query: dict = {}
-    if status and status != "all":
-        query["status"] = {"$in": ["scheduled", "departed", "in_transit"]} if status == "active" else status
+    if status == "active":
+        query["status"] = {"$in": ["scheduled", "departed", "in_transit"]}
+    elif status == "upcoming":
+        query["status"] = "scheduled"
+    elif status == "live":
+        query["status"] = {"$in": ["departed", "in_transit", "arrived"]}
+    elif status and status != "all":
+        query["status"] = status
     if from_city:
         query["from_city"] = from_city
     if to_city:
@@ -134,16 +150,21 @@ async def list_trips(
         for i in items:
             cid = i.get("carrier_id")
             u = u_map.get(cid) if cid else None
+            stored_phone = i.get("carrier_phone")
             if u:
-                # Always overwrite with latest data
+                # Always overwrite with latest data, then fall back to the trip snapshot
                 i["carrier_name"] = u.get("name") or i.get("carrier_name")
                 i["carrier_avatar"] = u.get("avatar")
-                i["carrier_phone"] = _norm_digits(u.get("phone"))
-                i["carrier_whatsapp"] = _norm_digits(u.get("whatsapp") or u.get("phone"))
+                i["carrier_phone"] = _norm_digits(u.get("phone") or stored_phone)
+                i["carrier_whatsapp"] = _norm_digits(
+                    u.get("whatsapp") or u.get("phone") or stored_phone
+                )
                 i["carrier_verified"] = bool(u.get("is_verified_carrier"))
                 sf = u.get("storefront_settings") or {}
                 i["carrier_identity_color"] = sf.get("identity_color") or "#0f766e"
                 i["carrier_logo_url"] = sf.get("logo_url")
+            elif stored_phone:
+                i["carrier_whatsapp"] = _norm_digits(stored_phone)
             if cid:
                 agg = await db.user_ratings.aggregate([
                     {"$match": {"target_id": cid, "role": "carrier"}},
@@ -155,6 +176,131 @@ async def list_trips(
                 )
     total = await db.trips.count_documents(query)
     return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+
+def _serialize_request(doc: dict) -> dict:
+    if not doc:
+        return doc
+    doc.pop("_id", None)
+    for key in ("created_at", "updated_at"):
+        val = doc.get(key)
+        if isinstance(val, datetime):
+            doc[key] = val.isoformat()
+    for evt in doc.get("status_updates", []) or []:
+        if isinstance(evt.get("at"), datetime):
+            evt["at"] = evt["at"].isoformat()
+    return doc
+
+
+async def _user_brief(user_id: str):
+    if not user_id:
+        return None
+    return await db.users.find_one(
+        {"$or": [{"id": user_id}, {"user_id": user_id}, {"email": user_id}]},
+        {"_id": 0, "name": 1, "phone": 1, "whatsapp": 1},
+    )
+
+
+@router.post("/requests")
+async def create_trip_request(
+    payload: TripRequestCreate, user_id: str = Query(...), actor: str = Depends(require_actor)
+):
+    origin = (payload.from_city or "").strip()
+    dest = (payload.to_city or "").strip()
+    if not origin or not dest:
+        raise HTTPException(400, "حدد مدينة الانطلاق والوصول")
+    if origin == dest:
+        raise HTTPException(400, "المدينتان يجب أن تكونا مختلفتين")
+    day = (payload.depart_on or "").strip()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day):
+        raise HTTPException(400, "اكتب التاريخ بصيغة السنة-الشهر-اليوم")
+    user = await _user_brief(user_id)
+    raw_phone = payload.contact_phone or (user or {}).get("whatsapp") or (user or {}).get("phone")
+    phone = re.sub(r"\D", "", _norm_digits(raw_phone) or "")
+    if len(phone) < 9:
+        raise HTTPException(400, "أضف رقم واتساب للتواصل")
+    name = (payload.requester_name or "").strip() or (user or {}).get("name") or "عضو طير"
+    request_id = f"treq_{uuid.uuid4().hex[:12]}"
+    event = RequestStatusEvent(status="pending", note="أُنشئ الطلب").model_dump()
+    doc = TripRequest(
+        request_id=request_id,
+        requester_id=user_id,
+        requester_name=name,
+        from_city=origin,
+        to_city=dest,
+        depart_on=day,
+        details=(payload.details or "").strip() or None,
+        contact_phone=phone,
+        status_updates=[event],
+    ).model_dump()
+    await db.trip_requests.insert_one(doc)
+    return _serialize_request(doc)
+
+
+@router.get("/requests")
+async def list_trip_requests(
+    user_id: Optional[str] = None,
+    scope: str = "board",
+    limit: int = 40,
+):
+    if scope == "mine":
+        if not user_id:
+            raise HTTPException(400, "يلزم معرف المستخدم")
+        query = {"$or": [{"requester_id": user_id}, {"accepted_by": user_id}]}
+    else:
+        query = {"status": "pending"}
+    cursor = db.trip_requests.find(query).sort("created_at", -1).limit(min(limit, 80))
+    items = [_serialize_request(d) async for d in cursor]
+    return {"items": items, "total": len(items)}
+
+
+_REQUEST_MOVES = {
+    ("pending", "accepted"),
+    ("pending", "cancelled"),
+    ("accepted", "in_progress"),
+    ("accepted", "cancelled"),
+    ("in_progress", "completed"),
+    ("in_progress", "cancelled"),
+}
+
+
+@router.patch("/requests/{request_id}/status")
+async def update_trip_request_status(
+    request_id: str,
+    payload: TripRequestStatusUpdate,
+    user_id: str = Query(...),
+    actor: str = Depends(require_actor),
+):
+    doc = await db.trip_requests.find_one({"request_id": request_id})
+    if not doc:
+        raise HTTPException(404, "الطلب غير موجود")
+    current = doc.get("status") or "pending"
+    nxt = payload.status
+    if (current, nxt) not in _REQUEST_MOVES:
+        raise HTTPException(400, "لا يمكن نقل الطلب إلى هذه الحالة")
+    is_owner = doc.get("requester_id") == user_id
+    is_carrier = doc.get("accepted_by") == user_id
+    if nxt == "accepted":
+        if is_owner:
+            raise HTTPException(400, "لا يمكنك قبول طلبك")
+    elif nxt == "cancelled":
+        if not is_owner and not is_carrier:
+            raise HTTPException(403, "غير مصرح")
+    elif not is_carrier:
+        raise HTTPException(403, "هذه الخطوة للموصل الذي قبل الطلب")
+
+    event = RequestStatusEvent(status=nxt, note=payload.note).model_dump()
+    updates = {"status": nxt, "updated_at": _now()}
+    if nxt == "accepted":
+        carrier = await _user_brief(user_id)
+        updates["accepted_by"] = user_id
+        updates["accepted_name"] = (carrier or {}).get("name") or "موصل طير"
+    await db.trip_requests.update_one(
+        {"request_id": request_id},
+        {"$set": updates, "$push": {"status_updates": event}},
+    )
+    fresh = await db.trip_requests.find_one({"request_id": request_id})
+    return _serialize_request(fresh)
 
 
 @router.get("/{trip_id}")
@@ -171,15 +317,20 @@ async def get_trip(trip_id: str):
             {"_id": 0, "name": 1, "avatar": 1, "phone": 1, "whatsapp": 1,
              "is_verified_carrier": 1, "storefront_settings": 1},
         )
+        stored_phone = serialized.get("carrier_phone")
         if u:
             serialized["carrier_name"] = u.get("name") or serialized.get("carrier_name")
             serialized["carrier_avatar"] = u.get("avatar")
-            serialized["carrier_phone"] = _norm_digits(u.get("phone"))
-            serialized["carrier_whatsapp"] = _norm_digits(u.get("whatsapp") or u.get("phone"))
+            serialized["carrier_phone"] = _norm_digits(u.get("phone") or stored_phone)
+            serialized["carrier_whatsapp"] = _norm_digits(
+                u.get("whatsapp") or u.get("phone") or stored_phone
+            )
             serialized["carrier_verified"] = bool(u.get("is_verified_carrier"))
             sf = u.get("storefront_settings") or {}
             serialized["carrier_identity_color"] = sf.get("identity_color") or "#0f766e"
             serialized["carrier_logo_url"] = sf.get("logo_url")
+        elif stored_phone:
+            serialized["carrier_whatsapp"] = _norm_digits(stored_phone)
         agg = await db.user_ratings.aggregate([
             {"$match": {"target_id": cid, "role": "carrier"}},
             {"$group": {"_id": None, "avg": {"$avg": "$stars"}, "count": {"$sum": 1}}},

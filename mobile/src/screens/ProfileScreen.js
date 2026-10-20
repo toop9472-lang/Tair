@@ -805,18 +805,18 @@ export default function ProfileScreen({
                 style={styles.input}
                 value={editPhone}
                 onChangeText={setEditPhone}
-                placeholder="+9665XXXXXXXX"
+                placeholder="05xxxxxxxx"
                 placeholderTextColor="#8A7B66"
                 keyboardType="phone-pad"
                 testID="profile-edit-phone"
               />
 
-              <Text style={styles.fieldLabel}>رقم واتساب (اختياري — يظهر للمشترين)</Text>
+              <Text style={styles.fieldLabel}>رقم واتساب (يظهر في الإعلان والرحلة والمتجر)</Text>
               <TextInput
                 style={styles.input}
                 value={editWhatsapp}
                 onChangeText={setEditWhatsapp}
-                placeholder="+9665XXXXXXXX"
+                placeholder="05xxxxxxxx"
                 placeholderTextColor="#8A7B66"
                 keyboardType="phone-pad"
                 testID="profile-edit-whatsapp"
