@@ -22,6 +22,7 @@ import { listingsApi, profileApi, speciesApi } from "../services/tairApi";
 import api from "../services/api";
 import IdentifyBirdModal from "../components/IdentifyBirdModal";
 import { CityTriggerButton, CitySelectorSheet } from "../components/CitySelectorSheet";
+import { villagesFor } from "../constants/villages";
 import { ALL_LOCATIONS } from "../constants/saudiCities";
 import { categoryForFamily, groupFamilies } from "../constants/marketFamilies";
 import { TAIR } from "../constants/tairTheme";
@@ -49,6 +50,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [citySheetOpen, setCitySheetOpen] = useState(false);
+  const [villageSheetOpen, setVillageSheetOpen] = useState(false);
   const [familySheetOpen, setFamilySheetOpen] = useState(false);
   const [speciesSheetOpen, setSpeciesSheetOpen] = useState(false);
 
@@ -704,13 +706,21 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             </Field>
           </View>
 
-          <Field label="حي أو قرية (اختياري)">
-            <TextInput
-              style={styles.input}
-              placeholder="حي النرجس أو اسم القرية"
-              placeholderTextColor="#8A7B66"
+          <Field label="القرية (اختياري)">
+            <CityTriggerButton
+              iconName="business"
+              iconColor="#1B3D2F"
+              label="القرية"
               value={form.district}
-              onChangeText={(v) => set("district", v)}
+              placeholder={form.city ? "اختر من القائمة" : "اختر المدينة أولاً"}
+              onPress={() => {
+                if (!form.city) {
+                  Alert.alert("المدينة", "اختر المدينة أولاً لتظهر قراها");
+                  return;
+                }
+                setVillageSheetOpen(true);
+              }}
+              testId="create-listing-village"
             />
           </Field>
         </View>
@@ -740,8 +750,25 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
         visible={citySheetOpen}
         title="اختر مدينة الإعلان"
         selected={form.city}
-        onSelect={(c) => set("city", c)}
+        onSelect={(c) => {
+          setForm((prev) => ({
+            ...prev,
+            city: c,
+            district: villagesFor(c).includes(prev.district) ? prev.district : "",
+          }));
+        }}
         onClose={() => setCitySheetOpen(false)}
+      />
+      <CitySelectorSheet
+        visible={villageSheetOpen}
+        title={form.city ? `قرى ${form.city}` : "اختر القرية"}
+        selected={form.district || null}
+        places={villagesFor(form.city)}
+        allowClear
+        searchPlaceholder="ابحث عن قرية…"
+        emptyLabel="لا توجد قرى مطابقة لهذه المدينة"
+        onSelect={(name) => set("district", name || "")}
+        onClose={() => setVillageSheetOpen(false)}
       />
 
       <PickerSheet

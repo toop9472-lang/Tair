@@ -1,6 +1,7 @@
 /** نفس قائمة الجوال: مدن المملكة ثم مدن الخليج، مع بحث داخل المناطق. */
 import React, { useMemo, useState } from "react";
 import { MapPin, Search } from "lucide-react";
+import { villagesFor } from "./villages";
 
 export const LOCATION_GROUPS = [
   { id: "riyadh", label: "منطقة الرياض", cities: ["الرياض", "الدرعية", "الخرج", "الدلم", "المجمعة", "الدوادمي", "القويعية", "وادي الدواسر", "الأفلاج", "الزلفي", "شقراء", "حوطة بني تميم", "عفيف", "السليل", "ضرما", "الحريق", "رماح", "ثادق", "الغاط", "حريملاء", "المزاحمية", "مرات", "الرين"] },
@@ -8,10 +9,10 @@ export const LOCATION_GROUPS = [
   { id: "madinah", label: "منطقة المدينة المنورة", cities: ["المدينة المنورة", "ينبع", "العلا", "بدر", "المهد", "الحناكية", "خيبر", "العيص", "وادي الفرع"] },
   { id: "qassim", label: "منطقة القصيم", cities: ["بريدة", "عنيزة", "الرس", "المذنب", "البكيرية", "البدائع", "الأسياح", "النبهانية", "عيون الجواء", "رياض الخبراء", "الشماسية", "ضرية", "عقلة الصقور"] },
   { id: "eastern", label: "المنطقة الشرقية", cities: ["الدمام", "الخبر", "الظهران", "الأحساء", "الهفوف", "الجبيل", "القطيف", "حفر الباطن", "رأس تنورة", "بقيق", "النعيرية", "الخفجي", "قرية العليا", "العديد"] },
-  { id: "asir", label: "منطقة عسير", cities: ["أبها", "خميس مشيط", "بيشة", "النماص", "محايل عسير", "تنومة", "رجال ألمع", "بلقرن", "ظهران الجنوب", "سراة عبيدة", "أحد رفيدة", "المجاردة", "بارق", "البرك", "طريب"] },
+  { id: "asir", label: "منطقة عسير", cities: ["أبها", "خميس مشيط", "بيشة", "النماص", "محايل عسير", "تنومة", "رجال ألمع", "بلقرن", "ظهران الجنوب", "سراة عبيدة", "أحد رفيدة", "المجاردة", "بارق", "البرك", "طريب", "تثليث"] },
   { id: "jazan", label: "منطقة جازان", cities: ["جازان", "صبيا", "أبو عريش", "صامطة", "بيش", "أحد المسارحة", "الحرث", "ضمد", "فيفا", "الدرب", "الريث", "الطوال", "العارضة", "فرسان", "العيدابي", "هروب", "الدائر"] },
   { id: "najran", label: "منطقة نجران", cities: ["نجران", "شرورة", "حبونا", "بدر الجنوب", "يدمة", "خباش", "ثار", "الخرخير"] },
-  { id: "baha", label: "منطقة الباحة", cities: ["الباحة", "بلجرشي", "المندق", "المخواة", "قلوة", "العقيق", "القرى", "بني حسن"] },
+  { id: "baha", label: "منطقة الباحة", cities: ["الباحة", "بلجرشي", "المندق", "المخواة", "قلوة", "العقيق", "القرى", "بني حسن", "الحجرة", "غامد الزناد"] },
   { id: "tabuk", label: "منطقة تبوك", cities: ["تبوك", "أملج", "الوجه", "ضباء", "تيماء", "حقل", "البدع"] },
   { id: "hail", label: "منطقة حائل", cities: ["حائل", "بقعاء", "الشنان", "الغزالة", "الحائط", "موقق", "السليمي", "الشملي", "سميراء"] },
   { id: "northern", label: "منطقة الحدود الشمالية", cities: ["عرعر", "رفحاء", "طريف", "العويقيلة"] },
@@ -31,6 +32,47 @@ export const ALL_LOCATIONS = LOCATION_GROUPS.flatMap((g) => g.cities);
 
 function norm(value) {
   return String(value || "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").trim();
+}
+
+export function VillagePicker({ city, selected, onSelect }) {
+  const [query, setQuery] = useState("");
+  const q = norm(query);
+  const places = useMemo(
+    () => villagesFor(city).filter((name) => !q || norm(name).includes(q)),
+    [city, q],
+  );
+  if (!city) {
+    return <div style={{ textAlign: "center", color: "#8A7B66", padding: 24, fontWeight: 700 }}>اختر المدينة أولاً</div>;
+  }
+  return (
+    <div>
+      <div style={{ display: "flex", flexDirection: "row-reverse", alignItems: "center", gap: 8, margin: "4px 8px 10px", padding: "8px 12px", borderRadius: 12, background: "#F7F1E8", border: "1px solid #E6DCC8" }}>
+        <Search size={16} color="#8A6A2E" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="ابحث عن قرية…"
+          data-testid="village-search"
+          style={{ flex: 1, border: "none", background: "transparent", textAlign: "right", fontSize: 14, outline: "none", fontFamily: "inherit", color: "#0F241C" }}
+        />
+      </div>
+      {!q ? (
+        <button type="button" onClick={() => onSelect(null)} data-testid="village-item-clear" style={rowStyle(!selected)}>
+          <MapPin size={16} color="#1B3D2F" />
+          <span>بدون تحديد</span>
+        </button>
+      ) : null}
+      {places.map((name) => (
+        <button key={name} type="button" onClick={() => onSelect(name)} data-testid={`village-item-${name}`} style={rowStyle(selected === name)}>
+          <MapPin size={16} color={selected === name ? "#1B3D2F" : "#8A7B66"} />
+          <span>{name}</span>
+        </button>
+      ))}
+      {places.length === 0 ? (
+        <div style={{ textAlign: "center", color: "#8A7B66", padding: 24, fontWeight: 700 }}>لا توجد قرى مطابقة لهذه المدينة</div>
+      ) : null}
+    </div>
+  );
 }
 
 export function LocationPicker({ selected, onSelect, allowAll = false, exclude = [] }) {

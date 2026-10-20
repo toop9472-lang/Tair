@@ -3,7 +3,8 @@ import React, { useEffect, useState } from "react";
 import { X, Camera, MapPin, Bird, Video as VideoIcon, Play, Sparkles } from "lucide-react";
 import { T, S } from "./tairTheme";
 import { tairApi } from "./tairApi";
-import { ALL_LOCATIONS, LocationPicker } from "./locations";
+import { ALL_LOCATIONS, LocationPicker, VillagePicker } from "./locations";
+import { villagesFor } from "./villages";
 import { TopBar, BottomSheet, SelectorItem } from "./TairUI";
 import { compressImage, getVideoDuration } from "./mediaUtils";
 import { AnalyticsEvents } from "./analytics";
@@ -485,14 +486,16 @@ export default function CreateListingScreen({ user, onBack, onCreated }) {
               </button>
             </div>
             <div>
-              <label style={S.label}>حي أو قرية</label>
-              <input
-                style={S.input}
-                value={form.district}
-                onChange={(e) => setField("district", e.target.value)}
-                placeholder="اسم الحي أو القرية"
+              <label style={S.label}>القرية</label>
+              <button
+                type="button"
+                onClick={() => setSheet("village")}
+                style={styles.selectBtn}
                 data-testid="input-district"
-              />
+              >
+                <MapPin size={14} strokeWidth={2.2} color={T.primary} />
+                <span>{form.district || "اختر القرية"}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -564,7 +567,30 @@ export default function CreateListingScreen({ user, onBack, onCreated }) {
       >
         <LocationPicker
           selected={form.city}
-          onSelect={(c) => { if (c) { setField("city", c); setSheet(null); } }}
+          onSelect={(c) => {
+            if (!c) return;
+            setForm((f) => ({
+              ...f,
+              city: c,
+              district: villagesFor(c).includes(f.district) ? f.district : "",
+            }));
+            setSheet(null);
+          }}
+        />
+      </BottomSheet>
+
+      <BottomSheet
+        open={sheet === "village"}
+        onClose={() => setSheet(null)}
+        title={form.city ? `قرى ${form.city}` : "اختر القرية"}
+      >
+        <VillagePicker
+          city={form.city}
+          selected={form.district}
+          onSelect={(name) => {
+            setField("district", name || "");
+            setSheet(null);
+          }}
         />
       </BottomSheet>
 
