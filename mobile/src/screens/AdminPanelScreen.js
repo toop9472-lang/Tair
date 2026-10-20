@@ -615,7 +615,7 @@ export default function AdminPanelScreen({ user, onBack }) {
             <View style={styles.panelCard}>
               <Text style={styles.panelTitle}>بوت العيادة</Text>
               <Text style={styles.panelHint}>
-                عند التفعيل يرد البوت تلقائياً على كل موضوع جديد في العيادة. عند الإيقاف تبقى الردود للمشرفين فقط.
+                عند التفعيل يرد البوت تلقائياً على كل موضوع جديد من مكتبة الأمراض العربية، وبلا جرعات، ثم ينتظر تأكيد المشرف. عند الإيقاف تبقى الردود للمشرفين فقط.
               </Text>
               <Text style={[styles.panelTitle, { color: botEnabled ? TAIR.emerald : "#B3261E", fontSize: 14 }]} testID="clinic-bot-status">
                 الحالة: {botEnabled ? "مُفعّل" : "متوقف"}

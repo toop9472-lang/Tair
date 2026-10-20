@@ -176,7 +176,27 @@ async def create_topic(payload: Topic, user_id: str = Query(...)):
         if not await _bot_enabled():
             return {"success": True, "topic_id": tid}
         from services.clinic_bot import build_reply_async
-        bot_context_text = f"{payload.title}\n{payload.description or ''}"
+        q_lines = []
+        for label, val in (
+            ("خمول", payload.q_lethargy),
+            ("الشهية", payload.q_appetite),
+            ("بداية الأعراض", payload.q_onset),
+            ("التغذية", payload.q_diet),
+            ("الجنس", payload.q_gender),
+            ("التكاثر", payload.q_breeding),
+            ("العمر", payload.q_age),
+            ("استفراغ", payload.q_vomits),
+            ("الفم والفضلات", payload.q_mouth_droppings),
+        ):
+            if val:
+                q_lines.append(f"{label}: {val}")
+        if payload.is_chick:
+            q_lines.append("فرخ صغير")
+            if payload.chick_exact_age:
+                q_lines.append(f"عمر الفرخ: {payload.chick_exact_age}")
+        bot_context_text = "\n".join(
+            [payload.title or "", payload.description or "", *q_lines]
+        )
         bot_result = await build_reply_async(bot_context_text, species_hint=None)
         bot_reply_doc = {
             "reply_id": f"crep_{uuid.uuid4().hex[:12]}",
@@ -418,17 +438,30 @@ async def ai_assist(topic_id: str, user_id: str = Query(...)):
                 f"- حالة سابقة: {x.get('title')} → رد المشرف: {x.get('mod_reply_preview', '—')[:200]}"
                 for x in similar
             ) or "لا توجد حالات مشابهة"
-            prompt = f"""أنت مساعد لمشرف عيادة طيور. اكتب رداً مقترحاً باللغة العربية الفصحى المبسطة
-بناءً على سؤال المستخدم والمعلومات التالية. الرد يجب أن يكون:
-- واقعياً ومحدداً (3-6 أسطر)
-- يستشهد بالملفات ذات الصلة إن وُجدت
-- ينتهي بتوصية واضحة أو سؤال متابعة
-- بدون تشخيص قطعي؛ وجّه لزيارة الطبيب البيطري عند الحاجة
+            from services.clinic_bot import match_entries
+            kb_hits = match_entries(
+                f"{topic.get('title') or ''}\n{topic.get('description') or ''}",
+                top_n=3,
+            )
+            kb_ctx = "\n".join(
+                f"- {e.get('name_ar')} ({e.get('name_en')}): {(e.get('definition') or '')[:220]} | افعل: {(e.get('action') or '')}"
+                for _, e in kb_hits
+            ) or "لا توجد بطاقة مطابقة"
+            prompt = f"""أنت مساعد لمشرف عيادة طير. اكتب رداً مقترحاً بالعربية الواضحة.
+الرد:
+- من 4 إلى 8 أسطر
+- مبني على بطاقات العيادة إن وُجدت، بلا اختراع مرض
+- بلا جرعات وبلا مليغرام وبلا شرح مخبري لزرع الممرض
+- تشخيص مبدئي فقط، ويطلب تأكيد المشرف
+- إن كانت الحالة تنفسية شديدة أو النفوق جماعياً فابدأ بالعزل والإبلاغ
 
 عنوان الحالة: {topic.get('title')}
 
 وصف المستخدم:
 {topic.get('description')}
+
+بطاقات العيادة:
+{kb_ctx}
 
 ملفات المكتبة المرشحة:
 {lib_ctx}
@@ -439,7 +472,7 @@ async def ai_assist(topic_id: str, user_id: str = Query(...)):
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"clinic_ai_{topic_id}",
-                system_message="أنت مساعد لمشرف عيادة طيور — اكتب ردوداً قصيرة محترفة بالعربية.",
+                system_message="أنت مساعد مشرف عيادة طير. تلخّص المعرفة البيطرية التعليمية بالعربية بلا جرعات وبلا طرق زرع.",
             ).with_model("gemini", "gemini-3-flash-preview")
             resp = await chat.send_message(UserMessage(text=prompt))
             suggested_reply = (resp or "").strip()[:1800]
