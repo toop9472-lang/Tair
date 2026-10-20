@@ -1,6 +1,6 @@
 // طير — App root (Tair MVP)
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   I18nManager,
   Alert,
+  Linking,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LanguageProvider } from "./src/i18n/LanguageContext";
@@ -54,6 +55,8 @@ import AdminPanelScreen from "./src/screens/AdminPanelScreen";
 import WholesaleScreen from "./src/screens/WholesaleScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import UpdateNoticeModal from "./src/components/UpdateNoticeModal";
+import TairShareSheet from "./src/components/TairShareSheet";
+import { parseIncomingLink } from "./src/services/shareContent";
 import api from "./src/services/api";
 import {
   installErrorReporter,
@@ -144,6 +147,42 @@ function TairApp() {
       }
     })();
   }, []);
+
+  const pendingUrl = useRef(null);
+  const openFromLink = useCallback((url) => {
+    const parsed = parseIncomingLink(url);
+    if (!parsed) return;
+    if (parsed.kind === "listing") setModal({ name: "listing_details", params: { listingId: parsed.id } });
+    else if (parsed.kind === "trip") setModal({ name: "trip_details", params: { tripId: parsed.id } });
+    else if (parsed.kind === "store") setModal({ name: "seller_profile", params: { userId: parsed.id } });
+    else if (parsed.kind === "story") setModal({ name: "story_viewer", params: { storyId: parsed.id } });
+    else if (parsed.kind === "auction") setModal({ name: "auction", params: { auctionId: parsed.id } });
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const take = (url) => {
+      if (!url || !alive) return;
+      if (booting || !user) {
+        pendingUrl.current = url;
+        return;
+      }
+      openFromLink(url);
+    };
+    Linking.getInitialURL().then(take).catch(() => {});
+    const sub = Linking.addEventListener("url", (event) => take(event?.url));
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, [booting, user, openFromLink]);
+
+  useEffect(() => {
+    if (booting || !user || !pendingUrl.current) return;
+    const url = pendingUrl.current;
+    pendingUrl.current = null;
+    openFromLink(url);
+  }, [booting, user, openFromLink]);
 
   // Handle notification taps — navigate to the right screen based on payload.type
   useEffect(() => {
@@ -272,7 +311,7 @@ function TairApp() {
   if (booting) {
     return (
       <View style={styles.splash}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color="#1B3D2F" />
       </View>
     );
   }
@@ -359,6 +398,7 @@ function TairApp() {
         return <AddStoryScreen user={user} onClose={closeModal} />;
       case "auction":
         return <AuctionScreen user={user} onBack={closeModal}
+          focusAuctionId={modal.params?.auctionId}
           onOpenSubmit={() => setModal({ name: "submit_auction" })} />;
       case "submit_auction":
         return <SubmitAuctionScreen user={user}
@@ -637,6 +677,7 @@ export default function App() {
     <LanguageProvider>
       <LegalDisclaimerGate>
         <TairApp />
+        <TairShareSheet />
       </LegalDisclaimerGate>
     </LanguageProvider>
   );
@@ -647,6 +688,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#c8fce6",
+    backgroundColor: "#F7F1E8",
   },
 });

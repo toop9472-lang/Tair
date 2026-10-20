@@ -49,7 +49,7 @@ export function CityTriggerButton({ iconName, iconColor, label, value, onPress, 
           {value || "اختر المدينة"}
         </Text>
       </View>
-      <Ionicons name="chevron-down" size={18} color="#94a3b8" />
+      <Ionicons name="chevron-down" size={18} color="#8A7B66" />
     </TouchableOpacity>
   );
 }
@@ -90,18 +90,18 @@ export function CitySelectorSheet({
               style={styles.closeBtn}
               data-testid="city-sheet-close"
             >
-              <Ionicons name="close" size={22} color="#64748b" />
+              <Ionicons name="close" size={22} color="#6B5E4A" />
             </TouchableOpacity>
             <Text style={styles.title}>{title}</Text>
             <View style={{ width: 36 }} />
           </View>
 
           <View style={styles.searchBox}>
-            <Ionicons name="search" size={18} color="#94a3b8" />
+            <Ionicons name="search" size={18} color="#8A7B66" />
             <TextInput
               style={styles.searchInput}
               placeholder="ابحث عن مدينة…"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#8A7B66"
               value={query}
               onChangeText={setQuery}
               data-testid="city-sheet-search"
@@ -134,7 +134,7 @@ export function CitySelectorSheet({
                   <Ionicons
                     name={isActive ? "checkmark-circle" : "location-outline"}
                     size={18}
-                    color={isActive ? "#0ea5e9" : "#94a3b8"}
+                    color={isActive ? "#1B3D2F" : "#8A7B66"}
                   />
                   <Text style={[styles.itemText, isActive && styles.itemTextActive]}>
                     {item}
@@ -178,17 +178,17 @@ const styles = StyleSheet.create({
   },
   triggerLabel: {
     fontSize: 11,
-    color: "#64748b",
+    color: "#6B5E4A",
     fontWeight: "700",
     marginBottom: 2,
   },
   triggerValue: {
     fontSize: 14,
-    color: "#0f172a",
+    color: "#0F241C",
     fontWeight: "800",
   },
   triggerValuePlaceholder: {
-    color: "#94a3b8",
+    color: "#8A7B66",
     fontWeight: "600",
   },
   backdrop: {
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: "900",
-    color: "#0f172a",
+    color: "#0F241C",
   },
   closeBtn: {
     width: 36,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "right",
     fontSize: 15,
-    color: "#0f172a",
+    color: "#0F241C",
     padding: 0,
   },
   item: {
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   itemTextActive: {
-    color: "#0ea5e9",
+    color: "#1B3D2F",
     fontWeight: "800",
   },
   empty: {
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: 8,
-    color: "#94a3b8",
+    color: "#8A7B66",
     fontWeight: "700",
   },
 });

@@ -72,9 +72,9 @@ export default function SellerAnalyticsScreen({ user, onBack }) {
       ) : (
         <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 40 }}>
           <View style={s.kpiGrid}>
-            <Kpi icon="eye" color="#0ea5e9" label="مشاهدات" value={fmt(overview?.engagement?.views)} />
+            <Kpi icon="eye" color="#1B3D2F" label="مشاهدات" value={fmt(overview?.engagement?.views)} />
             <Kpi icon="heart" color="#ec4899" label="إعجابات" value={fmt(overview?.engagement?.likes)} />
-            <Kpi icon="chatbubble" color="#2563eb" label={`رسائل ${days}ي`} value={fmt(overview?.engagement?.messages_received)} />
+            <Kpi icon="chatbubble" color="#1B3D2F" label={`رسائل ${days}ي`} value={fmt(overview?.engagement?.messages_received)} />
             <Kpi icon="bag" color="#f59e0b" label="طلبات" value={fmt(overview?.orders?.total)} />
           </View>
 
@@ -98,15 +98,15 @@ export default function SellerAnalyticsScreen({ user, onBack }) {
                   <Text style={s.listingTitle} numberOfLines={1}>{l.title}</Text>
                   <View style={s.listingStats}>
                     <View style={s.statBox}>
-                      <Ionicons name="eye-outline" size={13} color="#64748b" />
+                      <Ionicons name="eye-outline" size={13} color="#6B5E4A" />
                       <Text style={s.statItem}>{fmt(l.view_count)}</Text>
                     </View>
                     <View style={s.statBox}>
-                      <Ionicons name="heart-outline" size={13} color="#64748b" />
+                      <Ionicons name="heart-outline" size={13} color="#6B5E4A" />
                       <Text style={s.statItem}>{fmt(l.likes_count)}</Text>
                     </View>
                     <Text style={[s.statItem, {
-                      color: l.status === "sold" ? "#ef4444" : l.status === "paused" ? "#f59e0b" : "#0ea5e9",
+                      color: l.status === "sold" ? "#8B3A2F" : l.status === "paused" ? "#f59e0b" : "#1B3D2F",
                       fontWeight: "800",
                     }]}>
                       {l.status === "sold" ? "مباع" : l.status === "paused" ? "متوقف" : "نشط"}
@@ -166,34 +166,34 @@ const s = StyleSheet.create({
   chipText: { fontSize: 12, fontWeight: "700", color: "#334155" },
   chipTextActive: { color: "#fff" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  muted: { color: "#64748b", padding: 20, textAlign: "center" },
+  muted: { color: "#6B5E4A", padding: 20, textAlign: "center" },
 
   kpiGrid: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 10, marginBottom: 12 },
   kpi: {
     width: "48%", backgroundColor: "#fff", padding: 14, borderRadius: 12,
     borderWidth: 1, borderColor: "#e2e8f0",
   },
-  kpiVal: { fontSize: 22, fontWeight: "900", color: "#0f172a", marginTop: 6 },
-  kpiLbl: { fontSize: 11, color: "#64748b", fontWeight: "700", marginTop: 2 },
+  kpiVal: { fontSize: 22, fontWeight: "900", color: "#0F241C", marginTop: 6 },
+  kpiLbl: { fontSize: 11, color: "#6B5E4A", fontWeight: "700", marginTop: 2 },
 
   summary: { backgroundColor: "#fff", borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: "#e2e8f0" },
   row: {
     flexDirection: "row-reverse", justifyContent: "space-between",
     padding: 12, borderBottomWidth: 1, borderColor: "#f1f5f9",
   },
-  rowLabel: { fontSize: 13, color: "#64748b", fontWeight: "600" },
-  rowValue: { fontSize: 14, fontWeight: "800", color: "#0f172a" },
-  rowTotal: { color: "#94a3b8", fontWeight: "600" },
+  rowLabel: { fontSize: 13, color: "#6B5E4A", fontWeight: "600" },
+  rowValue: { fontSize: 14, fontWeight: "800", color: "#0F241C" },
+  rowTotal: { color: "#8A7B66", fontWeight: "600" },
 
-  section: { fontSize: 15, fontWeight: "800", color: "#0f172a", marginBottom: 8, textAlign: "right" },
+  section: { fontSize: 15, fontWeight: "800", color: "#0F241C", marginBottom: 8, textAlign: "right" },
   listingRow: {
     flexDirection: "row-reverse", backgroundColor: "#fff",
     padding: 10, borderRadius: 10, marginBottom: 8,
     borderWidth: 1, borderColor: "#e2e8f0", alignItems: "center",
   },
   listingImg: { width: 56, height: 56, borderRadius: 10, overflow: "hidden", backgroundColor: "#f1f5f9" },
-  listingTitle: { fontSize: 13, fontWeight: "700", color: "#0f172a", textAlign: "right" },
+  listingTitle: { fontSize: 13, fontWeight: "700", color: "#0F241C", textAlign: "right" },
   listingStats: { flexDirection: "row-reverse", gap: 10, marginTop: 6 },
-  statItem: { fontSize: 11, color: "#64748b", fontWeight: "700" },
+  statItem: { fontSize: 11, color: "#6B5E4A", fontWeight: "700" },
   statBox: { flexDirection: "row-reverse", alignItems: "center", gap: 3 },
 });

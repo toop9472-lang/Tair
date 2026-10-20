@@ -16,8 +16,17 @@ import { communityApi, communityChatApi, storiesApi } from "../services/tairApi"
 import { EmptyState, ErrorState, PressableScale, Skeleton, TairImage } from "../components/TairUI";
 
 const CHAT_POLL_MS = 5000;
+const LONG_MSG = 280;
 const URL_RX = /(https?:\/\/|www\.|[a-z0-9]+\.[a-z]{2,}\/)/i;
 const PHONE_RX = /(\+?\d[\d\s\-.]{6,}\d)/;
+
+function blockReason(value) {
+  const t = (value || "").trim();
+  if (!t) return null;
+  if (URL_RX.test(t)) return "الروابط والصور غير مسموحة في الدردشة العامة";
+  if (PHONE_RX.test(t)) return "أرقام الهواتف غير مسموحة في الدردشة العامة";
+  return null;
+}
 
 function formatClock(iso) {
   if (!iso) return "";
@@ -69,8 +78,10 @@ export default function CommunityScreen({
   const [chatError, setChatError] = useState(null);
   const [sending, setSending] = useState(false);
   const [text, setText] = useState("");
+  const [expanded, setExpanded] = useState({});
   const flatRef = useRef(null);
   const pollRef = useRef(null);
+  const stickToEnd = useRef(true);
 
   const loadStories = useCallback(async (skeleton = false) => {
     if (skeleton === true) setStoriesLoading(true);
@@ -111,18 +122,13 @@ export default function CommunityScreen({
     return () => clearInterval(pollRef.current);
   }, [loadChat]);
 
-  useEffect(() => {
-    if (!chat.length) return;
-    const t = setTimeout(() => flatRef.current?.scrollToEnd?.({ animated: true }), 80);
-    return () => clearTimeout(t);
-  }, [chat.length]);
-
   const send = async () => {
     const t = text.trim();
     if (!t || sending) return;
-    if (URL_RX.test(t)) return Alert.alert("ممنوع", "لا يسمح بإرسال الروابط في الدردشة العامة");
-    if (PHONE_RX.test(t)) return Alert.alert("ممنوع", "لا يسمح بإرسال أرقام الهواتف في الدردشة العامة");
+    const blocked = blockReason(t);
+    if (blocked) return Alert.alert("ممنوع", blocked);
     if (!uid) return Alert.alert("تنبيه", "سجّل الدخول أولاً");
+    stickToEnd.current = true;
     setSending(true);
     try {
       await communityChatApi.send(t, uid);
@@ -146,6 +152,10 @@ export default function CommunityScreen({
   const renderMsg = ({ item }) => {
     const mine = item.user_id === uid;
     const when = formatClock(item.created_at);
+    const body = item.text || "";
+    const long = body.length > LONG_MSG;
+    const open = !!expanded[item.msg_id];
+    const shown = long && !open ? `${body.slice(0, LONG_MSG).trim()}…` : body;
     return (
       <TouchableOpacity
         activeOpacity={mine || user?.is_admin ? 0.75 : 1}
@@ -180,7 +190,15 @@ export default function CommunityScreen({
               </View>
             ) : null}
           </View>
-          <Text style={[s.msgText, mine && s.msgTextMine]}>{item.text}</Text>
+          <Text style={[s.msgText, mine && s.msgTextMine]}>{shown}</Text>
+          {long ? (
+            <Text
+              style={[s.more, mine && s.moreMine]}
+              onPress={() => setExpanded((p) => ({ ...p, [item.msg_id]: !p[item.msg_id] }))}
+            >
+              {open ? "عرض أقل" : "عرض المزيد"}
+            </Text>
+          ) : null}
           {when ? <Text style={[s.msgTime, mine && s.msgTimeMine]}>{when}</Text> : null}
         </View>
       </TouchableOpacity>
@@ -188,6 +206,7 @@ export default function CommunityScreen({
   };
 
   const storiesEmpty = !storiesLoading && !storiesError && stories.length === 0;
+  const composerBlock = blockReason(text);
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }} keyboardVerticalOffset={0}>
@@ -273,9 +292,24 @@ export default function CommunityScreen({
             <FlatList
               ref={flatRef}
               data={chat}
+              extraData={expanded}
               keyExtractor={(m) => m.msg_id}
               renderItem={renderMsg}
               contentContainerStyle={s.chatList}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+              onScroll={(e) => {
+                const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+                const dist = contentSize.height - layoutMeasurement.height - contentOffset.y;
+                stickToEnd.current = dist < 140;
+              }}
+              scrollEventThrottle={64}
+              onContentSizeChange={() => {
+                if (stickToEnd.current) flatRef.current?.scrollToEnd?.({ animated: true });
+              }}
+              ListHeaderComponent={chat.length ? (
+                <View style={s.dayChip}><Text style={s.dayChipText}>اليوم</Text></View>
+              ) : null}
               ListEmptyComponent={
                 <View style={s.emptyWrap}>
                   {chatError ? (
@@ -288,8 +322,8 @@ export default function CommunityScreen({
                   ) : (
                     <EmptyState
                       icon="chatbubbles-outline"
-                      title="الدردشة هادئة"
-                      subtitle="كن أول من يبدأ الحديث اليوم. الرسائل تبقى يوماً واحداً."
+                      title="الدردشة هادئة الآن"
+                      subtitle="ابدأ الحديث مع المربّين. الرسائل نص فقط، وتبقى يوماً واحداً."
                       testID="community-chat-empty"
                     />
                   )}
@@ -300,10 +334,17 @@ export default function CommunityScreen({
         </View>
 
         <View style={s.composer}>
+          {composerBlock ? (
+            <View style={s.blockNote}>
+              <Ionicons name="alert-circle-outline" size={14} color={TAIR.error} />
+              <Text style={s.blockNoteText}>{composerBlock}</Text>
+            </View>
+          ) : null}
+          <View style={s.composerRow}>
           <TextInput
             value={text}
             onChangeText={setText}
-            placeholder="اكتب رسالة..."
+            placeholder="اكتب رسالة نصية..."
             placeholderTextColor={TAIR.faint}
             textAlign="right"
             style={s.inp}
@@ -314,15 +355,16 @@ export default function CommunityScreen({
           />
           <PressableScale
             onPress={send}
-            disabled={!text.trim() || sending}
+            disabled={!text.trim() || sending || !!composerBlock}
             scaleTo={0.94}
-            style={[s.sendBtn, (!text.trim() || sending) && s.sendBtnOff]}
+            style={[s.sendBtn, (!text.trim() || sending || composerBlock) && s.sendBtnOff]}
             testID="community-chat-send"
           >
             {sending
               ? <ActivityIndicator color={TAIR.gold} size="small" />
               : <Ionicons name="paper-plane" size={18} color={TAIR.gold} />}
           </PressableScale>
+          </View>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -480,9 +522,9 @@ const s = StyleSheet.create({
   avatarImg: { width: "100%", height: "100%" },
   avatarLetter: { color: TAIR.gold, fontWeight: "900", fontSize: 13 },
   bubble: {
-    maxWidth: "78%",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    maxWidth: "80%",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 18,
   },
   bubbleMine: {
@@ -515,23 +557,45 @@ const s = StyleSheet.create({
     borderRadius: 999,
   },
   modMarkText: { color: TAIR.gold, fontSize: 8, fontWeight: "900" },
-  msgText: { color: TAIR.ink, fontSize: 14, lineHeight: 21, textAlign: "right" },
+  msgText: { color: TAIR.ink, fontSize: 15, lineHeight: 23, textAlign: "right" },
   msgTextMine: { color: "#F7F1E8" },
+  more: { color: TAIR.goldDark, fontSize: 12, fontWeight: "900", textAlign: "right", marginTop: 6 },
+  moreMine: { color: TAIR.goldLight },
+  dayChip: {
+    alignSelf: "center",
+    backgroundColor: TAIR.card,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: TAIR.divider,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 12,
+  },
+  dayChipText: { color: TAIR.muted, fontSize: 11, fontWeight: "800" },
   msgTime: { color: TAIR.faint, fontSize: 10, fontWeight: "700", textAlign: "right", marginTop: 4 },
   msgTimeMine: { color: "rgba(247,241,232,0.72)" },
 
   composer: {
-    flexDirection: "row-reverse",
-    alignItems: "flex-end",
-    gap: 8,
     paddingHorizontal: 12,
-    paddingTop: 10,
+    paddingTop: 8,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
     marginBottom: TAIR.tabBarH,
     backgroundColor: TAIR.card,
     borderTopWidth: 1,
     borderTopColor: "rgba(198,161,91,0.45)",
+    gap: 8,
   },
+  composerRow: { flexDirection: "row-reverse", alignItems: "flex-end", gap: 8 },
+  blockNote: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: TAIR.dangerSoft,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  blockNoteText: { color: TAIR.error, fontSize: 12, fontWeight: "800", flex: 1, textAlign: "right" },
   inp: {
     flex: 1,
     backgroundColor: TAIR.bg,

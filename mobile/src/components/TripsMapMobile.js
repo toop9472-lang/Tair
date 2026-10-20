@@ -77,7 +77,7 @@ function buildHtml(trips, focusedTripId) {
       border: 3px solid #fff;
       box-shadow: 0 3px 10px rgba(0,0,0,0.3);
     }
-    .pin.from { background: #0ea5e9; }
+    .pin.from { background: #1B3D2F; }
     .pin.to { background: #ec4899; }
     .legend {
       position: absolute; bottom: 12px; right: 12px; z-index: 500;
@@ -88,10 +88,10 @@ function buildHtml(trips, focusedTripId) {
     .legend .row { display: flex; flex-direction: row-reverse; align-items: center; gap: 6px; margin: 2px 0; }
     .legend .dot { width: 10px; height: 10px; border-radius: 50%; }
     .popup-title { font-weight: 900; font-size: 14px; margin-bottom: 4px; direction: rtl; }
-    .popup-meta { font-size: 12px; color: #64748b; direction: rtl; }
+    .popup-meta { font-size: 12px; color: #6B5E4A; direction: rtl; }
     .open-btn {
       display: inline-block; margin-top: 8px; padding: 6px 12px;
-      background: #0ea5e9; color: #fff; border-radius: 8px;
+      background: #1B3D2F; color: #fff; border-radius: 8px;
       text-decoration: none; font-weight: 800; font-size: 12px;
     }
   </style>
@@ -99,9 +99,9 @@ function buildHtml(trips, focusedTripId) {
 <body>
   <div id="map"></div>
   <div class="legend">
-    <div class="row"><span class="dot" style="background:#0ea5e9"></span><span>الانطلاق</span></div>
+    <div class="row"><span class="dot" style="background:#1B3D2F"></span><span>الانطلاق</span></div>
     <div class="row"><span class="dot" style="background:#ec4899"></span><span>الوصول</span></div>
-    <div class="row"><span style="width:16px;height:3px;background:#14b8a6;border-radius:2px;"></span><span>مسار الرحلة</span></div>
+    <div class="row"><span style="width:16px;height:3px;background:#3D6B54;border-radius:2px;"></span><span>مسار الرحلة</span></div>
   </div>
   <script>
     const map = L.map('map', { zoomControl: true }).setView([23.8859, 45.0792], 5);
@@ -125,7 +125,7 @@ function buildHtml(trips, focusedTripId) {
 
     routes.forEach(r => {
       const line = L.polyline([r.a, r.b], {
-        color: r.focused ? '#ec4899' : '#14b8a6',
+        color: r.focused ? '#ec4899' : '#3D6B54',
         weight: r.focused ? 5 : 3,
         opacity: r.focused ? 0.95 : 0.65,
         dashArray: r.focused ? null : '6 6'
@@ -219,5 +219,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#F7F1E8",
   },
-  loadingText: { color: "#64748b", fontWeight: "700" },
+  loadingText: { color: "#6B5E4A", fontWeight: "700" },
 });

@@ -13,7 +13,6 @@ import {
   ScrollView,
   ImageBackground,
   Linking,
-  Share,
   Alert,
   Modal,
   Dimensions,
@@ -23,6 +22,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 import api from "../services/api";
 import { TAIR_PALETTE, TAIR_BANNER_IMAGE } from "../constants/tairDesign";
+import { shareInApp } from "../services/shareContent";
 
 const API_BASE =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -142,7 +142,7 @@ export default function SellerStorefrontScreen({
       <View style={s.wrap}>
         <TopBar onBack={onBack} title="متجر البائع" />
         <View style={s.center}>
-          <Ionicons name="storefront-outline" size={56} color="#94a3b8" />
+          <Ionicons name="storefront-outline" size={56} color="#8A7B66" />
           <Text style={s.emptyTitle}>لم يتم العثور على البائع</Text>
           <Text style={s.emptyText}>{err ? "حاول مرة أخرى بعد قليل." : "قد يكون الحساب محذوفاً."}</Text>
           <TouchableOpacity style={s.retryBtn} onPress={onBack}>
@@ -207,17 +207,14 @@ export default function SellerStorefrontScreen({
   };
   const openChat = () => onContactSeller?.(profile.user_id, profile.name);
   const isOwnStore = !!viewerId && viewerId === userId;
-  const shareStorefront = async () => {
-    try {
-      const base = process.env.EXPO_PUBLIC_BACKEND_URL || "https://saqr-ui-sync.emergent.host";
-      const storeUrl = `${base}/share/store/${encodeURIComponent(userId)}`;
-      const msg = `🏪 ${profile.name || "متجر طير"}\n🦜 تفضل بزيارة المتجر على تطبيق طير\n\n${storeUrl}`;
-      await Share.share({
-        message: msg,
-        url: storeUrl,
-        title: profile.name || "متجر طير",
-      });
-    } catch {}
+  const shareStorefront = () => {
+    if (!userId) return;
+    shareInApp({
+      kind: "store",
+      id: userId,
+      title: profile.name || "متجر طير",
+      lines: [profile.city || profile.storefront_settings?.city || "متجر على طير"],
+    });
   };
   const openMap = () => {
     const lat = profile.location?.lat;
@@ -273,13 +270,13 @@ export default function SellerStorefrontScreen({
                 <Badge icon="storefront" text="متجر موثوق" color={identity} />
               )}
               {profile.is_verified_carrier && (
-                <Badge icon="car" text="موصل معتمد" color="#2563eb" />
+                <Badge icon="car" text="موصل معتمد" color="#1B3D2F" />
               )}
               {openToday && (
                 <Badge
                   icon={openToday.closed ? "close-circle" : "time"}
                   text={openToday.closed ? "مغلق اليوم" : `مفتوح ${openToday.open} - ${openToday.close}`}
-                  color={openToday.closed ? "#dc2626" : "#059669"}
+                  color={openToday.closed ? "#8B3A2F" : "#059669"}
                 />
               )}
             </View>
@@ -438,7 +435,7 @@ export default function SellerStorefrontScreen({
             </TouchableOpacity>
           ) : null}
           {prefs.chat !== false ? (
-            <TouchableOpacity style={[s.contactBtn, { backgroundColor: "#0369a1" }]} onPress={openChat} testID="seller-chat">
+            <TouchableOpacity style={[s.contactBtn, { backgroundColor: "#1B3D2F" }]} onPress={openChat} testID="seller-chat">
               <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
               <Text style={s.contactText}>مراسلة</Text>
             </TouchableOpacity>
@@ -455,7 +452,7 @@ export default function SellerStorefrontScreen({
                   <Text style={s.locLabel}>{profile.location.address_label || "افتح الموقع على الخريطة"}</Text>
                   <Text style={s.locHint}>اضغط لفتح خرائط قوقل</Text>
                 </View>
-                <Ionicons name="chevron-back" size={18} color="#94a3b8" />
+                <Ionicons name="chevron-back" size={18} color="#8A7B66" />
               </TouchableOpacity>
             ) : null}
             {profile.pickup_enabled ? (
@@ -504,7 +501,7 @@ export default function SellerStorefrontScreen({
 
         {/* ==== Flash sales ==== */}
         {profile.flash_sales?.length ? (
-          <SectionCard icon="flash-outline" title="عروض الآن" color="#dc2626">
+          <SectionCard icon="flash-outline" title="عروض الآن" color="#8B3A2F">
             {profile.flash_sales.map((sale) => (
               <View key={sale.id} style={s.saleRow}>
                 <View style={s.discountBadge}>
@@ -558,7 +555,7 @@ export default function SellerStorefrontScreen({
             style={[s.tab, tab === "listings" && { backgroundColor: identity }]}
             testID="tab-listings"
           >
-            <Ionicons name="pricetags" size={14} color={tab === "listings" ? "#fff" : "#64748b"} />
+            <Ionicons name="pricetags" size={14} color={tab === "listings" ? "#fff" : "#6B5E4A"} />
             <Text style={[s.tabText, tab === "listings" && { color: "#fff" }]}>
               الإعلانات ({profile.listings_count || 0})
             </Text>
@@ -568,7 +565,7 @@ export default function SellerStorefrontScreen({
             style={[s.tab, tab === "reviews" && { backgroundColor: identity }]}
             testID="tab-reviews"
           >
-            <Ionicons name="star" size={14} color={tab === "reviews" ? "#fff" : "#64748b"} />
+            <Ionicons name="star" size={14} color={tab === "reviews" ? "#fff" : "#6B5E4A"} />
             <Text style={[s.tabText, tab === "reviews" && { color: "#fff" }]}>
               التقييمات ({profile.rating_count || 0})
             </Text>
@@ -598,7 +595,7 @@ export default function SellerStorefrontScreen({
                         style={{ width: "100%", height: "100%" }}
                       />
                     ) : (
-                      <Ionicons name="image-outline" size={30} color="#94a3b8" />
+                      <Ionicons name="image-outline" size={30} color="#8A7B66" />
                     )}
                     {l.status === "sold" && (
                       <View style={s.soldBadge}><Text style={s.soldText}>مباع</Text></View>
@@ -1034,7 +1031,7 @@ const s = StyleSheet.create({
 
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 30, gap: 10 },
   emptyTitle: { fontSize: 16, fontWeight: "900", color: "#334155" },
-  emptyText: { fontSize: 12, color: "#64748b" },
+  emptyText: { fontSize: 12, color: "#6B5E4A" },
   retryBtn: { paddingVertical: 10, paddingHorizontal: 26, backgroundColor: TAIR_PALETTE.primary, borderRadius: 12, marginTop: 6 },
   retryText: { color: "#fff", fontWeight: "800" },
 
@@ -1057,7 +1054,7 @@ const s = StyleSheet.create({
     marginHorizontal: 12, marginTop: 12,
     borderRadius: 18,
     paddingVertical: 14,
-    shadowColor: "#0f172a", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
+    shadowColor: "#0F241C", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   highlightsRow: {
@@ -1199,7 +1196,7 @@ const s = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 0,
     backgroundColor: "rgba(255,255,255,0.82)",
-    shadowColor: "#0f172a", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
+    shadowColor: "#0F241C", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   hoursChipIcon: {
@@ -1219,7 +1216,7 @@ const s = StyleSheet.create({
     marginHorizontal: 12, marginTop: 12,
     backgroundColor: "rgba(255,255,255,0.82)",
     borderRadius: 18,
-    shadowColor: "#0f172a", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
+    shadowColor: "#0F241C", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   kpi: {
@@ -1236,14 +1233,14 @@ const s = StyleSheet.create({
   },
   kpiVal: { fontSize: 17, fontWeight: "900" },
   kpiLbl: { fontSize: 10.5, color: "#475569", fontWeight: "800", textAlign: "center" },
-  kpiHint: { fontSize: 9, color: "#94a3b8", fontWeight: "600", textAlign: "center" },
+  kpiHint: { fontSize: 9, color: "#8A7B66", fontWeight: "600", textAlign: "center" },
 
   contactBar: {
     flexDirection: "row-reverse", gap: 8, padding: 12,
     marginHorizontal: 12, marginTop: 12,
     backgroundColor: "rgba(255,255,255,0.82)",
     borderRadius: 18,
-    shadowColor: "#0f172a", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
+    shadowColor: "#0F241C", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   contactBtn: {
@@ -1256,7 +1253,7 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.82)",
     marginHorizontal: 12, marginTop: 12,
     padding: 14, borderRadius: 18,
-    shadowColor: "#0f172a", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
+    shadowColor: "#0F241C", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   sectionHead: { flexDirection: "row-reverse", alignItems: "center", gap: 8, marginBottom: 10 },
@@ -1273,7 +1270,7 @@ const s = StyleSheet.create({
     padding: 14, borderRadius: 18,
     backgroundColor: "rgba(255,255,255,0.82)",
     borderWidth: 1,
-    shadowColor: "#0f172a", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
+    shadowColor: "#0F241C", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   aboutIconWrap: {
@@ -1288,12 +1285,12 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between",
     paddingVertical: 8, borderBottomWidth: 1, borderColor: "#f1f5f9",
   },
-  dayName: { fontSize: 12, color: "#0f172a", fontWeight: "800" },
+  dayName: { fontSize: 12, color: "#0F241C", fontWeight: "800" },
   hourVal: { fontSize: 12, color: "#1B3D2F", fontWeight: "800" },
 
   locRow: { flexDirection: "row-reverse", alignItems: "center", gap: 8, paddingVertical: 4 },
-  locLabel: { fontSize: 13, color: "#0f172a", fontWeight: "800", textAlign: "right" },
-  locHint: { fontSize: 11, color: "#64748b", marginTop: 2, textAlign: "right" },
+  locLabel: { fontSize: 13, color: "#0F241C", fontWeight: "800", textAlign: "right" },
+  locHint: { fontSize: 11, color: "#6B5E4A", marginTop: 2, textAlign: "right" },
   pickupBox: {
     flexDirection: "row-reverse", gap: 8, alignItems: "flex-start",
     backgroundColor: "#f0fdf4", borderWidth: 1, borderColor: "#a7f3d0",
@@ -1332,9 +1329,9 @@ const s = StyleSheet.create({
     width: 48, height: 48, borderRadius: 24, backgroundColor: "#fef2f2",
     alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#fecaca",
   },
-  discountText: { color: "#dc2626", fontWeight: "900", fontSize: 12 },
-  saleTitle: { color: "#0f172a", fontSize: 13, fontWeight: "800", textAlign: "right" },
-  saleMeta: { color: "#64748b", fontSize: 11, marginTop: 2, textAlign: "right" },
+  discountText: { color: "#8B3A2F", fontWeight: "900", fontSize: 12 },
+  saleTitle: { color: "#0F241C", fontSize: 13, fontWeight: "800", textAlign: "right" },
+  saleMeta: { color: "#6B5E4A", fontSize: 11, marginTop: 2, textAlign: "right" },
 
   // Coupons
   couponRow: {
@@ -1351,7 +1348,7 @@ const s = StyleSheet.create({
   },
   couponPctText: { color: "#fff", fontWeight: "900", fontSize: 14 },
   couponCode: { fontSize: 15, fontWeight: "900", letterSpacing: 1, textAlign: "right" },
-  couponHint: { fontSize: 11, color: "#64748b", fontWeight: "700", textAlign: "right", marginTop: 2 },
+  couponHint: { fontSize: 11, color: "#6B5E4A", fontWeight: "700", textAlign: "right", marginTop: 2 },
 
   safety: {
     flexDirection: "row-reverse", alignItems: "flex-start", gap: 8,
@@ -1367,24 +1364,24 @@ const s = StyleSheet.create({
     padding: 4,
     borderRadius: 16,
     backgroundColor: "rgba(255,255,255,0.82)",
-    shadowColor: "#0f172a", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
+    shadowColor: "#0F241C", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   tab: {
     flex: 1, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center",
     gap: 5, paddingVertical: 10, borderRadius: 12,
   },
-  tabText: { fontSize: 13, fontWeight: "800", color: "#64748b" },
+  tabText: { fontSize: 13, fontWeight: "800", color: "#6B5E4A" },
 
   emptyBox: { alignItems: "center", padding: 40, gap: 8 },
-  emptyMuted: { color: "#94a3b8", fontSize: 13, fontWeight: "600" },
+  emptyMuted: { color: "#8A7B66", fontSize: 13, fontWeight: "600" },
 
   grid: { flexDirection: "row-reverse", flexWrap: "wrap", padding: 12, gap: 10 },
   gridCard: {
     width: "48%",
     backgroundColor: "rgba(255,255,255,0.88)",
     borderRadius: 16, overflow: "hidden",
-    shadowColor: "#0f172a", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 5 },
+    shadowColor: "#0F241C", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 5 },
     elevation: 2,
   },
   gridImg: { height: 130, backgroundColor: "#f1f5f9", alignItems: "center", justifyContent: "center", position: "relative" },
@@ -1394,18 +1391,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
   },
   soldText: { color: "#fff", fontSize: 10, fontWeight: "900" },
-  gridTitle: { paddingHorizontal: 8, paddingTop: 8, fontSize: 12, fontWeight: "800", color: "#0f172a", textAlign: "right" },
+  gridTitle: { paddingHorizontal: 8, paddingTop: 8, fontSize: 12, fontWeight: "800", color: "#0F241C", textAlign: "right" },
   gridPrice: { paddingHorizontal: 8, paddingBottom: 8, paddingTop: 3, fontSize: 13, fontWeight: "900", textAlign: "right" },
 
   reviewCard: {
     backgroundColor: "rgba(255,255,255,0.88)",
     padding: 14, borderRadius: 16, marginBottom: 10,
     marginHorizontal: 12,
-    shadowColor: "#0f172a", shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 5 },
+    shadowColor: "#0F241C", shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 5 },
     elevation: 2,
   },
   reviewHead: { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center" },
   starsRow: { flexDirection: "row-reverse", gap: 2 },
-  reviewDate: { fontSize: 11, color: "#94a3b8", fontWeight: "600" },
+  reviewDate: { fontSize: 11, color: "#8A7B66", fontWeight: "600" },
   reviewText: { marginTop: 6, fontSize: 13, color: "#334155", textAlign: "right", lineHeight: 21 },
 });

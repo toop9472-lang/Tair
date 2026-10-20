@@ -65,6 +65,6 @@ const s = StyleSheet.create({
   badge: {
     position: "absolute", top: 6, right: 6,
     width: 10, height: 10, borderRadius: 5,
-    backgroundColor: "#ef4444",
+    backgroundColor: "#C4493A",
   },
 });

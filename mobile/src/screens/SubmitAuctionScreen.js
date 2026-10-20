@@ -128,7 +128,7 @@ export default function SubmitAuctionScreen({ user, onClose, onSubmitted }) {
             <View key={i} style={s.imgWrap}>
               <Image source={{ uri }} style={s.img} />
               <TouchableOpacity onPress={() => removeImage(i)} style={s.imgRemove}>
-                <Ionicons name="close-circle" size={22} color="#EF4444" />
+                <Ionicons name="close-circle" size={22} color="#8B3A2F" />
               </TouchableOpacity>
             </View>
           ))}

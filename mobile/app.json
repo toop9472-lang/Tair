@@ -176,6 +176,34 @@
             "BROWSABLE",
             "DEFAULT"
           ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            { "scheme": "saqr", "host": "listing" },
+            { "scheme": "saqr", "host": "auction" },
+            { "scheme": "saqr", "host": "story" },
+            { "scheme": "saqr", "host": "trip" },
+            { "scheme": "saqr", "host": "store" }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "https",
+              "host": "saqr-ui-sync.emergent.host",
+              "pathPrefix": "/share"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "permissions": [

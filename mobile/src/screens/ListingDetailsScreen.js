@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
-  Share,
   Linking,
   Modal,
   Pressable,
@@ -21,6 +20,7 @@ import Constants from "expo-constants";
 import { listingsApi, tairReportsApi } from "../services/tairApi";
 import api from "../services/api";
 import { SafetyNotice, OwnerStatsCard } from "../components/TairShared";
+import { shareInApp } from "../services/shareContent";
 import { DetailSkeleton, ErrorState, TairImage } from "../components/TairUI";
 import { TAIR } from "../constants/tairTheme";
 
@@ -97,14 +97,19 @@ export default function ListingDetailsScreen({
     }
   };
 
-  const shareListing = async () => {
+  const shareListing = () => {
     if (!listing) return;
-    const base = process.env.EXPO_PUBLIC_BACKEND_URL || "https://saqr-ui-sync.emergent.host";
-    const url = `${base}/share/listing/${encodeURIComponent(listing.listing_id || listing.id)}`;
-    const message = `🦜 ${listing.title}\n💰 ${listing.price_sar} ر.س\n📍 طير · ${listing.city}\n\n${url}`;
-    try {
-      await Share.share({ title: listing.title, message, url });
-    } catch { /* user cancelled */ }
+    const id = listing.listing_id || listing.id;
+    if (!id) return;
+    shareInApp({
+      kind: "listing",
+      id,
+      title: listing.title || "إعلان طير",
+      lines: [
+        listing.price_sar != null ? `${listing.price_sar} ر.س` : null,
+        listing.city || null,
+      ],
+    });
   };
 
   const reportListing = () => {
@@ -213,7 +218,7 @@ export default function ListingDetailsScreen({
                 <Ionicons
                   name={favorited ? "heart" : "heart-outline"}
                   size={20}
-                  color={favorited ? "#ef4444" : "#0F241C"}
+                  color={favorited ? "#8B3A2F" : "#0F241C"}
                 />
               </TouchableOpacity>
             </View>
@@ -292,7 +297,7 @@ export default function ListingDetailsScreen({
                 </View>
                 <Text style={styles.sellerHint}>عرض متجر البائع ›</Text>
               </View>
-              <Ionicons name="chevron-back" size={18} color="#94a3b8" />
+              <Ionicons name="chevron-back" size={18} color="#8A7B66" />
             </TouchableOpacity>
           ) : null}
 
@@ -356,7 +361,7 @@ export default function ListingDetailsScreen({
               icon="shield-checkmark"
               label="محصّن"
               value={listing.health?.vaccinated ? "نعم" : "لا"}
-              color={listing.health?.vaccinated ? "#1B3D2F" : "#94a3b8"}
+              color={listing.health?.vaccinated ? "#1B3D2F" : "#8A7B66"}
             />
             {listing.health?.ring_number ? (
               <Row icon="pricetag" label="رقم الخاتم" value={listing.health.ring_number} />
@@ -368,7 +373,7 @@ export default function ListingDetailsScreen({
 
           {/* Report button */}
           <TouchableOpacity style={styles.reportBtn} onPress={reportListing}>
-            <Ionicons name="flag-outline" size={16} color="#ef4444" />
+            <Ionicons name="flag-outline" size={16} color="#8B3A2F" />
             <Text style={styles.reportText}>الإبلاغ عن هذا الإعلان</Text>
           </TouchableOpacity>
 
@@ -450,8 +455,8 @@ export default function ListingDetailsScreen({
                 }}
                 testID="delete-listing-btn"
               >
-                <Ionicons name="trash" size={14} color="#ef4444" />
-                <Text style={{ color: "#ef4444", fontWeight: "800", fontSize: 12 }}>حذف الإعلان نهائياً</Text>
+                <Ionicons name="trash" size={14} color="#8B3A2F" />
+                <Text style={{ color: "#8B3A2F", fontWeight: "800", fontSize: 12 }}>حذف الإعلان نهائياً</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -616,7 +621,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#DC2626",
+    backgroundColor: "#8B3A2F",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
@@ -834,7 +839,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginTop: 20,
   },
-  reportText: { color: "#ef4444", fontSize: 12, fontWeight: "600" },
+  reportText: { color: "#8B3A2F", fontSize: 12, fontWeight: "600" },
 
   bottomBar: {
     position: "absolute",
@@ -882,9 +887,9 @@ const styles = StyleSheet.create({
   },
   whatsappBtn: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: "#22c55e",
+    backgroundColor: "#2F6B45",
     alignItems: "center", justifyContent: "center",
-    shadowColor: "#22c55e", shadowOpacity: 0.35,
+    shadowColor: "#2F6B45", shadowOpacity: 0.35,
     shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3,
   },
   primaryBtn: { flex: 1.5, borderRadius: 14, overflow: "hidden", backgroundColor: "#1B3D2F" },

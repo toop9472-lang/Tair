@@ -67,7 +67,7 @@ const timeAgo = (iso) => {
 
 function CategoryCard({ cat, onOpen, onCreate }) {
   const iconName = ICON_MAP[cat.icon] || "leaf";
-  const color = cat.color || "#0ea5e9";
+  const color = cat.color || "#1B3D2F";
   const hasLatest = !!cat.latest_post;
 
   return (
@@ -99,21 +99,21 @@ function CategoryCard({ cat, onOpen, onCreate }) {
       {/* Stats pills */}
       <View style={styles.statsRow}>
         <View style={styles.statPill}>
-          <Ionicons name="document-text-outline" size={12} color="#0ea5e9" />
+          <Ionicons name="document-text-outline" size={12} color="#1B3D2F" />
           <Text style={styles.statText}>
             {(cat.threads || 0).toLocaleString("ar-SA")} موضوع
           </Text>
         </View>
         <View style={styles.statPill}>
-          <Ionicons name="chatbubble-outline" size={12} color="#0ea5e9" />
+          <Ionicons name="chatbubble-outline" size={12} color="#1B3D2F" />
           <Text style={styles.statText}>
             {(cat.posts || 0).toLocaleString("ar-SA")} مشاركة
           </Text>
         </View>
         {(cat.views || 0) > 0 && (
           <View style={styles.statPill}>
-            <Ionicons name="eye-outline" size={12} color="#64748b" />
-            <Text style={[styles.statText, { color: "#64748b" }]}>
+            <Ionicons name="eye-outline" size={12} color="#6B5E4A" />
+            <Text style={[styles.statText, { color: "#6B5E4A" }]}>
               {(cat.views || 0).toLocaleString("ar-SA")}
             </Text>
           </View>
@@ -224,7 +224,7 @@ function CreatePostModal({ visible, user, categories, initialCategory, onClose, 
             value={title}
             onChangeText={setTitle}
             placeholder="مثال: ما أفضل تغذية للحسون؟"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="#8A7B66"
           />
 
           <Text style={styles.formLabel}>المحتوى</Text>
@@ -234,7 +234,7 @@ function CreatePostModal({ visible, user, categories, initialCategory, onClose, 
             onChangeText={setBody}
             multiline
             placeholder="اكتب تفاصيل منشورك…"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="#8A7B66"
           />
 
           <TouchableOpacity
@@ -303,7 +303,7 @@ export default function ForumScreen({ user, onOpenPost, onOpenCategory, initialC
             data-testid="forum-new-post-btn"
             style={styles.headerAddBtn}
           >
-            <Ionicons name="add" size={22} color="#0ea5e9" />
+            <Ionicons name="add" size={22} color="#1B3D2F" />
           </TouchableOpacity>
         }
       />
@@ -314,12 +314,12 @@ export default function ForumScreen({ user, onOpenPost, onOpenCategory, initialC
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); load(); }}
-            tintColor="#0ea5e9"
+            tintColor="#1B3D2F"
           />
         }
       >
         {loading ? (
-          <ActivityIndicator color="#0ea5e9" size="large" style={{ marginTop: 40 }} />
+          <ActivityIndicator color="#1B3D2F" size="large" style={{ marginTop: 40 }} />
         ) : (
           <>
             {/* Hero totals strip */}
@@ -354,7 +354,7 @@ export default function ForumScreen({ user, onOpenPost, onOpenCategory, initialC
               return (
                 <View key={sec.id} style={styles.section}>
                   <View style={styles.sectionHeader}>
-                    <Ionicons name={sec.icon} size={14} color="#0ea5e9" />
+                    <Ionicons name={sec.icon} size={14} color="#1B3D2F" />
                     <Text style={styles.sectionTitle}>{sec.title}</Text>
                     <Text style={styles.sectionCount}>
                       {rows.length.toLocaleString("ar-SA")}
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.95)",
     alignItems: "center", justifyContent: "center",
-    shadowColor: "#0ea5e9", shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
+    shadowColor: "#1B3D2F", shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
 
@@ -418,15 +418,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#e2e8f0",
-    shadowColor: "#0ea5e9",
+    shadowColor: "#1B3D2F",
     shadowOpacity: 0.06,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 1,
   },
   heroCol: { alignItems: "center", flex: 1 },
-  heroVal: { fontSize: 18, fontWeight: "900", color: "#0ea5e9" },
-  heroLabel: { fontSize: 11, color: "#64748b", fontWeight: "700", marginTop: 2 },
+  heroVal: { fontSize: 18, fontWeight: "900", color: "#1B3D2F" },
+  heroLabel: { fontSize: 11, color: "#6B5E4A", fontWeight: "700", marginTop: 2 },
   heroDivider: { width: 1, height: 28, backgroundColor: "#e2e8f0" },
 
   // Section
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   sectionTitle: {
-    color: "#0f172a",
+    color: "#0F241C",
     fontWeight: "900",
     fontSize: 14,
     flex: 1,
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
   sectionCount: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#0ea5e9",
+    color: "#1B3D2F",
     backgroundColor: "#ccfbf1",
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e2e8f0",
     padding: 12,
-    shadowColor: "#0f172a",
+    shadowColor: "#0F241C",
     shadowOpacity: 0.04,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -480,20 +480,20 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 40, height: 40, borderRadius: 11,
     alignItems: "center", justifyContent: "center",
-    shadowColor: "#0ea5e9", shadowOpacity: 0.2, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+    shadowColor: "#1B3D2F", shadowOpacity: 0.2, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   cardBody: { flex: 1, minWidth: 0 },
   cardTitle: {
     fontSize: 14.5,
     fontWeight: "800",
-    color: "#0f172a",
+    color: "#0F241C",
     textAlign: "right",
     lineHeight: 20,
   },
   cardDesc: {
     fontSize: 12,
-    color: "#64748b",
+    color: "#6B5E4A",
     lineHeight: 17,
     marginTop: 2,
     textAlign: "right",
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#0ea5e9",
+    color: "#1B3D2F",
   },
 
   latestRow: {
@@ -531,17 +531,17 @@ const styles = StyleSheet.create({
   },
   latestDot: {
     width: 6, height: 6, borderRadius: 3,
-    backgroundColor: "#10b981",
+    backgroundColor: "#2F6B45",
   },
   latestTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#0f172a",
+    color: "#0F241C",
     textAlign: "right",
   },
   latestMeta: {
     fontSize: 10.5,
-    color: "#94a3b8",
+    color: "#8A7B66",
     fontWeight: "600",
     textAlign: "right",
     marginTop: 1,
@@ -549,12 +549,12 @@ const styles = StyleSheet.create({
   emptyLatest: {
     flex: 1,
     fontSize: 11.5,
-    color: "#94a3b8",
+    color: "#8A7B66",
     fontWeight: "600",
     textAlign: "right",
   },
   startBtn: {
-    backgroundColor: "#0ea5e9",
+    backgroundColor: "#1B3D2F",
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 999,
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
     alignItems: "center", justifyContent: "center",
   },
-  modalTitle: { fontSize: 16, fontWeight: "900", color: "#0f172a" },
+  modalTitle: { fontSize: 16, fontWeight: "900", color: "#0F241C" },
   formLabel: {
     fontSize: 13, fontWeight: "800", color: "#334155",
     marginTop: 14, marginBottom: 6, textAlign: "right",
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: "#0f172a",
+    color: "#0F241C",
     textAlign: "right",
   },
   catPill: {
@@ -600,20 +600,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
     borderRadius: 999,
   },
-  catPillActive: { backgroundColor: "#0ea5e9" },
-  catPillText: { color: "#64748b", fontWeight: "700", fontSize: 12 },
+  catPillActive: { backgroundColor: "#1B3D2F" },
+  catPillText: { color: "#6B5E4A", fontWeight: "700", fontSize: 12 },
   catPillTextActive: { color: "#fff", fontWeight: "800" },
   submitBtn: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#0ea5e9",
+    backgroundColor: "#1B3D2F",
     paddingVertical: 14,
     borderRadius: 14,
     marginTop: 24,
     elevation: 4,
-    shadowColor: "#0ea5e9",
+    shadowColor: "#1B3D2F",
     shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },

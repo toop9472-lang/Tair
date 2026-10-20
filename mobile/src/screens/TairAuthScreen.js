@@ -174,12 +174,12 @@ export default function TairAuthScreen({ onAuthenticated }) {
             {/* Name (register only) */}
             {mode === "register" && (
               <View style={s.field}>
-                <Ionicons name="person-outline" size={18} color="#94a3b8" style={s.fieldIcon} />
+                <Ionicons name="person-outline" size={18} color="#8A7B66" style={s.fieldIcon} />
                 <TextInput
                   value={name}
                   onChangeText={setName}
                   placeholder="الاسم الكامل"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#8A7B66"
                   style={s.input}
                   autoCapitalize="words"
                   testID="input-name"
@@ -189,12 +189,12 @@ export default function TairAuthScreen({ onAuthenticated }) {
 
             {/* Email */}
             <View style={s.field}>
-              <Ionicons name="mail-outline" size={18} color="#94a3b8" style={s.fieldIcon} />
+              <Ionicons name="mail-outline" size={18} color="#8A7B66" style={s.fieldIcon} />
               <TextInput
                 value={email}
                 onChangeText={setEmail}
                 placeholder="البريد الإلكتروني"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A7B66"
                 style={s.input}
                 autoCapitalize="none"
                 keyboardType="email-address"
@@ -205,12 +205,12 @@ export default function TairAuthScreen({ onAuthenticated }) {
 
             {/* Password */}
             <View style={s.field}>
-              <Ionicons name="lock-closed-outline" size={18} color="#94a3b8" style={s.fieldIcon} />
+              <Ionicons name="lock-closed-outline" size={18} color="#8A7B66" style={s.fieldIcon} />
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 placeholder={mode === "register" ? "6 أحرف على الأقل" : "كلمة المرور"}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A7B66"
                 style={[s.input, { paddingLeft: 42 }]}
                 secureTextEntry={!showPw}
                 testID="input-password"
@@ -220,7 +220,7 @@ export default function TairAuthScreen({ onAuthenticated }) {
                 style={s.eyeBtn}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name={showPw ? "eye-off-outline" : "eye-outline"} size={18} color="#64748b" />
+                <Ionicons name={showPw ? "eye-off-outline" : "eye-outline"} size={18} color="#6B5E4A" />
               </TouchableOpacity>
             </View>
 

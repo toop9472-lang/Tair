@@ -10,7 +10,7 @@ import Constants from "expo-constants";
 import ScreenHeader from "../components/ScreenHeader";
 import { storefrontApi } from "../services/tairApi";
 
-const TEAL = "#0ea5e9";
+const TEAL = "#1B3D2F";
 const BORDER = "#e2e8f0";
 
 // Base URL for prefixing legacy relative media paths
@@ -30,7 +30,7 @@ const IDENTITY_COLORS = [
   "#8A6A2E", // Tair Gold Dark
   "#0F241C", // Deep Emerald
   // الألوان التقليدية
-  "#0ea5e9", "#0369a1", "#ec4899", "#f97316", "#7c3aed", "#059669", "#dc2626", "#eab308",
+  "#1B3D2F", "#1B3D2F", "#ec4899", "#f97316", "#7c3aed", "#059669", "#8B3A2F", "#eab308",
 ];
 const DAYS_AR = { sat: "السبت", sun: "الأحد", mon: "الاثنين", tue: "الثلاثاء", wed: "الأربعاء", thu: "الخميس", fri: "الجمعة" };
 
@@ -253,7 +253,7 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
                 value={s.about_text || ""}
                 onChangeText={(t) => setSettings({ ...s, about_text: t })}
                 placeholder="اكتب قصة متجرك…"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A7B66"
                 multiline
               />
             </Section>
@@ -301,7 +301,7 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
                   // save on section button
                   placeholder="09:00"
                 />
-                <Text style={{ color: "#64748b" }}>→</Text>
+                <Text style={{ color: "#6B5E4A" }}>→</Text>
                 <TextInput
                   style={[styles.timeInput, h.closed && { opacity: 0.4 }]}
                   editable={!h.closed}
@@ -451,7 +451,7 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
                     <Text style={styles.saleMeta}>خصم {sale.discount_pct}% • ينتهي {new Date(sale.ends_at).toLocaleString("ar-SA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</Text>
                   </View>
                   <TouchableOpacity onPress={async () => { await storefrontApi.deleteFlashSale(uid, sale.id); load(); }}>
-                    <Ionicons name="trash" size={18} color="#ef4444" />
+                    <Ionicons name="trash" size={18} color="#8B3A2F" />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -484,7 +484,7 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
                   value={s.auto_reply_message || ""}
                   onChangeText={(t) => setSettings({ ...s, auto_reply_message: t })}
                   placeholder="مثال: شكراً لتواصلك، سنرد عليك خلال ساعات العمل."
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#8A7B66"
                   multiline
                 />
               )}
@@ -517,12 +517,12 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
                       <Text style={styles.metricLabel}>مشاهدة إعلان</Text>
                     </View>
                     <View style={styles.metric}>
-                      <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
+                      <Ionicons name="checkmark-circle" size={20} color="#2F6B45" />
                       <Text style={styles.metricValue}>{analytics.completed_orders_count}</Text>
                       <Text style={styles.metricLabel}>طلب مكتمل</Text>
                     </View>
                     <View style={styles.metric}>
-                      <Ionicons name="trending-up" size={20} color="#8b5cf6" />
+                      <Ionicons name="trending-up" size={20} color="#C6A15B" />
                       <Text style={styles.metricValue}>{analytics.predicted_next_month_sar} ر.س</Text>
                       <Text style={styles.metricLabel}>تنبؤ الشهر القادم</Text>
                     </View>
@@ -566,7 +566,7 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged })
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHead}>
-              <TouchableOpacity onPress={() => setFlashModal(false)}><Ionicons name="close" size={24} color="#64748b" /></TouchableOpacity>
+              <TouchableOpacity onPress={() => setFlashModal(false)}><Ionicons name="close" size={24} color="#6B5E4A" /></TouchableOpacity>
               <Text style={styles.modalTitle}>عرض Flash جديد</Text>
               <View style={{ width: 24 }} />
             </View>
@@ -659,38 +659,38 @@ const styles = StyleSheet.create({
   headerSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 11, marginTop: 2, fontWeight: "600" },
   colorGrid: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 10 },
   colorSwatch: { width: 44, height: 44, borderRadius: 22, borderWidth: 3, borderColor: "transparent", alignItems: "center", justifyContent: "center" },
-  colorSwatchActive: { borderColor: "#0f172a" },
+  colorSwatchActive: { borderColor: "#0F241C" },
   logoBtn: { width: 100, height: 100, borderRadius: 14, borderWidth: 2, borderStyle: "dashed", borderColor: BORDER, alignItems: "center", justifyContent: "center", backgroundColor: "#F7F1E8" },
   logoImg: { width: 100, height: 100, borderRadius: 14 },
   logoText: { color: TEAL, fontSize: 11, marginTop: 4, fontWeight: "700" },
-  input: { backgroundColor: "#F7F1E8", borderWidth: 1, borderColor: BORDER, borderRadius: 10, padding: 10, fontSize: 13.5, color: "#0f172a", textAlign: "right", marginBottom: 6 },
+  input: { backgroundColor: "#F7F1E8", borderWidth: 1, borderColor: BORDER, borderRadius: 10, padding: 10, fontSize: 13.5, color: "#0F241C", textAlign: "right", marginBottom: 6 },
   switchRow: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
-  switchLabel: { fontSize: 13, color: "#0f172a", fontWeight: "700" },
+  switchLabel: { fontSize: 13, color: "#0F241C", fontWeight: "700" },
   hourRow: { flexDirection: "row-reverse", alignItems: "center", gap: 5, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
-  dayLabel: { width: 60, fontSize: 12, fontWeight: "800", color: "#0f172a", textAlign: "right" },
-  timeInput: { flex: 1, backgroundColor: "#F7F1E8", borderWidth: 1, borderColor: BORDER, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 8, fontSize: 12, color: "#0f172a", textAlign: "center" },
+  dayLabel: { width: 60, fontSize: 12, fontWeight: "800", color: "#0F241C", textAlign: "right" },
+  timeInput: { flex: 1, backgroundColor: "#F7F1E8", borderWidth: 1, borderColor: BORDER, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 8, fontSize: 12, color: "#0F241C", textAlign: "center" },
   mediaGrid: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8 },
   mediaThumbBox: { position: "relative", width: 90, height: 68 },
   mediaThumb: { width: 90, height: 68, borderRadius: 10 },
-  removeBadge: { position: "absolute", top: 2, left: 2, width: 20, height: 20, borderRadius: 10, backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center" },
+  removeBadge: { position: "absolute", top: 2, left: 2, width: 20, height: 20, borderRadius: 10, backgroundColor: "#8B3A2F", alignItems: "center", justifyContent: "center" },
   addMediaBox: { width: 90, height: 68, borderRadius: 10, borderWidth: 2, borderStyle: "dashed", borderColor: TEAL, alignItems: "center", justifyContent: "center", backgroundColor: "#f0fdfa" },
   row: { flexDirection: "row-reverse", gap: 8, marginBottom: 6 },
   primaryBtn: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: TEAL, paddingVertical: 12, borderRadius: 12, marginTop: 8 },
   primaryBtnText: { color: "#fff", fontWeight: "900", fontSize: 13 },
   saleCard: { flexDirection: "row-reverse", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
-  saleTitle: { fontSize: 13, fontWeight: "800", color: "#0f172a", textAlign: "right" },
-  saleMeta: { fontSize: 11, color: "#64748b", fontWeight: "600", textAlign: "right", marginTop: 2 },
-  hint: { color: "#64748b", fontSize: 12, textAlign: "right", lineHeight: 18 },
+  saleTitle: { fontSize: 13, fontWeight: "800", color: "#0F241C", textAlign: "right" },
+  saleMeta: { fontSize: 11, color: "#6B5E4A", fontWeight: "600", textAlign: "right", marginTop: 2 },
+  hint: { color: "#6B5E4A", fontSize: 12, textAlign: "right", lineHeight: 18 },
   metricsGrid: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8 },
   metric: { width: "48%", backgroundColor: "#F7F1E8", borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 12, alignItems: "center" },
-  metricValue: { color: "#0f172a", fontSize: 18, fontWeight: "900", marginTop: 4 },
-  metricLabel: { color: "#64748b", fontSize: 10, fontWeight: "700", marginTop: 2 },
+  metricValue: { color: "#0F241C", fontSize: 18, fontWeight: "900", marginTop: 4 },
+  metricLabel: { color: "#6B5E4A", fontSize: 10, fontWeight: "700", marginTop: 2 },
   rowItem: { flexDirection: "row-reverse", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
-  rowItemLabel: { color: "#0f172a", fontSize: 13, fontWeight: "700", flex: 1 },
+  rowItemLabel: { color: "#0F241C", fontSize: 13, fontWeight: "700", flex: 1 },
   rowItemVal: { color: TEAL, fontSize: 12, fontWeight: "800" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalCard: { backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 18, maxHeight: "80%" },
   modalHead: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  modalTitle: { fontSize: 15, fontWeight: "900", color: "#0f172a" },
+  modalTitle: { fontSize: 15, fontWeight: "900", color: "#0F241C" },
   fieldLabel: { fontSize: 11, color: TEAL, fontWeight: "800", marginBottom: 4, textAlign: "right" },
 });

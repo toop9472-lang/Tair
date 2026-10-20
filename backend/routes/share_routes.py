@@ -3,7 +3,8 @@ These are the URLs users see when someone shares a listing/trip/store.
 They show basic info + a CTA to open in the Tair app.
 """
 import os
-from fastapi import APIRouter, HTTPException
+from html import escape
+from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -13,15 +14,25 @@ _client = AsyncIOMotorClient(os.environ["MONGO_URL"])
 db = _client[os.environ["DB_NAME"]]
 
 
-def _html(title: str, body: str, image: str = "") -> str:
-    img_meta = f'<meta property="og:image" content="{image}" />' if image else ""
+def _e(value) -> str:
+    return escape("" if value is None else str(value), quote=True)
+
+
+def _deep(kind: str, item_id: str) -> str:
+    return f"saqr://{kind}/{item_id}"
+
+
+def _html(title: str, body: str, image: str = "", deep_link: str = "saqr://open") -> str:
+    img_meta = f'<meta property="og:image" content="{_e(image)}" />' if image else ""
+    safe_title = _e(title)
+    safe_link = _e(deep_link)
     return f"""<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>{title} — طير</title>
-<meta property="og:title" content="{title}" />
+<title>{safe_title} — طير</title>
+<meta property="og:title" content="{safe_title}" />
 <meta property="og:site_name" content="طير — سوق الطيور" />
 {img_meta}
 <style>
@@ -46,7 +57,7 @@ def _html(title: str, body: str, image: str = "") -> str:
   <div class="card">
     {body}
     <div class="inner">
-      <a class="cta" href="tair://open">افتح في تطبيق طير</a>
+      <a class="cta" href="{safe_link}">افتح داخل تطبيق طير</a>
       <p style="text-align:center; margin-top:14px; font-size:12px;">
         <a href="https://apps.apple.com" style="color:#1B3D2F;">iOS</a> ·
         <a href="https://play.google.com" style="color:#1B3D2F;">Android</a>
@@ -64,15 +75,16 @@ async def share_listing(listing_id: str):
     if not l:
         return HTMLResponse(_html("إعلان غير موجود", '<div class="inner"><h1>الإعلان غير متاح</h1></div>'), 404)
     img = (l.get("images") or [None])[0] or ""
+    district = f" · {_e(l.get('district'))}" if l.get("district") else ""
     body = (
-        (f'<img class="cover" src="{img}" />' if img else '') +
+        (f'<img class="cover" src="{_e(img)}" />' if img else '') +
         f'<div class="inner"><div class="brand">طير · إعلان</div>'
-        f'<h1>{l.get("title") or "إعلان طير"}</h1>'
-        f'<p>💰 <b>{l.get("price_sar", "—")} ر.س</b></p>'
-        f'<p>📍 {l.get("city", "")}{" · " + l.get("district", "") if l.get("district") else ""}</p>'
-        f'<p>{(l.get("description") or "")[:200]}</p></div>'
+        f'<h1>{_e(l.get("title") or "إعلان طير")}</h1>'
+        f'<p>💰 <b>{_e(l.get("price_sar", "—"))} ر.س</b></p>'
+        f'<p>📍 {_e(l.get("city", ""))}{district}</p>'
+        f'<p>{_e((l.get("description") or "")[:200])}</p></div>'
     )
-    return _html(l.get("title") or "إعلان طير", body, img)
+    return _html(l.get("title") or "إعلان طير", body, img, _deep("listing", listing_id))
 
 
 @router.get("/trip/{trip_id}", response_class=HTMLResponse)
@@ -82,11 +94,11 @@ async def share_trip(trip_id: str):
         return HTMLResponse(_html("رحلة غير موجودة", '<div class="inner"><h1>الرحلة غير متاحة</h1></div>'), 404)
     body = (
         f'<div class="inner"><div class="brand">طير · رحلة</div>'
-        f'<h1>{t.get("from_city", "")} ← {t.get("to_city", "")}</h1>'
-        f'<p>📅 {t.get("depart_at") or ""}</p>'
-        f'<p>👤 الموصل: {t.get("carrier_name") or ""}</p></div>'
+        f'<h1>{_e(t.get("from_city", ""))} ← {_e(t.get("to_city", ""))}</h1>'
+        f'<p>📅 {_e(t.get("depart_at") or "")}</p>'
+        f'<p>👤 الموصل: {_e(t.get("carrier_name") or "")}</p></div>'
     )
-    return _html(f'{t.get("from_city", "")} ← {t.get("to_city", "")}', body)
+    return _html(f'{t.get("from_city", "")} ← {t.get("to_city", "")}', body, "", _deep("trip", trip_id))
 
 
 @router.get("/store/{user_id}", response_class=HTMLResponse)
@@ -95,10 +107,43 @@ async def share_store(user_id: str):
     if not u:
         return HTMLResponse(_html("متجر غير موجود", '<div class="inner"><h1>المتجر غير متاح</h1></div>'), 404)
     logo = u.get("storefront_settings", {}).get("logo_url") or u.get("avatar") or ""
+    bio = u.get("storefront_settings", {}).get("bio") or u.get("bio") or ""
     body = (
-        (f'<img class="cover" src="{logo}" />' if logo else '') +
+        (f'<img class="cover" src="{_e(logo)}" />' if logo else '') +
         f'<div class="inner"><div class="brand">طير · متجر</div>'
-        f'<h1>{u.get("name") or "متجر طير"}</h1>'
-        f'<p>{u.get("storefront_settings", {}).get("bio") or u.get("bio") or ""}</p></div>'
+        f'<h1>{_e(u.get("name") or "متجر طير")}</h1>'
+        f'<p>{_e(bio)}</p></div>'
     )
-    return _html(u.get("name") or "متجر طير", body, logo)
+    return _html(u.get("name") or "متجر طير", body, logo, _deep("store", user_id))
+
+
+@router.get("/auction/{auction_id}", response_class=HTMLResponse)
+async def share_auction(auction_id: str):
+    a = await db.tair_auctions.find_one({"auction_id": auction_id})
+    if not a:
+        return HTMLResponse(_html("مزاد غير موجود", '<div class="inner"><h1>المزاد غير متاح</h1></div>'), 404)
+    img = (a.get("images") or [None])[0] or ""
+    price = a.get("current_bid_sar") or a.get("starting_price_sar") or "—"
+    body = (
+        (f'<img class="cover" src="{_e(img)}" />' if img else '') +
+        f'<div class="inner"><div class="brand">طير · مزاد</div>'
+        f'<h1>{_e(a.get("title") or "مزاد طير")}</h1>'
+        f'<p>💰 <b>{_e(price)} ر.س</b></p>'
+        f'<p>📍 {_e(a.get("city") or "")}</p></div>'
+    )
+    return _html(a.get("title") or "مزاد طير", body, img, _deep("auction", auction_id))
+
+
+@router.get("/story/{story_id}", response_class=HTMLResponse)
+async def share_story(story_id: str):
+    st = await db.tair_stories.find_one({"story_id": story_id})
+    if not st:
+        return HTMLResponse(_html("قصة غير موجودة", '<div class="inner"><h1>القصة غير متاحة</h1></div>'), 404)
+    img = st.get("image_url") or ""
+    body = (
+        (f'<img class="cover" src="{_e(img)}" />' if img else '') +
+        f'<div class="inner"><div class="brand">طير · قصة</div>'
+        f'<h1>{_e(st.get("user_name") or "مربّي")}</h1>'
+        f'<p>{_e((st.get("caption") or "")[:200])}</p></div>'
+    )
+    return _html(st.get("user_name") or "قصة طير", body, img, _deep("story", story_id))

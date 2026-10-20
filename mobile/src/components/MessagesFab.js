@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     width: 11,
     height: 11,
     borderRadius: 6,
-    backgroundColor: "#EF4444",
+    backgroundColor: "#C4493A",
     borderWidth: 1.5,
     borderColor: TAIR.emerald,
   },

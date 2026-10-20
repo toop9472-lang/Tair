@@ -19,10 +19,10 @@ const statusMeta = {
   pending: { color: "#0891b2", label: "قيد الانتظار", icon: "time-outline" },
   accepted_by_carrier: { color: "#eab308", label: "قبله الموصل", icon: "checkmark-circle-outline" },
   in_transit: { color: "#f59e0b", label: "في الطريق", icon: "car" },
-  delivered: { color: "#10b981", label: "تم التسليم", icon: "checkmark-done-outline" },
+  delivered: { color: "#2F6B45", label: "تم التسليم", icon: "checkmark-done-outline" },
   completed: { color: "#065f46", label: "مكتمل", icon: "trophy-outline" },
-  disputed: { color: "#dc2626", label: "نزاع", icon: "alert-circle" },
-  cancelled: { color: "#94a3b8", label: "ملغى", icon: "close-circle-outline" },
+  disputed: { color: "#8B3A2F", label: "نزاع", icon: "alert-circle" },
+  cancelled: { color: "#8A7B66", label: "ملغى", icon: "close-circle-outline" },
 };
 
 const roleLabel = {
@@ -105,7 +105,7 @@ function OrderCard({ order, onPress, currentUserId }) {
       )}
 
       <View style={styles.timestampRow}>
-        <Ionicons name="time-outline" size={12} color="#94a3b8" />
+        <Ionicons name="time-outline" size={12} color="#8A7B66" />
         <Text style={styles.timestamp}>
           {order.created_at ? new Date(order.created_at).toLocaleString("ar-SA") : ""}
         </Text>
@@ -126,7 +126,7 @@ function OrderCard({ order, onPress, currentUserId }) {
 function Party({ icon, label, id }) {
   return (
     <View style={styles.party}>
-      <Ionicons name={icon} size={14} color="#10b981" />
+      <Ionicons name={icon} size={14} color="#2F6B45" />
       <View>
         <Text style={styles.partyLabel}>{label}</Text>
         <Text style={styles.partyId}>#{id?.slice(-6) || "-"}</Text>
@@ -210,7 +210,7 @@ export default function OrdersScreen({ user, onOpenOrder }) {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
           loading ? (
-            <ActivityIndicator color="#10b981" size="large" style={{ marginTop: 40 }} />
+            <ActivityIndicator color="#2F6B45" size="large" style={{ marginTop: 40 }} />
           ) : (
             <View style={styles.empty}>
               <Ionicons name="cube-outline" size={64} color="#a7f3d0" />
@@ -226,7 +226,7 @@ export default function OrdersScreen({ user, onOpenOrder }) {
               setRefreshing(true);
               load();
             }}
-            tintColor="#10b981"
+            tintColor="#2F6B45"
           />
         }
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   heroTitle: { fontSize: 24, fontWeight: "800", color: "#065f46", textAlign: "right" },
-  heroSubtitle: { fontSize: 13, color: "#0ea5e9", marginTop: 2, textAlign: "right" },
+  heroSubtitle: { fontSize: 13, color: "#1B3D2F", marginTop: 2, textAlign: "right" },
 
   rolesBar: {
     flexDirection: "row-reverse",
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderRadius: 16,
     padding: 14,
-    shadowColor: "#0f172a",
+    shadowColor: "#0F241C",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -288,11 +288,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   statusText: { fontSize: 11, fontWeight: "700" },
-  orderId: { fontSize: 12, color: "#94a3b8", fontWeight: "700" },
+  orderId: { fontSize: 12, color: "#8A7B66", fontWeight: "700" },
 
   priceRow: { marginTop: 10 },
   price: { fontSize: 22, fontWeight: "800", color: "#065f46", textAlign: "right" },
-  deliveryHint: { fontSize: 11, color: "#64748b", textAlign: "right", marginTop: 2 },
+  deliveryHint: { fontSize: 11, color: "#6B5E4A", textAlign: "right", marginTop: 2 },
 
   partiesRow: {
     flexDirection: "row-reverse",
@@ -307,8 +307,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  partyLabel: { fontSize: 10, color: "#94a3b8", fontWeight: "600" },
-  partyId: { fontSize: 11, color: "#0f172a", fontWeight: "700" },
+  partyLabel: { fontSize: 10, color: "#8A7B66", fontWeight: "600" },
+  partyId: { fontSize: 11, color: "#0F241C", fontWeight: "700" },
 
   timestampRow: {
     flexDirection: "row-reverse",
@@ -316,9 +316,9 @@ const styles = StyleSheet.create({
     gap: 3,
     marginTop: 8,
   },
-  timestamp: { fontSize: 10, color: "#94a3b8" },
+  timestamp: { fontSize: 10, color: "#8A7B66" },
 
   empty: { alignItems: "center", padding: 40, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#334155" },
-  emptyText: { fontSize: 13, color: "#64748b", textAlign: "center" },
+  emptyText: { fontSize: 13, color: "#6B5E4A", textAlign: "center" },
 });

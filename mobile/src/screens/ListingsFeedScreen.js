@@ -62,7 +62,7 @@ function ListingCard({ item, onPress }) {
           <Image source={{ uri: resolveMediaUrl(item.cover_image) }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
-            <Ionicons name="images-outline" size={40} color="#94a3b8" />
+            <Ionicons name="images-outline" size={40} color="#8A7B66" />
           </View>
         )}
         {item.price_negotiable ? (
@@ -76,7 +76,7 @@ function ListingCard({ item, onPress }) {
           {item.title}
         </Text>
         <View style={styles.metaRow}>
-          <Ionicons name="location-outline" size={13} color="#64748b" />
+          <Ionicons name="location-outline" size={13} color="#6B5E4A" />
           <Text style={styles.metaText}>{item.city}</Text>
           {item.district ? (
             <Text style={styles.metaText}> · {item.district}</Text>
@@ -85,12 +85,12 @@ function ListingCard({ item, onPress }) {
         <View style={styles.priceRow}>
           <Text style={styles.price}>{formatPrice(item.price_sar)}</Text>
           <View style={styles.stats}>
-            <Ionicons name="eye-outline" size={13} color="#94a3b8" />
+            <Ionicons name="eye-outline" size={13} color="#8A7B66" />
             <Text style={styles.statText}>{item.view_count || 0}</Text>
             <Ionicons
               name="heart-outline"
               size={13}
-              color="#94a3b8"
+              color="#8A7B66"
               style={{ marginRight: 8 }}
             />
             <Text style={styles.statText}>{item.favorite_count || 0}</Text>
@@ -237,7 +237,7 @@ export default function ListingsFeedScreen({
             onPress={() => setCitySheetOpen(true)}
             testID="home-city-btn"
           >
-            <Ionicons name="location" size={13} color="#0ea5e9" />
+            <Ionicons name="location" size={13} color="#1B3D2F" />
             <Text style={styles.cityBtnText} numberOfLines={1}>
               {selectedCity || "جميع المدن"}
             </Text>
@@ -269,7 +269,7 @@ export default function ListingsFeedScreen({
   const renderEmpty = () =>
     loading ? (
       <View style={styles.emptyBox}>
-        <ActivityIndicator color="#10b981" size="large" />
+        <ActivityIndicator color="#2F6B45" size="large" />
       </View>
     ) : (
       <View style={styles.emptyBox}>
@@ -293,7 +293,7 @@ export default function ListingsFeedScreen({
         columnWrapperStyle={{ paddingHorizontal: 10 }}
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2F6B45" />
         }
         showsVerticalScrollIndicator={false}
       />
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   },
   heroSubtitle: {
     fontSize: 13,
-    color: "#0ea5e9",
+    color: "#1B3D2F",
     textAlign: "right",
     marginTop: 2,
   },
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: "#0f172a",
+    color: "#0F241C",
     fontSize: 14,
     textAlign: "right",
     padding: 0,
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
   },
-  speciesChipActive: { backgroundColor: "#06b6d4", borderColor: "#06b6d4" },
+  speciesChipActive: { backgroundColor: "#1B3D2F", borderColor: "#1B3D2F" },
   speciesChipText: { color: "#0e7490", fontWeight: "600", fontSize: 12 },
   speciesChipTextActive: { color: "#fff" },
   suppliersChip: {
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     borderColor: "#99f6e4",
     maxWidth: 150,
   },
-  cityBtnText: { color: "#0ea5e9", fontSize: 11.5, fontWeight: "800", maxWidth: 110 },
+  cityBtnText: { color: "#1B3D2F", fontSize: 11.5, fontWeight: "800", maxWidth: 110 },
   createBtn: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -438,14 +438,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: "#0ea5e9",
+    backgroundColor: "#1B3D2F",
   },
   createBtnText: { color: "#fff", fontSize: 11.5, fontWeight: "800" },
   resultCountInline: {
     flex: 1,
     fontSize: 11,
     fontWeight: "700",
-    color: "#94a3b8",
+    color: "#8A7B66",
     textAlign: "left",
   },
 
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#0f172a",
+    shadowColor: "#0F241C",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#0f172a",
+    color: "#0F241C",
     textAlign: "right",
   },
   metaRow: {
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     gap: 3,
     marginTop: 4,
   },
-  metaText: { color: "#64748b", fontSize: 11 },
+  metaText: { color: "#6B5E4A", fontSize: 11 },
   priceRow: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 3,
   },
-  statText: { color: "#94a3b8", fontSize: 11, fontWeight: "600" },
+  statText: { color: "#8A7B66", fontSize: 11, fontWeight: "600" },
 
   emptyBox: {
     paddingVertical: 60,
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 13,
-    color: "#64748b",
+    color: "#6B5E4A",
     textAlign: "center",
     paddingHorizontal: 40,
   },

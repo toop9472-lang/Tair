@@ -82,7 +82,7 @@ export default function ForumCategoryFeedScreen({
 
       {loading ? (
         <View style={styles.centerBox}>
-          <ActivityIndicator size="large" color="#0ea5e9" />
+          <ActivityIndicator size="large" color="#1B3D2F" />
         </View>
       ) : (
         <ScrollView
@@ -108,9 +108,9 @@ export default function ForumCategoryFeedScreen({
               {posts.map((p, idx) => {
                 const initial = (p.author_name || "?").charAt(0).toUpperCase();
                 const gradientPairs = [
-                  ["#0ea5e9", "#14b8a6"],
+                  ["#1B3D2F", "#3D6B54"],
                   ["#ec4899", "#f97316"],
-                  ["#3b82f6", "#8b5cf6"],
+                  ["#1B3D2F", "#C6A15B"],
                   ["#facc15", "#f97316"],
                   ["#059669", "#84cc16"],
                 ];
@@ -143,16 +143,16 @@ export default function ForumCategoryFeedScreen({
                     )}
                     <View style={styles.stats}>
                       <View style={[styles.statPill, { backgroundColor: "#fef2f2" }]}>
-                        <Ionicons name="heart" size={11} color="#dc2626" />
-                        <Text style={[styles.statPillText, { color: "#dc2626" }]}>{p.likes_count || 0}</Text>
+                        <Ionicons name="heart" size={11} color="#8B3A2F" />
+                        <Text style={[styles.statPillText, { color: "#8B3A2F" }]}>{p.likes_count || 0}</Text>
                       </View>
                       <View style={[styles.statPill, { backgroundColor: c1 + "14" }]}>
                         <Ionicons name="chatbubble" size={11} color={c1} />
                         <Text style={[styles.statPillText, { color: c1 }]}>{p.replies_count || 0}</Text>
                       </View>
                       <View style={[styles.statPill, { backgroundColor: "#f1f5f9" }]}>
-                        <Ionicons name="eye" size={11} color="#64748b" />
-                        <Text style={[styles.statPillText, { color: "#64748b" }]}>{p.views_count || 0}</Text>
+                        <Ionicons name="eye" size={11} color="#6B5E4A" />
+                        <Text style={[styles.statPillText, { color: "#6B5E4A" }]}>{p.views_count || 0}</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   catLabel: {
     fontSize: 15,
     fontWeight: "900",
-    color: "#0ea5e9",
+    color: "#1B3D2F",
     textAlign: "right",
     marginBottom: 12,
   },
@@ -184,12 +184,12 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
     alignItems: "center",
   },
-  emptyText: { color: "#64748b", fontSize: 13, marginBottom: 14 },
+  emptyText: { color: "#6B5E4A", fontSize: 13, marginBottom: 14 },
   startBtn: {
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#0ea5e9",
+    backgroundColor: "#1B3D2F",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     paddingRight: 22,
-    shadowColor: "#0f172a",
+    shadowColor: "#0F241C",
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -234,12 +234,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   catBadgeText: { fontSize: 10.5, fontWeight: "800" },
-  author: { fontSize: 13.5, fontWeight: "800", color: "#0f172a", textAlign: "right" },
-  meta: { fontSize: 11, color: "#94a3b8", fontWeight: "600", textAlign: "right", marginTop: 2 },
+  author: { fontSize: 13.5, fontWeight: "800", color: "#0F241C", textAlign: "right" },
+  meta: { fontSize: 11, color: "#8A7B66", fontWeight: "600", textAlign: "right", marginTop: 2 },
   title: {
     fontSize: 16,
     fontWeight: "900",
-    color: "#0f172a",
+    color: "#0F241C",
     marginBottom: 6,
     textAlign: "right",
     lineHeight: 22,

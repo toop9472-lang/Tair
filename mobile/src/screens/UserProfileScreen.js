@@ -349,7 +349,7 @@ const UserProfileScreen = ({
 
         {/* Clips grid */}
         <View style={styles.gridHeader}>
-          <Ionicons name="grid-outline" size={16} color="#94a3b8" />
+          <Ionicons name="grid-outline" size={16} color="#8A7B66" />
           <Text style={styles.gridHeaderText}>
             ريلز ({profile.clips_count})
           </Text>
@@ -365,7 +365,7 @@ const UserProfileScreen = ({
           </View>
         ) : clips.length === 0 ? (
           <View style={styles.lockedWrap}>
-            <Ionicons name="film-outline" size={30} color="#64748b" />
+            <Ionicons name="film-outline" size={30} color="#6B5E4A" />
             <Text style={styles.lockedText}>لم ينشر أي ريلز بعد</Text>
           </View>
         ) : (
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 8,
   },
-  gridHeaderText: { color: "#94a3b8", fontSize: 12, fontWeight: "600" },
+  gridHeaderText: { color: "#8A7B66", fontSize: 12, fontWeight: "600" },
   tile: {
     width: GRID_TILE_SIZE,
     height: GRID_TILE_SIZE * 1.55,

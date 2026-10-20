@@ -9,11 +9,11 @@ import {
   Image,
   Linking,
   Alert,
-  Share,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { tripsApi } from "../services/tairApi";
+import { shareInApp } from "../services/shareContent";
 import { DetailSkeleton, ErrorState } from "../components/TairUI";
 
 const API_BASE =
@@ -34,8 +34,8 @@ const statusColor = (s) =>
     in_transit: "#f59e0b",
     arrived: "#2F6B45",
     completed: "#064e3b",
-    cancelled: "#ef4444",
-  }[s] || "#64748b");
+    cancelled: "#8B3A2F",
+  }[s] || "#6B5E4A");
 const statusLabel = (s) =>
   ({
     scheduled: "مجدولة",
@@ -105,13 +105,18 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
   const hasWaypoints = Array.isArray(trip.waypoints) && trip.waypoints.length > 0;
   const isOwner = (user?.user_id || user?.id) === trip.carrier_id;
 
-  const shareTrip = async () => {
-    try {
-      const base = process.env.EXPO_PUBLIC_BACKEND_URL || "https://saqr-ui-sync.emergent.host";
-      const url = `${base}/share/trip/${encodeURIComponent(trip.trip_id || trip.id)}`;
-      const msg = `✈️ رحلة طير\n📍 ${trip.from_city} ← ${trip.to_city}${dt ? `\n🗓 ${dt.toLocaleString("ar-SA")}` : ""}\n\n${url}`;
-      await Share.share({ message: msg, url, title: `${trip.from_city} ← ${trip.to_city}` });
-    } catch (e) {}
+  const shareTrip = () => {
+    const id = trip.trip_id || trip.id;
+    if (!id) return;
+    shareInApp({
+      kind: "trip",
+      id,
+      title: `${trip.from_city || ""} ← ${trip.to_city || ""}`.trim(),
+      lines: [
+        dt ? dt.toLocaleString("ar-SA") : null,
+        carrierName ? `الموصل: ${carrierName}` : null,
+      ],
+    });
   };
 
   const openWhatsapp = async () => {
@@ -251,7 +256,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
               <Text style={styles.carrierSub}>{completed} رحلة مكتملة</Text>
             </View>
           </View>
-          <Ionicons name="chevron-back" size={18} color="#94a3b8" />
+          <Ionicons name="chevron-back" size={18} color="#8A7B66" />
         </TouchableOpacity>
 
         {/* Detail cards */}
@@ -413,7 +418,7 @@ const styles = StyleSheet.create({
   tairTripDisclaimerText: { flex: 1, color: "#6B5E4A", fontSize: 11, fontWeight: "600", textAlign: "right", lineHeight: 18 },
   center: { alignItems: "center", justifyContent: "center", padding: 40, gap: 12, flex: 1 },
   emptyTitle: { color: "#334155", fontSize: 16, fontWeight: "800" },
-  emptyText: { color: "#64748b", fontSize: 13 },
+  emptyText: { color: "#6B5E4A", fontSize: 13 },
   linkBtn: { paddingVertical: 10, paddingHorizontal: 20, marginTop: 6 },
   linkText: { color: "#1B3D2F", fontWeight: "800", fontSize: 14 },
 
@@ -522,7 +527,7 @@ const styles = StyleSheet.create({
   },
   starRow: { flexDirection: "row-reverse", alignItems: "center", gap: 3 },
   starText: { fontSize: 11, color: "#334155", fontWeight: "800" },
-  carrierSub: { fontSize: 11, color: "#94a3b8", fontWeight: "700" },
+  carrierSub: { fontSize: 11, color: "#8A7B66", fontWeight: "700" },
 
   grid: {
     flexDirection: "row-reverse",
@@ -543,7 +548,7 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16,
     alignItems: "center", justifyContent: "center", marginBottom: 4,
   },
-  detailLabel: { color: "#64748b", fontSize: 11, fontWeight: "700" },
+  detailLabel: { color: "#6B5E4A", fontSize: 11, fontWeight: "700" },
   detailValue: { color: "#0F241C", fontSize: 14, fontWeight: "800" },
 
   waypointsCard: {

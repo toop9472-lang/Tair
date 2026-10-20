@@ -32,7 +32,7 @@ function SupplierCard({ supplier, onPress }) {
           {supplier.logo_url ? (
             <Image source={{ uri: supplier.logo_url }} style={styles.logo} />
           ) : (
-            <Ionicons name="storefront" size={30} color="#0ea5e9" />
+            <Ionicons name="storefront" size={30} color="#1B3D2F" />
           )}
         </View>
         <View style={{ flex: 1 }}>
@@ -46,7 +46,7 @@ function SupplierCard({ supplier, onPress }) {
           </View>
           {supplier.city ? (
             <View style={styles.metaRow}>
-              <Ionicons name="location-outline" size={12} color="#94a3b8" />
+              <Ionicons name="location-outline" size={12} color="#8A7B66" />
               <Text style={styles.metaText}>{supplier.city}</Text>
             </View>
           ) : null}
@@ -84,7 +84,7 @@ function SupplierCard({ supplier, onPress }) {
         ) : null}
         {supplier.phone ? (
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: "#0ea5e9" }]}
+            style={[styles.actionBtn, { backgroundColor: "#1B3D2F" }]}
             onPress={(e) => {
               e?.stopPropagation?.();
               Linking.openURL(`tel:${supplier.phone}`);
@@ -188,12 +188,12 @@ export default function WholesaleScreen({ onBack }) {
               setRefreshing(true);
               load();
             }}
-            tintColor="#0ea5e9"
+            tintColor="#1B3D2F"
           />
         }
         ListEmptyComponent={
           loading ? (
-            <ActivityIndicator color="#0ea5e9" size="large" style={{ marginTop: 40 }} />
+            <ActivityIndicator color="#1B3D2F" size="large" style={{ marginTop: 40 }} />
           ) : (
             <View style={styles.empty}>
               <Ionicons name="storefront-outline" size={64} color="#a7f3d0" />
@@ -242,8 +242,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
     borderRadius: 999,
   },
-  chipActive: { backgroundColor: "#0ea5e9" },
-  chipText: { color: "#64748b", fontWeight: "700", fontSize: 12 },
+  chipActive: { backgroundColor: "#1B3D2F" },
+  chipText: { color: "#6B5E4A", fontWeight: "700", fontSize: 12 },
   chipTextActive: { color: "#fff", fontWeight: "800" },
 
   card: {
@@ -266,9 +266,9 @@ const styles = StyleSheet.create({
   },
   logo: { width: "100%", height: "100%" },
   nameRow: { flexDirection: "row-reverse", alignItems: "center", gap: 4 },
-  name: { fontSize: 15, fontWeight: "900", color: "#0f172a", textAlign: "right" },
+  name: { fontSize: 15, fontWeight: "900", color: "#0F241C", textAlign: "right" },
   metaRow: { flexDirection: "row-reverse", alignItems: "center", gap: 4, marginTop: 2 },
-  metaText: { fontSize: 12, color: "#64748b" },
+  metaText: { fontSize: 12, color: "#6B5E4A" },
   desc: { fontSize: 13, color: "#475569", lineHeight: 19, textAlign: "right", marginTop: 4 },
   chipsRow: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 6, marginTop: 8 },
   miniChip: {
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0fdfa",
     borderRadius: 8,
   },
-  miniChipText: { color: "#0ea5e9", fontSize: 11, fontWeight: "800" },
+  miniChipText: { color: "#1B3D2F", fontSize: 11, fontWeight: "800" },
   actionRow: { flexDirection: "row-reverse", gap: 8, marginTop: 12 },
   actionBtn: {
     flexDirection: "row-reverse",
@@ -292,9 +292,9 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "900",
-    color: "#0f172a",
+    color: "#0F241C",
     marginTop: 12,
     textAlign: "center",
   },
-  emptyText: { fontSize: 13, color: "#64748b", marginTop: 6, textAlign: "center" },
+  emptyText: { fontSize: 13, color: "#6B5E4A", marginTop: 6, textAlign: "center" },
 });

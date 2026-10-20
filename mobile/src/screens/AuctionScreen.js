@@ -12,6 +12,7 @@ import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { auctionsApi } from "../services/tairApi";
 import { EmptyState, ErrorState, ListSkeleton, PressableScale, TairImage } from "../components/TairUI";
 import AuctionMark from "../components/AuctionMark";
+import { shareInApp } from "../services/shareContent";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const BANNERS = [
@@ -73,7 +74,22 @@ function AuctionHero({ isOpen }) {
   );
 }
 
-export default function AuctionScreen({ user, onBack, onOpenSubmit }) {
+function shareAuction(a) {
+  if (!a?.auction_id) return;
+  const price = Number(a.current_bid_sar || a.starting_price_sar || 0);
+  shareInApp({
+    kind: "auction",
+    id: a.auction_id,
+    title: a.title || "مزاد طير",
+    lines: [
+      a.sequence_number ? `مزاد رقم ${a.sequence_number}` : null,
+      `${price} ر.س`,
+      a.city || null,
+    ],
+  });
+}
+
+export default function AuctionScreen({ user, onBack, onOpenSubmit, focusAuctionId }) {
   const uid = user?.id || user?.user_id || user?.email;
   const [oath, setOath] = useState({ accepted: null });
   const [win, setWin] = useState(null);
@@ -86,6 +102,7 @@ export default function AuctionScreen({ user, onBack, onOpenSubmit }) {
   const [busy, setBusy] = useState(false);
   const [activeImg, setActiveImg] = useState({});
   const [bidHistory, setBidHistory] = useState([]);
+  const focused = useRef(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -127,6 +144,17 @@ export default function AuctionScreen({ user, onBack, onOpenSubmit }) {
     try { await auctionsApi.oathAccept(uid); setOath({ accepted: true }); }
     catch (e) { Alert.alert("خطأ", e?.message || "تعذّر تسجيل الحلف"); }
   };
+
+  useEffect(() => {
+    if (focused.current || !focusAuctionId || oath?.accepted !== true || !list.length) return;
+    const found = list.find((a) => a.auction_id === focusAuctionId);
+    if (!found) return;
+    focused.current = true;
+    const price = Number(found.current_bid_sar || found.starting_price_sar || 1);
+    const inc = Number(found.min_increment_sar || 10);
+    setBidAmount(String(price + inc));
+    setShowBid(found);
+  }, [focusAuctionId, oath?.accepted, list]);
 
   const openBid = (a) => {
     const price = Number(a.current_bid_sar || a.starting_price_sar || 1);
@@ -220,6 +248,7 @@ export default function AuctionScreen({ user, onBack, onOpenSubmit }) {
                 isOpen={isOpen}
                 activeIdx={activeImg[a.auction_id] || 0}
                 onImgChange={(i) => setActiveImg((p) => ({ ...p, [a.auction_id]: i }))}
+                onShare={() => shareAuction(a)}
               />
             )) : (
               <EmptyState
@@ -238,7 +267,7 @@ export default function AuctionScreen({ user, onBack, onOpenSubmit }) {
                 <Text style={s.sectionCount}>{arNum(upcoming.length)}</Text>
               </View>
               {upcoming.map((a, i) => (
-                <UpcomingCard key={a.auction_id} a={a} rank={i + 1} onOpen={() => openBid(a)} />
+                <UpcomingCard key={a.auction_id} a={a} rank={i + 1} onOpen={() => openBid(a)} onShare={() => shareAuction(a)} />
               ))}
             </View>
           ) : null}
@@ -253,9 +282,14 @@ export default function AuctionScreen({ user, onBack, onOpenSubmit }) {
               <Text style={s.modalTitle} numberOfLines={2}>
                 مزاد #{arNum(showBid?.sequence_number || "؟")} — {showBid?.title}
               </Text>
-              <TouchableOpacity onPress={() => setShowBid(null)} hitSlop={10}>
-                <Ionicons name="close" size={22} color={TAIR.emerald} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 8 }}>
+                <TouchableOpacity onPress={() => shareAuction(showBid)} hitSlop={10} testID="auction-share-btn">
+                  <Ionicons name="share-social-outline" size={20} color={TAIR.goldDark} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowBid(null)} hitSlop={10}>
+                  <Ionicons name="close" size={22} color={TAIR.emerald} />
+                </TouchableOpacity>
+              </View>
             </View>
             <View style={s.modalPriceRow}>
               <Text style={s.modalPriceLabel}>السعر الحالي</Text>
@@ -300,7 +334,7 @@ export default function AuctionScreen({ user, onBack, onOpenSubmit }) {
   );
 }
 
-function BigLiveCard({ a, now, onBid, isOpen, activeIdx, onImgChange }) {
+function BigLiveCard({ a, now, onBid, isOpen, activeIdx, onImgChange, onShare }) {
   const endsMs = a.end_at ? new Date(a.end_at).getTime() - now : 0;
   const price = Number(a.current_bid_sar || a.starting_price_sar || 0);
   const images = a.images?.length ? a.images : BANNERS;
@@ -332,6 +366,9 @@ function BigLiveCard({ a, now, onBid, isOpen, activeIdx, onImgChange }) {
         <View style={s.seqBadge}>
           <Text style={s.seqBadgeText}>#{arNum(a.sequence_number || "؟")}</Text>
         </View>
+        <TouchableOpacity onPress={onShare} style={s.shareFab} hitSlop={8}>
+          <Ionicons name="share-social-outline" size={16} color={TAIR.gold} />
+        </TouchableOpacity>
         {!local && images.length > 1 ? (
           <View style={s.dotsRow}>
             {images.map((_, i) => (
@@ -386,7 +423,7 @@ function BigLiveCard({ a, now, onBid, isOpen, activeIdx, onImgChange }) {
   );
 }
 
-function UpcomingCard({ a, rank, onOpen }) {
+function UpcomingCard({ a, rank, onOpen, onShare }) {
   const price = Number(a.current_bid_sar || a.starting_price_sar || 0);
   const first = (a.images && a.images[0]) || null;
   return (
@@ -406,6 +443,9 @@ function UpcomingCard({ a, rank, onOpen }) {
         </Text>
         <Text style={s.upPrice}>{arNum(price.toFixed(0))} ر.س</Text>
       </View>
+      <TouchableOpacity onPress={onShare} hitSlop={8} style={s.upShare}>
+        <Ionicons name="share-social-outline" size={16} color={TAIR.goldDark} />
+      </TouchableOpacity>
       <Ionicons name="chevron-back" size={18} color={TAIR.goldDark} />
     </PressableScale>
   );
@@ -550,6 +590,27 @@ const s = StyleSheet.create({
     ...TAIR_ELEVATION.card,
   },
   imgFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 70 },
+  shareFab: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(15,36,28,0.82)",
+    borderWidth: 1,
+    borderColor: "rgba(198,161,91,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  upShare: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: TAIR.goldWash,
+  },
   seqBadge: {
     position: "absolute",
     top: 12,

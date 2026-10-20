@@ -182,7 +182,7 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between",
     padding: 14, borderBottomWidth: 1, borderColor: "#e2e8f0",
   },
-  title: { fontSize: 15, fontWeight: "900", color: "#0f172a" },
+  title: { fontSize: 15, fontWeight: "900", color: "#0F241C" },
   closeBtn: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: "#f1f5f9",
     alignItems: "center", justifyContent: "center",
@@ -194,8 +194,8 @@ const s = StyleSheet.create({
     alignItems: "center", backgroundColor: "rgba(15,118,110,0.05)",
   },
   uploadAlt: { padding: 16 },
-  uploadTitle: { fontSize: 16, fontWeight: "800", color: "#0f172a", marginTop: 6 },
-  uploadSub: { fontSize: 12, color: "#64748b", textAlign: "center", marginTop: 4 },
+  uploadTitle: { fontSize: 16, fontWeight: "800", color: "#0F241C", marginTop: 6 },
+  uploadSub: { fontSize: 12, color: "#6B5E4A", textAlign: "center", marginTop: 4 },
 
   previewWrap: {
     borderRadius: 14, overflow: "hidden", backgroundColor: "#f1f5f9",
@@ -206,15 +206,15 @@ const s = StyleSheet.create({
 
   resultCard: { borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 14, padding: 14 },
   resultTop: { flexDirection: "row-reverse", alignItems: "flex-start", gap: 10 },
-  species: { fontSize: 18, fontWeight: "900", color: "#0f172a", textAlign: "right" },
-  speciesEn: { fontSize: 12, color: "#64748b", textAlign: "right" },
+  species: { fontSize: 18, fontWeight: "900", color: "#0F241C", textAlign: "right" },
+  speciesEn: { fontSize: 12, color: "#6B5E4A", textAlign: "right" },
   confidence: { backgroundColor: TAIR_PALETTE.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   confidenceText: { color: "#fff", fontWeight: "900", fontSize: 12 },
   priceBox: {
     marginTop: 12, padding: 12, backgroundColor: "rgba(15,118,110,0.08)",
     borderRadius: 10, alignItems: "center",
   },
-  priceLabel: { fontSize: 11, color: "#64748b", fontWeight: "700" },
+  priceLabel: { fontSize: 11, color: "#6B5E4A", fontWeight: "700" },
   priceVal: { fontSize: 20, fontWeight: "900", color: TAIR_PALETTE.primary, marginTop: 2 },
   tagRow: { flexDirection: "row-reverse", marginTop: 10 },
   tag: { backgroundColor: "#f1f5f9", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, fontSize: 11, fontWeight: "700", color: "#334155" },
@@ -222,7 +222,7 @@ const s = StyleSheet.create({
     marginTop: 10, backgroundColor: "#fefce8", borderColor: "#fef3c7", borderWidth: 1,
     borderRadius: 8, padding: 10, fontSize: 13, color: "#334155", textAlign: "right", lineHeight: 20,
   },
-  noBird: { color: "#64748b", fontSize: 13, textAlign: "center", padding: 8 },
+  noBird: { color: "#6B5E4A", fontSize: 13, textAlign: "center", padding: 8 },
   applyBtn: {
     marginTop: 12, backgroundColor: TAIR_PALETTE.primary, borderRadius: 10,
     paddingVertical: 12, alignItems: "center",

@@ -68,7 +68,7 @@ function ReplyCard({ reply, canDelete, onDelete }) {
             testID={`reply-delete-${reply.reply_id}`}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="trash-outline" size={16} color="#dc2626" />
+            <Ionicons name="trash-outline" size={16} color="#8B3A2F" />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -186,7 +186,7 @@ export default function ForumPostScreen({ user, postId, onBack }) {
       <View style={styles.container}>
         <ScreenHeader title="المنشور" onBack={onBack} />
         <View style={styles.centerBox}>
-          <ActivityIndicator size="large" color="#0ea5e9" />
+          <ActivityIndicator size="large" color="#1B3D2F" />
         </View>
       </View>
     );
@@ -197,7 +197,7 @@ export default function ForumPostScreen({ user, postId, onBack }) {
       <View style={styles.container}>
         <ScreenHeader title="المنشور" onBack={onBack} />
         <View style={styles.centerBox}>
-          <Text style={{ color: "#dc2626", fontWeight: "700" }}>المنشور غير موجود</Text>
+          <Text style={{ color: "#8B3A2F", fontWeight: "700" }}>المنشور غير موجود</Text>
         </View>
       </View>
     );
@@ -224,7 +224,7 @@ export default function ForumPostScreen({ user, postId, onBack }) {
               testID="post-delete-btn"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="trash-outline" size={20} color="#dc2626" />
+              <Ionicons name="trash-outline" size={20} color="#8B3A2F" />
             </TouchableOpacity>
           ) : null
         }
@@ -244,7 +244,7 @@ export default function ForumPostScreen({ user, postId, onBack }) {
               <Text style={styles.metaText}>{timeAgo(post.created_at)}</Text>
             </View>
             <View style={styles.catPill}>
-              <Ionicons name={iconName} size={12} color="#0ea5e9" />
+              <Ionicons name={iconName} size={12} color="#1B3D2F" />
               <Text style={styles.catPillText}>{post.category}</Text>
             </View>
           </View>
@@ -257,23 +257,23 @@ export default function ForumPostScreen({ user, postId, onBack }) {
               onPress={toggleLike}
               style={[
                 styles.actionBtn,
-                liked && { backgroundColor: "#fef2f2", borderColor: "#dc2626" },
+                liked && { backgroundColor: "#fef2f2", borderColor: "#8B3A2F" },
               ]}
               testID="post-like-btn"
             >
               <Ionicons
                 name={liked ? "heart" : "heart-outline"}
                 size={16}
-                color={liked ? "#dc2626" : "#64748b"}
+                color={liked ? "#8B3A2F" : "#6B5E4A"}
               />
-              <Text style={[styles.actionText, liked && { color: "#dc2626" }]}>{likesCount}</Text>
+              <Text style={[styles.actionText, liked && { color: "#8B3A2F" }]}>{likesCount}</Text>
             </TouchableOpacity>
             <View style={styles.stat}>
-              <Ionicons name="chatbubble-outline" size={14} color="#64748b" />
+              <Ionicons name="chatbubble-outline" size={14} color="#6B5E4A" />
               <Text style={styles.statText}>{post.replies_count || 0}</Text>
             </View>
             <View style={styles.stat}>
-              <Ionicons name="eye-outline" size={14} color="#64748b" />
+              <Ionicons name="eye-outline" size={14} color="#6B5E4A" />
               <Text style={styles.statText}>{post.views_count || 0}</Text>
             </View>
           </View>
@@ -283,7 +283,7 @@ export default function ForumPostScreen({ user, postId, onBack }) {
 
         {replies.length === 0 ? (
           <View style={styles.emptyReplies}>
-            <Text style={{ color: "#64748b", textAlign: "center" }}>
+            <Text style={{ color: "#6B5E4A", textAlign: "center" }}>
               لا توجد ردود بعد — كن أول من يشارك رأيه
             </Text>
           </View>
@@ -306,7 +306,7 @@ export default function ForumPostScreen({ user, postId, onBack }) {
           value={replyBody}
           onChangeText={setReplyBody}
           placeholder="اكتب رداً…"
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor="#8A7B66"
           style={styles.composerInput}
           testID="reply-input"
         />
@@ -367,9 +367,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { color: "#0ea5e9", fontSize: 14, fontWeight: "800" },
-  authorName: { fontSize: 14, fontWeight: "800", color: "#0f172a", textAlign: "right" },
-  metaText: { fontSize: 11, color: "#64748b", fontWeight: "600", textAlign: "right", marginTop: 2 },
+  avatarText: { color: "#1B3D2F", fontSize: 14, fontWeight: "800" },
+  authorName: { fontSize: 14, fontWeight: "800", color: "#0F241C", textAlign: "right" },
+  metaText: { fontSize: 11, color: "#6B5E4A", fontWeight: "600", textAlign: "right", marginTop: 2 },
   catPill: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -379,11 +379,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
   },
-  catPillText: { color: "#0ea5e9", fontSize: 11, fontWeight: "800" },
+  catPillText: { color: "#1B3D2F", fontSize: 11, fontWeight: "800" },
   postTitle: {
     fontSize: 18,
     fontWeight: "900",
-    color: "#0f172a",
+    color: "#0F241C",
     textAlign: "right",
     marginBottom: 8,
   },
@@ -413,13 +413,13 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
     backgroundColor: "#F7F1E8",
   },
-  actionText: { fontSize: 13, fontWeight: "800", color: "#64748b" },
+  actionText: { fontSize: 13, fontWeight: "800", color: "#6B5E4A" },
   stat: { flexDirection: "row-reverse", alignItems: "center", gap: 4 },
-  statText: { fontSize: 12, fontWeight: "700", color: "#64748b" },
+  statText: { fontSize: 12, fontWeight: "700", color: "#6B5E4A" },
   repliesTitle: {
     fontSize: 15,
     fontWeight: "900",
-    color: "#0f172a",
+    color: "#0F241C",
     textAlign: "right",
     marginBottom: 8,
     marginTop: 4,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
   },
   replyTop: { flexDirection: "row-reverse", alignItems: "center", gap: 8, marginBottom: 8 },
-  replyAuthor: { fontSize: 12, fontWeight: "800", color: "#0f172a", textAlign: "right" },
+  replyAuthor: { fontSize: 12, fontWeight: "800", color: "#0F241C", textAlign: "right" },
   replyBody: { fontSize: 14, color: "#334155", lineHeight: 20, textAlign: "right" },
   composer: {
     position: "absolute",
@@ -464,14 +464,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     fontSize: 14,
     backgroundColor: "#F7F1E8",
-    color: "#0f172a",
+    color: "#0F241C",
     textAlign: "right",
   },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#0ea5e9",
+    backgroundColor: "#1B3D2F",
     alignItems: "center",
     justifyContent: "center",
   },

@@ -428,7 +428,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             <TextInput
               style={styles.input}
               placeholder="مثال: كناري ذكر مغني"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#8A7B66"
               value={form.title}
               onChangeText={(v) => set("title", v)}
               data-testid="input-title"
@@ -445,7 +445,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
               <Text style={styles.selectBtnText}>
                 {currentFamily?.name_ar || "اختر الفئة"}
               </Text>
-              <Ionicons name="chevron-down" size={16} color="#94a3b8" style={{ marginRight: "auto" }} />
+              <Ionicons name="chevron-down" size={16} color="#8A7B66" style={{ marginRight: "auto" }} />
             </TouchableOpacity>
           </Field>
 
@@ -460,7 +460,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
                 <Text style={styles.selectBtnText}>
                   {currentSpecies?.name_ar || "اختر النوع"}
                 </Text>
-                <Ionicons name="chevron-down" size={16} color="#94a3b8" style={{ marginRight: "auto" }} />
+                <Ionicons name="chevron-down" size={16} color="#8A7B66" style={{ marginRight: "auto" }} />
               </TouchableOpacity>
             </Field>
           )}
@@ -490,7 +490,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
               <TextInput
                 style={styles.input}
                 placeholder="ألماني"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A7B66"
                 value={form.breed}
                 onChangeText={(v) => set("breed", v)}
               />
@@ -501,7 +501,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
                   style={[styles.input, { flex: 1 }]}
                   keyboardType="numeric"
                   placeholder="6"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#8A7B66"
                   value={form.age_value}
                   onChangeText={(v) => set("age_value", v)}
                 />
@@ -526,7 +526,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             <TextInput
               style={styles.input}
               placeholder="أصفر ذهبي"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#8A7B66"
               value={form.color}
               onChangeText={(v) => set("color", v)}
             />
@@ -536,7 +536,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             <TextInput
               style={[styles.input, { minHeight: 100, textAlignVertical: "top" }]}
               placeholder="اكتب معلومات مفيدة عن الطائر، عاداته، سبب البيع…"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#8A7B66"
               value={form.description}
               onChangeText={(v) => set("description", v)}
               multiline
@@ -577,7 +577,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             <Ionicons
               name={form.health.vaccinated ? "checkbox" : "square-outline"}
               size={22}
-              color="#10b981"
+              color="#2F6B45"
             />
             <Text style={styles.checkboxLabel}>محصّن ضد الأمراض الشائعة</Text>
           </TouchableOpacity>
@@ -586,7 +586,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             <TextInput
               style={styles.input}
               placeholder="SA-2026-1234"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#8A7B66"
               value={form.health.ring_number}
               onChangeText={(v) => setHealth("ring_number", v)}
             />
@@ -596,7 +596,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             <TextInput
               style={[styles.input, { minHeight: 60, textAlignVertical: "top" }]}
               placeholder="أي حالة أو ملاحظة يجب أن يعرفها المشتري"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#8A7B66"
               value={form.health.notes}
               onChangeText={(v) => setHealth("notes", v)}
               multiline
@@ -613,7 +613,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
               style={styles.input}
               keyboardType="numeric"
               placeholder="500"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#8A7B66"
               value={form.price_sar}
               onChangeText={(v) => set("price_sar", v)}
               data-testid="input-price"
@@ -643,7 +643,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
               style={styles.input}
               keyboardType="phone-pad"
               placeholder="مثال: 0501234567"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#8A7B66"
               value={form.whatsapp}
               onChangeText={(v) => set("whatsapp", v)}
               data-testid="input-whatsapp"
@@ -681,7 +681,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             <TextInput
               style={styles.input}
               placeholder="حي النرجس"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#8A7B66"
               value={form.district}
               onChangeText={(v) => set("district", v)}
             />
@@ -955,8 +955,8 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   videoHead: { marginBottom: 8 },
-  videoTitle: { fontSize: 13.5, fontWeight: "800", color: "#0f172a", textAlign: "right" },
-  videoHint: { fontSize: 10.5, color: "#94a3b8", fontWeight: "600", textAlign: "right", marginTop: 2 },
+  videoTitle: { fontSize: 13.5, fontWeight: "800", color: "#0F241C", textAlign: "right" },
+  videoHint: { fontSize: 10.5, color: "#8A7B66", fontWeight: "600", textAlign: "right", marginTop: 2 },
   videoAdd: {
     aspectRatio: 16 / 9,
     borderRadius: 14,
@@ -1080,7 +1080,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
     alignItems: "center", justifyContent: "center",
   },
-  sheetTitle: { fontSize: 15, fontWeight: "900", color: "#0f172a" },
+  sheetTitle: { fontSize: 15, fontWeight: "900", color: "#0F241C" },
   sheetItem: {
     flexDirection: "row-reverse",
     alignItems: "center",

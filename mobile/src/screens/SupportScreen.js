@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert } 
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 
-const TEAL = "#0ea5e9";
+const TEAL = "#1B3D2F";
 const SUPPORT_EMAIL = "sky-321@hotmail.com";
 const SUPPORT_WHATSAPP = "+966539999415";
 
@@ -37,7 +37,7 @@ function ContactRow({ icon, color, label, value, onPress }) {
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={styles.rowValue}>{value}</Text>
       </View>
-      <Ionicons name="chevron-back" size={18} color="#94a3b8" />
+      <Ionicons name="chevron-back" size={18} color="#8A7B66" />
     </TouchableOpacity>
   );
 }
@@ -63,9 +63,9 @@ export default function SupportScreen({ onBack }) {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>تواصل معنا</Text>
-          <ContactRow icon="logo-whatsapp" color="#22c55e" label="واتساب" value={SUPPORT_WHATSAPP} onPress={openWhatsapp} />
+          <ContactRow icon="logo-whatsapp" color="#2F6B45" label="واتساب" value={SUPPORT_WHATSAPP} onPress={openWhatsapp} />
           <View style={styles.divider} />
-          <ContactRow icon="mail" color="#0369a1" label="البريد الإلكتروني" value={SUPPORT_EMAIL} onPress={openEmail} />
+          <ContactRow icon="mail" color="#1B3D2F" label="البريد الإلكتروني" value={SUPPORT_EMAIL} onPress={openEmail} />
         </View>
 
         <View style={styles.card}>
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F7F1E8" },
   content: { padding: 14, paddingBottom: 80 },
   hint: {
-    color: "#64748b", fontSize: 13, textAlign: "center",
+    color: "#6B5E4A", fontSize: 13, textAlign: "center",
     marginBottom: 14, lineHeight: 20,
   },
   card: {
@@ -111,11 +111,11 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 12,
     alignItems: "center", justifyContent: "center",
   },
-  rowLabel: { color: "#0f172a", fontSize: 14, fontWeight: "800", textAlign: "right" },
-  rowValue: { color: "#64748b", fontSize: 12, fontWeight: "600", textAlign: "right", marginTop: 2 },
+  rowLabel: { color: "#0F241C", fontSize: 14, fontWeight: "800", textAlign: "right" },
+  rowValue: { color: "#6B5E4A", fontSize: 12, fontWeight: "600", textAlign: "right", marginTop: 2 },
   divider: { height: 1, backgroundColor: "#f1f5f9", marginHorizontal: 12 },
   faqItem: { paddingHorizontal: 12, paddingVertical: 12 },
   qRow: { flexDirection: "row-reverse", alignItems: "center", gap: 6, marginBottom: 4 },
-  qText: { color: "#0f172a", fontSize: 13.5, fontWeight: "800", flex: 1, textAlign: "right" },
+  qText: { color: "#0F241C", fontSize: 13.5, fontWeight: "800", flex: 1, textAlign: "right" },
   aText: { color: "#475569", fontSize: 12.5, lineHeight: 20, textAlign: "right" },
 });

@@ -108,7 +108,7 @@ const InboxItem = ({ item, onPress }) => {
           <Text
             style={[
               styles.inboxPreview,
-              isUnread && { color: '#0f172a', fontWeight: '700' },
+              isUnread && { color: '#0F241C', fontWeight: '700' },
             ]}
             numberOfLines={1}
           >
@@ -119,7 +119,7 @@ const InboxItem = ({ item, onPress }) => {
               <Text style={styles.unreadPillText}>{item.unread_count > 9 ? '9+' : item.unread_count}</Text>
             </View>
           ) : item.last_is_own ? (
-            <Ionicons name="checkmark-done" size={14} color="#94a3b8" />
+            <Ionicons name="checkmark-done" size={14} color="#8A7B66" />
           ) : null}
         </View>
       </View>
@@ -355,7 +355,7 @@ const ConversationView = ({ user, friend, onBack, onReport, onOpenUserProfile })
           <TextInput
             style={styles.textInput}
             placeholder="اكتب رسالتك…"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="#8A7B66"
             value={newMessage}
             onChangeText={setNewMessage}
             multiline
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900', textAlign: 'right' },
   headerSubtitle: { color: 'rgba(255,255,255,0.82)', fontSize: 12, fontWeight: '700', marginTop: 3, textAlign: 'right' },
   headerBadge: {
-    backgroundColor: '#ef4444',
+    backgroundColor: '#8B3A2F',
     paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 999,
     minWidth: 30, alignItems: 'center',
@@ -670,11 +670,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     gap: 4,
   },
-  bubbleTime: { color: '#94a3b8', fontSize: 10, fontWeight: '700' },
+  bubbleTime: { color: '#8A7B66', fontSize: 10, fontWeight: '700' },
   bubbleTimeOwn: { color: 'rgba(247,241,232,0.72)' },
 
-  emptyChatTitle: { color: '#0f172a', fontSize: 16, fontWeight: '900', marginBottom: 4 },
-  emptyChatSub: { color: '#64748b', fontSize: 12, textAlign: 'center' },
+  emptyChatTitle: { color: '#0F241C', fontSize: 16, fontWeight: '900', marginBottom: 4 },
+  emptyChatSub: { color: '#6B5E4A', fontSize: 12, textAlign: 'center' },
 
   // ---------- Sticker bar ----------
   stickerBar: {

@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: "10%", right: "10%",
     width: 11, height: 11, borderRadius: 6,
-    backgroundColor: "#EF4444",
+    backgroundColor: "#C4493A",
     borderWidth: 2, borderColor: TAIR.emerald,
   },
   /* الجرس — صغير على اليسار ليبقى واضحاً مع الرسائل على اليمين */
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#EF4444",
+    backgroundColor: "#C4493A",
     borderWidth: 2,
     borderColor: TAIR.emerald,
   },

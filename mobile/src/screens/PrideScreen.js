@@ -60,8 +60,8 @@ export default function PrideScreen({ onBack, onOpenListing }) {
                 </Text>
                 <View style={s.cardFooter}>
                   <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 4 }}>
-                    <Ionicons name="heart" size={14} color="#DC2626" />
-                    <Text style={{ color: "#DC2626", fontSize: 12, fontWeight: "800" }}>{it.likes || 0}</Text>
+                    <Ionicons name="heart" size={14} color="#8B3A2F" />
+                    <Text style={{ color: "#8B3A2F", fontSize: 12, fontWeight: "800" }}>{it.likes || 0}</Text>
                   </View>
                   <Ionicons name="bookmark-outline" size={16} color={TAIR.textSoft} />
                 </View>

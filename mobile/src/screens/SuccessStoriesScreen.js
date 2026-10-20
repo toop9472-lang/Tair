@@ -74,7 +74,7 @@ export default function SuccessStoriesScreen({ onBack }) {
             </View>
             <Text style={s.quote}>«{it.story}»</Text>
             <View style={s.chip}>
-              <Ionicons name="checkmark-circle" size={12} color="#0ea5e9" />
+              <Ionicons name="checkmark-circle" size={12} color="#1B3D2F" />
               <Text style={s.chipTxt}>{it.outcome}</Text>
             </View>
           </View>

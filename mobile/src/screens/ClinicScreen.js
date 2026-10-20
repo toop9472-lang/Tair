@@ -259,15 +259,15 @@ const s = StyleSheet.create({
   },
   sosInner: {
     width: 58, height: 58, borderRadius: 29,
-    backgroundColor: "#DC2626",
+    backgroundColor: "#8B3A2F",
     alignItems: "center", justifyContent: "center",
     borderWidth: 3, borderColor: "#FEF2C8",
-    shadowColor: "#DC2626", shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 6,
+    shadowColor: "#8B3A2F", shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 6,
   },
   sosLabel: {
-    color: "#DC2626", fontSize: 11, fontWeight: "900",
+    color: "#8B3A2F", fontSize: 11, fontWeight: "900",
     backgroundColor: "#FFFDF8",
     paddingHorizontal: 8, paddingVertical: 2,
-    borderRadius: 999, borderWidth: 1, borderColor: "#DC2626",
+    borderRadius: 999, borderWidth: 1, borderColor: "#8B3A2F",
   },
 });

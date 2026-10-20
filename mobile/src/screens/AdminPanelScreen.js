@@ -427,7 +427,7 @@ export default function AdminPanelScreen({ user, onBack }) {
                 ]}
                 testID="users-active-toggle"
               >
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: activeOnly ? "#22C55E" : TAIR.textSoft }} />
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: activeOnly ? "#2F6B45" : TAIR.textSoft }} />
                 <Text style={{ color: activeOnly ? TAIR.gold : TAIR.emerald, fontSize: 11, fontWeight: "900" }}>
                   {activeOnly ? "النشطون الآن (15د)" : "عرض النشطين فقط"}
                 </Text>

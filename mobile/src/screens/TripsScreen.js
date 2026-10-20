@@ -37,8 +37,8 @@ const statusColor = (s) =>
     in_transit: "#f59e0b",
     arrived: "#3D6B54",
     completed: "#064e3b",
-    cancelled: "#ef4444",
-  }[s] || "#64748b");
+    cancelled: "#8B3A2F",
+  }[s] || "#6B5E4A");
 const statusLabel = (s) =>
   ({
     scheduled: "مجدولة",
@@ -330,7 +330,7 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
               testId="create-trip-from"
             />
             <View style={styles.arrowBadgeSmall}>
-              <Ionicons name="arrow-back" size={14} color="#94a3b8" />
+              <Ionicons name="arrow-back" size={14} color="#8A7B66" />
             </View>
             <CityTriggerButton
               iconName="flag"
@@ -398,7 +398,7 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
                     style={styles.waypointChip}
                     onPress={() => removeWaypoint(i)}
                   >
-                    <Ionicons name="close-circle" size={14} color="#dc2626" />
+                    <Ionicons name="close-circle" size={14} color="#8B3A2F" />
                     <Text style={styles.waypointChipText}>{wp}</Text>
                   </TouchableOpacity>
                 ))}
@@ -420,7 +420,7 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
             value={form.depart_at}
             onChangeText={(v) => set("depart_at", v)}
             placeholder="YYYY-MM-DDTHH:mm"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="#8A7B66"
           />
 
           <FormLabel>نوع المركبة</FormLabel>
@@ -452,7 +452,7 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
                 style={styles.input}
                 keyboardType="numeric"
                 placeholder="50"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A7B66"
                 value={form.price_hint_sar}
                 onChangeText={(v) => set("price_hint_sar", v)}
               />
@@ -481,7 +481,7 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
             style={[styles.input, { minHeight: 80, textAlignVertical: "top" }]}
             multiline
             placeholder="أي تفاصيل إضافية للمرسلين"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="#8A7B66"
             value={form.notes}
             onChangeText={(v) => set("notes", v)}
           />
@@ -578,7 +578,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
             <Ionicons
               name="list"
               size={14}
-              color={viewMode === "list" ? "#fff" : "#64748b"}
+              color={viewMode === "list" ? "#fff" : "#6B5E4A"}
             />
             <Text
               style={[
@@ -597,7 +597,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
             <Ionicons
               name="map"
               size={14}
-              color={viewMode === "map" ? "#fff" : "#64748b"}
+              color={viewMode === "map" ? "#fff" : "#6B5E4A"}
             />
             <Text
               style={[
@@ -621,7 +621,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
               testId="trips-picker-from"
             />
             <View style={styles.arrowBadge}>
-              <Ionicons name="arrow-back" size={16} color="#94a3b8" />
+              <Ionicons name="arrow-back" size={16} color="#8A7B66" />
             </View>
             <CityTriggerButton
               iconName="flag"
@@ -638,7 +638,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
               style={styles.clearFiltersBtn}
               data-testid="trips-clear-filters"
             >
-              <Ionicons name="close-circle" size={16} color="#dc2626" />
+              <Ionicons name="close-circle" size={16} color="#8B3A2F" />
               <Text style={styles.clearFiltersText}>مسح الفلاتر</Text>
             </TouchableOpacity>
           ) : null}
@@ -799,7 +799,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     alignSelf: "flex-end",
   },
-  clearFiltersText: { color: "#dc2626", fontWeight: "700", fontSize: 12 },
+  clearFiltersText: { color: "#8B3A2F", fontWeight: "700", fontSize: 12 },
 
   addTripCta: {
     flexDirection: "row-reverse",
@@ -1021,8 +1021,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cityBox: { flex: 1, alignItems: "center" },
-  cityLabel: { fontSize: 10, color: "#94a3b8", fontWeight: "600" },
-  cityName: { fontSize: 18, fontWeight: "800", color: "#0f172a", marginTop: 2 },
+  cityLabel: { fontSize: 10, color: "#8A7B66", fontWeight: "600" },
+  cityName: { fontSize: 18, fontWeight: "800", color: "#0F241C", marginTop: 2 },
   routeArrow: { paddingHorizontal: 4 },
 
   waypointChip: {
@@ -1068,11 +1068,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   metaText: { color: "#475569", fontSize: 11, fontWeight: "600" },
-  notes: { color: "#64748b", fontSize: 12, marginTop: 10, textAlign: "right" },
+  notes: { color: "#6B5E4A", fontSize: 12, marginTop: 10, textAlign: "right" },
 
   empty: { alignItems: "center", padding: 40, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#334155" },
-  emptyText: { fontSize: 13, color: "#64748b", textAlign: "center" },
+  emptyText: { fontSize: 13, color: "#6B5E4A", textAlign: "center" },
 
   // Create modal
   header: {

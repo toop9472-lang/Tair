@@ -57,7 +57,7 @@ function Stat({ icon, label, value }) {
   );
 }
 
-function MenuItem({ icon, label, onPress, color = "#0f172a", testID }) {
+function MenuItem({ icon, label, onPress, color = "#0F241C", testID }) {
   return (
     <TouchableOpacity
       style={styles.menuItem}
@@ -69,7 +69,7 @@ function MenuItem({ icon, label, onPress, color = "#0f172a", testID }) {
         <Ionicons name={icon} size={18} color={color} />
       </View>
       <Text style={[styles.menuLabel, { color }]}>{label}</Text>
-      <Ionicons name="chevron-back" size={18} color="#94a3b8" />
+      <Ionicons name="chevron-back" size={18} color="#8A7B66" />
     </TouchableOpacity>
   );
 }
@@ -538,7 +538,7 @@ export default function ProfileScreen({
                             }
                             testID={`delete-listing-${l.listing_id}`}
                           >
-                            <Ionicons name="trash-outline" size={18} color="#dc2626" />
+                            <Ionicons name="trash-outline" size={18} color="#8B3A2F" />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -598,7 +598,7 @@ export default function ProfileScreen({
                             }
                             testID={`delete-trip-${t.trip_id}`}
                           >
-                            <Ionicons name="trash-outline" size={18} color="#dc2626" />
+                            <Ionicons name="trash-outline" size={18} color="#8B3A2F" />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -643,7 +643,7 @@ export default function ProfileScreen({
             <MenuItem
               icon="shield-checkmark"
               label="لوحة المدير — صلاحيات كاملة"
-              color="#dc2626"
+              color="#8B3A2F"
               onPress={() => onNavigate?.("admin_panel")}
               testID="menu-admin-panel"
             />
@@ -717,7 +717,7 @@ export default function ProfileScreen({
             <MenuItem
               icon="log-out-outline"
               label="تسجيل الخروج"
-              color="#ef4444"
+              color="#8B3A2F"
               onPress={onLogout}
               testID="menu-logout"
             />
@@ -785,7 +785,7 @@ export default function ProfileScreen({
                 value={editName}
                 onChangeText={setEditName}
                 placeholder="اكتب اسم متجرك"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A7B66"
                 testID="profile-edit-name"
               />
 
@@ -795,7 +795,7 @@ export default function ProfileScreen({
                 value={editBio}
                 onChangeText={setEditBio}
                 placeholder="اكتب نبذة عن متجرك (طيور، تخصصات، مواعيد…)"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A7B66"
                 multiline
                 testID="profile-edit-bio"
               />
@@ -806,7 +806,7 @@ export default function ProfileScreen({
                 value={editPhone}
                 onChangeText={setEditPhone}
                 placeholder="+9665XXXXXXXX"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A7B66"
                 keyboardType="phone-pad"
                 testID="profile-edit-phone"
               />
@@ -817,7 +817,7 @@ export default function ProfileScreen({
                 value={editWhatsapp}
                 onChangeText={setEditWhatsapp}
                 placeholder="+9665XXXXXXXX"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A7B66"
                 keyboardType="phone-pad"
                 testID="profile-edit-whatsapp"
               />
@@ -861,21 +861,21 @@ export default function ProfileScreen({
               <TextInput
                 value={vfShop} onChangeText={setVfShop}
                 placeholder="مثال: متجر طير الخليج"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#8A7B66"
                 textAlign="right"
-                style={{ backgroundColor: "#F9FAFB", borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", paddingHorizontal: 14, height: 46, marginBottom: 12, color: "#1B3D2F" }}
+                style={{ backgroundColor: "#F7F1E8", borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", paddingHorizontal: 14, height: 46, marginBottom: 12, color: "#1B3D2F" }}
                 testID="verify-shop-name"
               />
               <Text style={{ fontSize: 12, color: "#1B3D2F", fontWeight: "800", textAlign: "right", marginBottom: 4 }}>
-                سبب طلب التوثيق <Text style={{ color: "#DC2626" }}>*</Text>
+                سبب طلب التوثيق <Text style={{ color: "#8B3A2F" }}>*</Text>
               </Text>
               <TextInput
                 value={vfReason} onChangeText={setVfReason}
                 placeholder="اذكر تخصصك، خبرتك، عدد سنوات النشاط..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#8A7B66"
                 textAlign="right"
                 multiline
-                style={{ backgroundColor: "#F9FAFB", borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", paddingHorizontal: 14, paddingVertical: 12, minHeight: 90, textAlignVertical: "top", marginBottom: 12, color: "#1B3D2F" }}
+                style={{ backgroundColor: "#F7F1E8", borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", paddingHorizontal: 14, paddingVertical: 12, minHeight: 90, textAlignVertical: "top", marginBottom: 12, color: "#1B3D2F" }}
                 testID="verify-reason"
               />
               <Text style={{ fontSize: 12, color: "#1B3D2F", fontWeight: "800", textAlign: "right", marginBottom: 6 }}>
@@ -949,7 +949,7 @@ const styles = StyleSheet.create({
   },
   avatarImage: { width: 84, height: 84, borderRadius: 42 },
   avatarText: { color: TEAL, fontSize: 32, fontWeight: "900" },
-  name: { color: "#0f172a", fontSize: 20, fontWeight: "900", marginTop: 10 },
+  name: { color: "#0F241C", fontSize: 20, fontWeight: "900", marginTop: 10 },
   email: { color: "#6B5E4A", fontSize: 12, marginTop: 4, textAlign: "center" },
 
   verifiedBadge: {
@@ -1000,7 +1000,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 6,
   },
-  statValue: { color: "#0f172a", fontSize: 16, fontWeight: "900" },
+  statValue: { color: "#0F241C", fontSize: 16, fontWeight: "900" },
   statLabel: { color: "#6B5E4A", fontSize: 10, fontWeight: "700", marginTop: 2 },
 
   tabsRow: {
@@ -1053,7 +1053,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   thumbImg: { width: 48, height: 48 },
-  rowTitle: { color: "#0f172a", fontSize: 13.5, fontWeight: "800", textAlign: "right" },
+  rowTitle: { color: "#0F241C", fontSize: 13.5, fontWeight: "800", textAlign: "right" },
   rowMeta: { color: "#6B5E4A", fontSize: 11, fontWeight: "600", textAlign: "right", marginTop: 2 },
   rowActions: {
     flexDirection: "row-reverse",
@@ -1184,7 +1184,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 4,
     borderColor: "#ffffff",
-    shadowColor: "#0f172a",
+    shadowColor: "#0F241C",
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -1249,7 +1249,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse", alignItems: "center",
     justifyContent: "space-between", marginBottom: 14,
   },
-  modalTitle: { fontSize: 16, fontWeight: "900", color: "#0f172a" },
+  modalTitle: { fontSize: 16, fontWeight: "900", color: "#0F241C" },
   bgPicker: { marginBottom: 14 },
   bgPreview: {
     width: "100%", height: 130, borderRadius: 12,
@@ -1266,7 +1266,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F1E8",
     borderWidth: 1, borderColor: "#e2e8f0",
     borderRadius: 12, padding: 12,
-    fontSize: 14, color: "#0f172a",
+    fontSize: 14, color: "#0F241C",
     textAlign: "right", marginBottom: 14,
   },
   saveBtn: {

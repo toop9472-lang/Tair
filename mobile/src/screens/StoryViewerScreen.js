@@ -12,6 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TAIR } from "../constants/tairTheme";
 import { communityApi, storiesApi } from "../services/tairApi";
 import { PressableScale } from "../components/TairUI";
+import { shareInApp } from "../services/shareContent";
 
 const STORY_MS = 6000;
 
@@ -283,6 +284,18 @@ export default function StoryViewerScreen({ initialStoryId, onClose }) {
         <TouchableOpacity onPress={openComments} style={styles.actionBtn} testID="story-comment-btn">
           <Ionicons name="chatbubble-outline" size={20} color="#F7F1E8" />
           <Text style={styles.actionText}>{st?.comments_count || 0}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => shareInApp({
+            kind: "story",
+            id: sid,
+            title: st.user_name ? `قصة ${st.user_name}` : "قصة على طير",
+            lines: st.caption ? [st.caption] : [],
+          })}
+          style={styles.actionBtn}
+          testID="story-share-btn"
+        >
+          <Ionicons name="share-social-outline" size={20} color={TAIR.gold} />
         </TouchableOpacity>
       </View>
 
