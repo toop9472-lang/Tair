@@ -19,6 +19,7 @@ from models.trip import (
     TripStatusUpdate,
 )
 from auth.actor import require_actor
+from models.places import city_match_values
 
 router = APIRouter(prefix="/trips", tags=["Tair-Trips"])
 
@@ -120,9 +121,9 @@ async def list_trips(
     elif status and status != "all":
         query["status"] = status
     if from_city:
-        query["from_city"] = from_city
+        query["from_city"] = {"$in": city_match_values(from_city)}
     if to_city:
-        query["to_city"] = to_city
+        query["to_city"] = {"$in": city_match_values(to_city)}
 
     cursor = (
         db.trips.find(query).sort("depart_at", 1).skip(skip).limit(min(limit, 100))

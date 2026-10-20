@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form, Dep
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from models.listing import Listing, ListingCreate, ListingUpdate
+from models.places import city_match_values
 from models.species import FAMILY_QUERY_ALIASES, listing_category
 from models.listing_comment import ListingComment, ListingCommentCreate
 from services.r2_storage import r2
@@ -116,7 +117,7 @@ async def feed_listings(
 ):
     query: dict = {"status": "active", "is_flagged": False}
     if city:
-        query["city"] = city
+        query["city"] = {"$in": city_match_values(city)}
     if category:
         query["category"] = category
     if species:
