@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ActivityIndicator, Platform, KeyboardAvoidingView, ScrollView, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
-import { TAIR } from "../constants/tairTheme";
+import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { communityApi } from "../services/tairApi";
 import api from "../services/api";
 
@@ -145,26 +145,28 @@ const s = StyleSheet.create({
   mediaBox: {
     width: "100%", aspectRatio: 9/16, borderRadius: 20, overflow: "hidden",
     backgroundColor: TAIR.card, borderWidth: 1.5, borderColor: TAIR.gold, marginBottom: 16,
+    ...TAIR_ELEVATION.card,
   },
   mediaImg: { width: "100%", height: "100%" },
   mediaPh: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
   mediaHint: { color: TAIR.textSoft, fontSize: 13, fontWeight: "700" },
   label: { color: TAIR.emerald, fontSize: 14, fontWeight: "900", marginBottom: 6, textAlign: "right" },
   input: {
-    minHeight: 100, borderRadius: 12, backgroundColor: TAIR.card,
+    minHeight: 110, borderRadius: 14, backgroundColor: TAIR.card,
     borderWidth: 1, borderColor: TAIR.divider, padding: 12, fontSize: 15, color: TAIR.text,
     textAlignVertical: "top",
   },
   counter: { color: TAIR.textSoft, fontSize: 11, textAlign: "left", marginTop: 4 },
-  err: { color: "#8B3A2F", fontSize: 12, marginTop: 8, textAlign: "right", fontWeight: "700" },
+  err: { color: TAIR.error, fontSize: 12, marginTop: 8, textAlign: "right", fontWeight: "700" },
   footer: { flexDirection: "row-reverse", gap: 10, marginTop: 16 },
   submitBtn: {
-    flex: 2, height: 52, borderRadius: 26, backgroundColor: TAIR.emerald,
+    flex: 2, height: 52, borderRadius: 16, backgroundColor: TAIR.emerald,
     flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8,
+    borderWidth: 1, borderColor: TAIR.gold,
   },
   submitText: { color: TAIR.gold, fontWeight: "900", fontSize: 15 },
   cancelBtn: {
-    flex: 1, height: 52, borderRadius: 26, backgroundColor: TAIR.card,
+    flex: 1, height: 52, borderRadius: 16, backgroundColor: TAIR.card,
     borderWidth: 1.5, borderColor: TAIR.gold, alignItems: "center", justifyContent: "center",
   },
   cancelText: { color: TAIR.emerald, fontWeight: "800", fontSize: 14 },
