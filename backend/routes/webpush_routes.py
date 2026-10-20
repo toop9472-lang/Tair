@@ -119,8 +119,17 @@ async def send_web_push_to_user(
     if not private_key:
         return {"success": False, "error": "VAPID_PRIVATE_KEY_PEM not configured"}
 
+    ids = {user_id} if user_id else set()
+    account = await _db.users.find_one(
+        {"$or": [{"user_id": user_id}, {"id": user_id}, {"email": user_id}]},
+        {"_id": 0, "user_id": 1, "id": 1, "email": 1},
+    )
+    if account:
+        for key in ("user_id", "id", "email"):
+            if account.get(key):
+                ids.add(account[key])
     subs = await _db.web_push_subscriptions.find(
-        {"user_id": user_id, "is_active": True}
+        {"user_id": {"$in": list(ids)}, "is_active": True}
     ).to_list(100)
 
     if not subs:

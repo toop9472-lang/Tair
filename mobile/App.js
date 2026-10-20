@@ -190,7 +190,11 @@ function TairApp() {
       try {
         const t = data?.type || "";
         if (t === "admin_broadcast" || t === "app_update") setModal({ name: "notifications" });
-        else if (t.startsWith("chat")) setCurrentPage("orders"); // orders tab includes chats
+        else if (t === "clinic_topic" || t === "clinic_reply") {
+          if (data?.topic_id) setModal({ name: "clinic_topic", params: { topicId: data.topic_id } });
+          else setCurrentPage("clinic");
+        }
+        else if (t.startsWith("chat")) setCurrentPage("messages");
         else if (t.startsWith("order")) setCurrentPage("orders");
         else if (t.startsWith("trip")) setCurrentPage("trips");
         else if (t.startsWith("listing") && data?.listing_id) {

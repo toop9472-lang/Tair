@@ -50,6 +50,73 @@ async def _is_admin_or_mod(user_id: str, scope: str = "clinic") -> bool:
     return scope in scopes or "general" in scopes or "clinic_admin" in scopes
 
 
+async def _identity_keys(user_id: str) -> set:
+    keys = {user_id} if user_id else set()
+    if not user_id:
+        return keys
+    user = await db.users.find_one(
+        {"$or": [{"id": user_id}, {"user_id": user_id}, {"email": user_id}]},
+        {"_id": 0, "id": 1, "user_id": 1, "email": 1},
+    )
+    if user:
+        for key in ("id", "user_id", "email"):
+            if user.get(key):
+                keys.add(user[key])
+    return keys
+
+
+async def _clinic_staff_ids() -> list:
+    """مشرفو العيادة ومديرها والمشرف العام والمدير. التنبيه يصلهم داخل التطبيق وعلى الجوال."""
+    ids = []
+    async for mod in db.tair_moderators.find({}, {"_id": 0, "user_id": 1, "scopes": 1}):
+        scopes = mod.get("scopes") or []
+        if isinstance(scopes, str):
+            scopes = [scopes]
+        if any(s in scopes for s in ("clinic", "clinic_admin", "general")) and mod.get("user_id"):
+            ids.append(mod["user_id"])
+    async for admin in db.admins.find({}, {"_id": 0, "id": 1, "user_id": 1, "email": 1}):
+        uid = admin.get("user_id") or admin.get("id") or admin.get("email")
+        if uid:
+            ids.append(uid)
+    async for user in db.users.find(
+        {"$or": [{"is_admin": True}, {"role": {"$in": ["admin", "super_admin"]}}]},
+        {"_id": 0, "id": 1, "user_id": 1, "email": 1},
+    ):
+        uid = user.get("user_id") or user.get("id") or user.get("email")
+        if uid:
+            ids.append(uid)
+    return ids
+
+
+async def _notify_people(raw_ids, exclude_ids, title, body, notif_type, data):
+    blocked = set()
+    for eid in exclude_ids or []:
+        blocked |= await _identity_keys(eid)
+    sent = set()
+    try:
+        from routes.tair_notifications_routes import create_tair_notification
+    except Exception as exc:
+        logger.warning("clinic notify import failed: %s", exc)
+        return
+    for uid in raw_ids or []:
+        if not uid or uid == "clinic_bot":
+            continue
+        keys = await _identity_keys(uid)
+        if keys & blocked or keys & sent:
+            continue
+        sent |= keys
+        try:
+            await create_tair_notification(
+                user_id=uid,
+                title=title,
+                body=body,
+                notif_type=notif_type,
+                data=data,
+            )
+        except Exception as exc:
+            logger.warning("clinic notify failed for %s: %s", uid, exc)
+
+
 # ============== CLINIC BOT TOGGLE ==============
 async def _bot_enabled() -> bool:
     s = await db.tair_app_settings.find_one({"key": "clinic_bot"}, {"_id": 0, "enabled": 1})
@@ -162,6 +229,17 @@ async def create_topic(payload: Topic, user_id: str = Query(...)):
         "status": "open",
     })
     await db.tair_clinic_topics.insert_one(data)
+    try:
+        await _notify_people(
+            await _clinic_staff_ids(),
+            [user_id],
+            "موضوع جديد في العيادة",
+            f"{data['user_name']}: {payload.title}",
+            "clinic_topic",
+            {"topic_id": tid},
+        )
+    except Exception as exc:
+        logger.warning("clinic topic notify failed: %s", exc)
 
     # 🤖 Auto-reply from Clinic Bot (if enabled by admins)
     try:
@@ -208,6 +286,17 @@ async def create_topic(payload: Topic, user_id: str = Query(...)):
         await db.tair_clinic_topics.update_one(
             {"topic_id": tid},
             {"$inc": {"replies_count": 1}},
+        )
+        preview = (bot_result.get("reply") or "").strip().replace("\n", " ")
+        if len(preview) > 90:
+            preview = preview[:87] + "..."
+        await _notify_people(
+            [user_id],
+            [],
+            "رد أولي من بوت العيادة",
+            preview or "وصل رد أولي على موضوعك. انتظر تأكيد المشرف.",
+            "clinic_reply",
+            {"topic_id": tid},
         )
     except Exception as e:
         logger.warning("Clinic bot failed to post initial reply: %s", e)
@@ -288,6 +377,26 @@ async def create_reply(topic_id: str, payload: Reply, user_id: str = Query(...))
         "created_at": _now(),
     })
     await db.tair_clinic_topics.update_one({"topic_id": topic_id}, {"$inc": {"replies_count": 1}})
+    try:
+        preview = payload.text.strip().replace("\n", " ")
+        if len(preview) > 90:
+            preview = preview[:87] + "..."
+        name = (user or {}).get("name") or "مشرف"
+        title = (t.get("title") or "موضوع").strip()
+        recipients = await _clinic_staff_ids()
+        owner = t.get("user_id")
+        if owner:
+            recipients.append(owner)
+        await _notify_people(
+            recipients,
+            [user_id],
+            "رد جديد في العيادة",
+            f"{name} على {title}: {preview}",
+            "clinic_reply",
+            {"topic_id": topic_id},
+        )
+    except Exception as exc:
+        logger.warning("clinic reply notify failed: %s", exc)
     return {"success": True, "reply_id": rid, "is_moderator": is_mod}
 
 

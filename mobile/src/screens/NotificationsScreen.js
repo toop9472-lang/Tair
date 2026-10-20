@@ -6,7 +6,14 @@ import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { tairNotificationsApi } from "../services/tairApi";
 import { EmptyState, ErrorState, ListSkeleton, PressableScale } from "../components/TairUI";
 
-const ICONS = { admin_broadcast: "megaphone", app_update: "rocket", verification_request: "ribbon" };
+const ICONS = {
+  admin_broadcast: "megaphone",
+  app_update: "rocket",
+  verification_request: "ribbon",
+  chat: "chatbubble-ellipses",
+  clinic_topic: "medkit",
+  clinic_reply: "chatbox-ellipses",
+};
 
 export default function NotificationsScreen({ user, onBack }) {
   const uid = user?.user_id || user?.id || user?.email;
@@ -76,7 +83,7 @@ export default function NotificationsScreen({ user, onBack }) {
               <EmptyState
                 icon="notifications-off-outline"
                 title="لا توجد إشعارات"
-                subtitle="ستظهر هنا رسائل إدارة طير والتحديثات والتنبيهات."
+                subtitle="ستظهر هنا الرسالة العامة، والرسائل الخاصة، ومواضيع العيادة وردودها."
                 testID="notifications-empty"
               />
             )
