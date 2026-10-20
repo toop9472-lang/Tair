@@ -12,7 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import TairHeader from "../components/TairHeader";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
-import { communityApi, communityChatApi, storiesApi } from "../services/tairApi";
+import { adminExtApi, communityApi, communityChatApi, storiesApi } from "../services/tairApi";
 import { EmptyState, ErrorState, PressableScale, Skeleton, TairImage } from "../components/TairUI";
 
 const CHAT_POLL_MS = 5000;
@@ -69,6 +69,9 @@ export default function CommunityScreen({
   onOpenNotifications, onOpenMessages, onOpenProfile,
 }) {
   const uid = user?.user_id || user?.id || user?.email;
+  const isAdmin = !!(user?.is_admin || user?.role === "admin" || user?.role === "super_admin");
+  const [myScopes, setMyScopes] = useState([]);
+  const canModerate = isAdmin || myScopes.some((s) => s === "community" || s === "general" || s === "clinic_admin");
   const [stories, setStories] = useState([]);
   const [topStoryId, setTopStoryId] = useState(null);
   const [storiesLoading, setStoriesLoading] = useState(true);
@@ -118,6 +121,11 @@ export default function CommunityScreen({
   useEffect(() => { loadStories(); loadChat(); }, [loadStories, loadChat]);
 
   useEffect(() => {
+    if (!uid) return;
+    adminExtApi.myScopes(uid).then((r) => setMyScopes(r?.scopes || [])).catch(() => setMyScopes([]));
+  }, [uid]);
+
+  useEffect(() => {
     pollRef.current = setInterval(loadChat, CHAT_POLL_MS);
     return () => clearInterval(pollRef.current);
   }, [loadChat]);
@@ -158,8 +166,8 @@ export default function CommunityScreen({
     const shown = long && !open ? `${body.slice(0, LONG_MSG).trim()}…` : body;
     return (
       <TouchableOpacity
-        activeOpacity={mine || user?.is_admin ? 0.75 : 1}
-        onLongPress={() => (mine || user?.is_admin) && deleteMsg(item.msg_id)}
+        activeOpacity={mine || canModerate ? 0.75 : 1}
+        onLongPress={() => (mine || canModerate) && deleteMsg(item.msg_id)}
         style={[s.msgRow, mine && s.msgRowMine]}
       >
         <TouchableOpacity
@@ -183,10 +191,10 @@ export default function CommunityScreen({
             >
               {mine ? "أنا" : item.user_name}
             </Text>
-            {item.is_moderator && !mine ? (
-              <View style={s.modMark}>
-                <Ionicons name="shield-checkmark" size={9} color={TAIR.gold} />
-                <Text style={s.modMarkText}>مشرف</Text>
+            {item.is_moderator ? (
+              <View style={[s.modMark, mine && s.modMarkMine]}>
+                <Ionicons name="shield-checkmark" size={9} color={mine ? TAIR.emerald : TAIR.gold} />
+                <Text style={[s.modMarkText, mine && { color: TAIR.emerald }]}>مشرف</Text>
               </View>
             ) : null}
           </View>
@@ -271,6 +279,12 @@ export default function CommunityScreen({
             <Text style={s.chatHeadText}>الدردشة العامة</Text>
             <Text style={s.chatHint}>حديث المربّين · بدون روابط أو أرقام</Text>
           </View>
+          {canModerate ? (
+            <View style={s.modMark} testID="community-mod-chip">
+              <Ionicons name="shield-checkmark" size={11} color={TAIR.gold} />
+              <Text style={s.modMarkText}>مشرف</Text>
+            </View>
+          ) : null}
         </View>
 
         {chatError && chat.length > 0 ? (
@@ -557,6 +571,7 @@ const s = StyleSheet.create({
     borderRadius: 999,
   },
   modMarkText: { color: TAIR.gold, fontSize: 8, fontWeight: "900" },
+  modMarkMine: { backgroundColor: TAIR.gold },
   msgText: { color: TAIR.ink, fontSize: 15, lineHeight: 23, textAlign: "right" },
   msgTextMine: { color: "#F7F1E8" },
   more: { color: TAIR.goldDark, fontSize: 12, fontWeight: "900", textAlign: "right", marginTop: 6 },

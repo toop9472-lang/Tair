@@ -74,6 +74,28 @@ function MenuItem({ icon, label, onPress, color = "#0F241C", testID }) {
   );
 }
 
+const MOD_BADGES = [
+  { id: "general", label: "مشرف عام", icon: "shield-checkmark", bg: "#1B3D2F", fg: "#C6A15B" },
+  { id: "clinic_admin", label: "مدير العيادة", icon: "medkit", bg: "#C6A15B", fg: "#1B3D2F" },
+  { id: "clinic", label: "مشرف عيادة", icon: "medkit-outline", bg: "#1B3D2F", fg: "#C6A15B" },
+  { id: "market", label: "مشرف السوق", icon: "storefront-outline", bg: "#1B3D2F", fg: "#C6A15B" },
+  { id: "community", label: "مشرف المجتمع", icon: "people-outline", bg: "#1B3D2F", fg: "#C6A15B" },
+];
+
+function visibleModBadges(scopes) {
+  if (!scopes?.length) return [];
+  if (scopes.includes("general")) return MOD_BADGES.filter((b) => b.id === "general");
+  return MOD_BADGES.filter((b) => scopes.includes(b.id) && !(b.id === "clinic" && scopes.includes("clinic_admin")));
+}
+
+function modPanelLabel(scopes) {
+  if (scopes.includes("general") || scopes.filter((s) => s !== "clinic").length > 1) return "لوحة المشرف";
+  if (scopes.includes("clinic_admin") || scopes.includes("clinic")) return "لوحة إدارة العيادة";
+  if (scopes.includes("market")) return "لوحة مشرف السوق";
+  if (scopes.includes("community")) return "لوحة مشرف المجتمع";
+  return "لوحة المشرف";
+}
+
 export default function ProfileScreen({
   user,
   onOpenSettings,
@@ -89,10 +111,8 @@ export default function ProfileScreen({
   const isGuest = !!user?.isGuest || String(uid || "").startsWith("guest_");
   const isAdmin = !!user?.is_admin || user?.role === "admin" || user?.role === "super_admin";
   const [myScopes, setMyScopes] = useState([]);
-  const isClinicMod = isAdmin
-    || myScopes.includes("clinic")
-    || myScopes.includes("clinic_admin")
-    || myScopes.includes("general");
+  const modBadges = isAdmin ? [] : visibleModBadges(myScopes);
+  const hasModTools = !isAdmin && modBadges.length > 0;
 
   const [tab, setTab] = useState("listings");
   const [myListings, setMyListings] = useState([]);
@@ -392,18 +412,12 @@ export default function ProfileScreen({
                 <Text style={styles.identityBadgeText}>مدير</Text>
               </View>
             )}
-            {user?.scopes?.includes("clinic_admin") && (
-              <View style={[styles.identityBadge, { backgroundColor: "#C6A15B", borderColor: "#1B3D2F" }]}>
-                <Ionicons name="medkit" size={11} color="#1B3D2F" />
-                <Text style={[styles.identityBadgeText, { color: "#1B3D2F" }]}>مدير العيادة</Text>
+            {modBadges.map((b) => (
+              <View key={b.id} style={[styles.identityBadge, { backgroundColor: b.bg, borderColor: b.fg }]} testID={`mod-badge-${b.id}`}>
+                <Ionicons name={b.icon} size={11} color={b.fg} />
+                <Text style={[styles.identityBadgeText, { color: b.fg }]}>{b.label}</Text>
               </View>
-            )}
-            {user?.scopes?.includes("clinic") && !user?.scopes?.includes("clinic_admin") && (
-              <View style={[styles.identityBadge, { backgroundColor: "#1B3D2F", borderColor: "#C6A15B" }]}>
-                <Ionicons name="medkit-outline" size={11} color="#C6A15B" />
-                <Text style={[styles.identityBadgeText, { color: "#C6A15B" }]}>مشرف عيادة</Text>
-              </View>
-            )}
+            ))}
           </View>
 
           {/* Inline identity controls (edit + settings) — part of the identity, not a top bar */}
@@ -648,13 +662,13 @@ export default function ProfileScreen({
               testID="menu-admin-panel"
             />
           )}
-          {!isAdmin && isClinicMod && (
+          {hasModTools && (
             <MenuItem
-              icon="medkit"
-              label="لوحة إدارة العيادة"
-              color={TAIR_BANNER_IMAGE ? "#1B3D2F" : "#1B3D2F"}
+              icon="shield-half-outline"
+              label={modPanelLabel(myScopes)}
+              color="#1B3D2F"
               onPress={() => onNavigate?.("admin_panel")}
-              testID="menu-clinic-admin"
+              testID="menu-mod-panel"
             />
           )}
           {!isGuest && (

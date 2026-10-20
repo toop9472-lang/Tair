@@ -19,6 +19,7 @@ from models.trip import (
     TripStatusUpdate,
 )
 from auth.actor import require_actor
+from services.moderation import moderator_scopes
 from models.places import city_match_values
 
 router = APIRouter(prefix="/trips", tags=["Tair-Trips"])
@@ -494,17 +495,9 @@ async def cancel_trip(trip_id: str, user_id: str = Query(...), actor: str = Depe
             elif u.get("email"):
                 admin = await db.admins.find_one({"email": u["email"]}, {"_id": 0, "id": 1})
     if not is_owner and not admin:
-        # Also allow moderators with 'market' or 'general' scope (trips are in market realm)
-        try:
-            m = await db.tair_moderators.find_one(
-                {"$or": [{"user_id": user_id}, {"email": user_id}]},
-                {"_id": 0, "scopes": 1},
-            )
-            scopes = (m or {}).get("scopes") or []
-            if "market" in scopes or "general" in scopes:
-                admin = {"id": user_id, "moderator": True}
-        except Exception:
-            pass
+        scopes = await moderator_scopes(db, user_id)
+        if "market" in scopes or "general" in scopes:
+            admin = {"id": user_id, "moderator": True}
     if not is_owner and not admin:
         raise HTTPException(403, "Not authorized")
     if admin:

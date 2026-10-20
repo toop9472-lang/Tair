@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from auth.dependencies import get_current_user_id
+from services.moderation import moderator_scopes
 
 router = APIRouter(tags=["Admin-Extensions"])
 
@@ -36,17 +37,7 @@ async def _is_admin(user_id: str) -> bool:
 
 
 async def _get_moderator_scopes(user_id: str) -> List[str]:
-    if not user_id:
-        return []
-    m = await db.tair_moderators.find_one({"$or": [
-        {"user_id": user_id}, {"email": user_id}
-    ]})
-    if not m:
-        return []
-    scopes = m.get("scopes") or []
-    if isinstance(scopes, str):
-        scopes = [scopes]
-    return scopes
+    return await moderator_scopes(db, user_id)
 
 
 async def _can_moderate(user_id: str, scope: str) -> bool:
@@ -412,7 +403,8 @@ async def revoke_moderator(target_user_id: str, user_id: str = Depends(get_curre
 
 @router.get("/admin/moderators/list")
 async def list_moderators(user_id: str = Depends(get_current_user_id)):
-    if not await _is_admin(user_id):
+    scopes = await _get_moderator_scopes(user_id)
+    if not await _is_admin(user_id) and "clinic_admin" not in scopes:
         raise HTTPException(403, "غير مصرح")
     items = [_clean_doc(d) async for d in db.tair_moderators.find({}).sort("assigned_at", -1)]
     return {"items": items, "count": len(items)}

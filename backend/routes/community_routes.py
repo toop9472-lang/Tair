@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from services.r2_storage import r2
+from services.moderation import moderator_scopes
 
 router = APIRouter(prefix="/community", tags=["Tair-Community"])
 
@@ -154,11 +155,8 @@ async def delete_story(story_id: str, user_id: str = Query(...)):
     if not story:
         raise HTTPException(status_code=404, detail="القصة غير موجودة")
     is_admin = await _is_admin(user_id)
-    is_mod = False
-    if not is_admin:
-        m = await db.tair_moderators.find_one({"$or": [{"user_id": user_id}, {"email": user_id}]})
-        scopes = (m or {}).get("scopes") or []
-        is_mod = "community" in scopes or "general" in scopes
+    scopes = [] if is_admin else await moderator_scopes(db, user_id)
+    is_mod = "community" in scopes or "general" in scopes
     if story.get("user_id") != user_id and not is_admin and not is_mod:
         raise HTTPException(status_code=403, detail="غير مصرّح")
     await db.tair_stories.delete_one({"story_id": story_id})
@@ -270,11 +268,8 @@ async def delete_story_comment(comment_id: str, user_id: str = Query(...)):
     if not c:
         raise HTTPException(404, "التعليق غير موجود")
     is_admin = await _is_admin(user_id)
-    is_mod = False
-    if not is_admin:
-        m = await db.tair_moderators.find_one({"$or": [{"user_id": user_id}, {"email": user_id}]})
-        scopes = (m or {}).get("scopes") or []
-        is_mod = "community" in scopes or "general" in scopes
+    scopes = [] if is_admin else await moderator_scopes(db, user_id)
+    is_mod = "community" in scopes or "general" in scopes
     if c.get("user_id") != user_id and not is_admin and not is_mod:
         raise HTTPException(403, "غير مصرّح")
     await db.tair_story_comments.delete_one({"comment_id": comment_id})

@@ -7,6 +7,8 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
+
+from services.moderation import moderator_scopes
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -44,18 +46,8 @@ async def _is_admin_or_mod(user_id: str, scope: str = "clinic") -> bool:
     )
     if u and (u.get("is_admin") or u.get("role") in ("admin", "super_admin")):
         return True
-    m = await db.tair_moderators.find_one(
-        {"$or": [{"user_id": user_id}, {"email": user_id}]},
-        {"_id": 0, "scopes": 1},
-    )
-    if not m:
-        return False
-    scopes = m.get("scopes") or []
-    return (
-        scope in scopes
-        or "general" in scopes
-        or "clinic_admin" in scopes
-    )
+    scopes = await moderator_scopes(db, user_id)
+    return scope in scopes or "general" in scopes or "clinic_admin" in scopes
 
 
 # ============== CLINIC BOT TOGGLE ==============

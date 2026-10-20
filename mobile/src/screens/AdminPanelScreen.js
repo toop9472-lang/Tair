@@ -1,6 +1,6 @@
 // طير — Admin Panel v2 (لوحة المدير الشاملة)
 // Tabs: إحصائيات • إعلانات • رحلات • موردون • مستخدمون • بلاغات • قصص • مزادات
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Alert,
   ActivityIndicator, RefreshControl, TextInput, Image, ScrollView, Platform,
@@ -27,8 +27,31 @@ const TABS = [
   { id: "auctions",  label: "المزادات",    icon: "hammer" },
 ];
 
-// تبويبات محدودة لمشرف العيادة فقط (ليس أدمن عام)
-const CLINIC_ONLY_TABS = ["stats", "reports", "users", "clinic_bot"];
+// كل نطاق يشوف أدواته فقط. الحظر والبث والموردون والمزادات تبقى للمدير.
+const TAB_BY_SCOPE = {
+  clinic: ["stats", "reports", "clinic_bot"],
+  clinic_admin: ["stats", "reports", "clinic_bot", "mods"],
+  market: ["stats", "reports", "listings", "trips"],
+  community: ["stats", "reports", "stories"],
+  general: ["stats", "reports", "listings", "trips", "stories", "clinic_bot"],
+};
+
+const SCOPE_AR = {
+  clinic: "عيادة",
+  clinic_admin: "مدير العيادة",
+  market: "سوق",
+  community: "مجتمع",
+  general: "عام",
+};
+
+function tabsForScopes(scopes, fullAdmin) {
+  if (fullAdmin) return TABS;
+  const ids = new Set();
+  (scopes || []).forEach((scope) => {
+    (TAB_BY_SCOPE[scope] || []).forEach((id) => ids.add(id));
+  });
+  return TABS.filter((t) => ids.has(t.id));
+}
 
 async function authedFetch(pathAndQs, opts = {}) {
   const token = await AsyncStorage.getItem("saqr_token");
@@ -47,9 +70,20 @@ export default function AdminPanelScreen({ user, onBack }) {
   const uid = user?.email || user?.user_id || user?.id;
   const isAdmin = !!(user?.is_admin || user?.role === "admin" || user?.role === "super_admin");
   const [serverAdmin, setServerAdmin] = useState(null); // null = unknown, true/false
+  const [accessReady, setAccessReady] = useState(false);
   const [myScopes, setMyScopes] = useState([]);
-  const isClinicOnlyMod = !isAdmin && (myScopes.includes("clinic") || myScopes.includes("clinic_admin"));
-  const visibleTabs = isClinicOnlyMod ? TABS.filter((t) => CLINIC_ONLY_TABS.includes(t.id)) : TABS;
+  const [modUserId, setModUserId] = useState("");
+  const fullAdmin = isAdmin || serverAdmin === true;
+  const visibleTabs = useMemo(() => tabsForScopes(myScopes, fullAdmin), [myScopes, fullAdmin]);
+  const panelTitle = fullAdmin
+    ? "لوحة المدير"
+    : myScopes.includes("clinic_admin") || (myScopes.includes("clinic") && !myScopes.some((s) => s === "market" || s === "community" || s === "general"))
+      ? "لوحة إدارة العيادة"
+      : myScopes.length === 1 && myScopes[0] === "market"
+        ? "لوحة مشرف السوق"
+        : myScopes.length === 1 && myScopes[0] === "community"
+          ? "لوحة مشرف المجتمع"
+          : "لوحة المشرف";
   const [tab, setTab] = useState(visibleTabs[0]?.id || "stats");
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
@@ -156,6 +190,12 @@ export default function AdminPanelScreen({ user, onBack }) {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (visibleTabs.length && !visibleTabs.some((t) => t.id === tab)) {
+      setTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs, tab]);
+
   // تحقّق من صلاحيات السيرفر — عشان نعرف إذا الحساب فعلاً مدير أم لا + جلب scopes
   useEffect(() => {
     (async () => {
@@ -165,6 +205,9 @@ export default function AdminPanelScreen({ user, onBack }) {
         setMyScopes(r?.scopes || []);
       } catch {
         setServerAdmin(false);
+        setMyScopes([]);
+      } finally {
+        setAccessReady(true);
       }
     })();
   }, [uid]);
@@ -427,7 +470,7 @@ export default function AdminPanelScreen({ user, onBack }) {
         <StatCard icon="shield-checkmark-outline" label="مديرون" value={stats.admins} color={TAIR.emerald} />
         <StatCard icon="business-outline" label="موردون" value={stats.suppliers} color={TAIR.gold} />
       </View>
-      <View style={styles.quickActionsCard}>
+      {fullAdmin ? <View style={styles.quickActionsCard}>
         <Text style={styles.quickActionsTitle}>إجراءات سريعة</Text>
         <QuickAction icon="medkit-outline" label="تفعيل/إيقاف صفحة العيادة" onPress={async () => {
           try {
@@ -458,7 +501,7 @@ export default function AdminPanelScreen({ user, onBack }) {
         <QuickAction icon="trash-bin-outline" label="حذف جميع الرحلات" onPress={() => Alert.alert("خطر", "احذف كل الرحلات؟", [{ text: "إلغاء" }, { text: "احذف", style: "destructive", onPress: () => authedFetch("/api/admin/users/purge-all-trips", { method: "POST" }).then(load) }])} />
         <QuickAction icon="trash-outline" label="حذف جميع الإعلانات" onPress={() => Alert.alert("خطر", "احذف كل الإعلانات؟", [{ text: "إلغاء" }, { text: "احذف", style: "destructive", onPress: () => authedFetch("/api/admin/users/purge-all-listings", { method: "POST" }).then(load) }])} />
         <QuickAction icon="broom-outline" label="تنظيف البيانات المهجورة" onPress={() => authedFetch("/api/admin/users/cleanup/orphans", { method: "POST" }).then(load)} />
-      </View>
+      </View> : null}
     </ScrollView>
   );
 
@@ -495,6 +538,35 @@ export default function AdminPanelScreen({ user, onBack }) {
               <Text style={{ color: TAIR.textSoft, fontSize: 11, flex: 1, textAlign: "left" }}>
                 {activeOnly ? `${items.length} نشط` : `صفحة ${userPage} / ${userPages}`}
               </Text>
+            </View>
+          ) : tab === "mods" && !fullAdmin ? (
+            <View style={styles.supplierHint}>
+              <Text style={styles.supplierHintText}>تعيين مشرف عيادة</Text>
+              <Text style={styles.supplierHintSub}>الصق معرّف المستخدم. مدير العيادة يعيّن مشرف عيادة فقط.</Text>
+              <View style={{ flexDirection: "row-reverse", gap: 8, marginTop: 6 }}>
+                <TextInput
+                  style={[styles.searchInp, { backgroundColor: TAIR.card, borderWidth: 1, borderColor: TAIR.divider, borderRadius: 10, paddingHorizontal: 10, height: 40 }]}
+                  placeholder="معرّف المستخدم"
+                  placeholderTextColor={TAIR.textSoft}
+                  value={modUserId}
+                  onChangeText={setModUserId}
+                  textAlign="right"
+                  autoCapitalize="none"
+                  testID="clinic-mod-user-id"
+                />
+                <TouchableOpacity
+                  onPress={() => {
+                    const id = modUserId.trim();
+                    if (!id) return;
+                    doAssign(id, ["clinic"]);
+                    setModUserId("");
+                  }}
+                  style={styles.resolveBtn}
+                  testID="clinic-mod-assign"
+                >
+                  <Text style={styles.resolveBtnText}>تعيين</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : tab === "suppliers" ? (
             <View style={styles.supplierHint}>
@@ -558,7 +630,17 @@ export default function AdminPanelScreen({ user, onBack }) {
         onToggle={() => toggleSupplierActive(item)}
       />
     );
-    if (tab === "mods") return <ModeratorRow item={item} onRevoke={() => revokeMod(item.user_id || item.id)} onAssign={() => assignMod(item.user_id || item.id)} />;
+    if (tab === "mods") {
+      const scopes = item.scopes || [];
+      const clinicOnly = scopes.length > 0 && scopes.every((s) => s === "clinic");
+      return (
+        <ModeratorRow
+          item={item}
+          onRevoke={fullAdmin || clinicOnly ? () => revokeMod(item.user_id || item.id) : null}
+          onAssign={fullAdmin ? () => assignMod(item.user_id || item.id) : null}
+        />
+      );
+    }
     return null;
   };
 
@@ -570,7 +652,7 @@ export default function AdminPanelScreen({ user, onBack }) {
           <Ionicons name="chevron-forward" size={24} color={TAIR.gold} />
         </TouchableOpacity>
         <View style={{ alignItems: "flex-end", flex: 1 }}>
-          <Text style={styles.adminTitle}>{isClinicOnlyMod ? "لوحة إدارة العيادة" : "لوحة المدير"}</Text>
+          <Text style={styles.adminTitle}>{panelTitle}</Text>
           <Text style={styles.adminSub}>إدارة كاملة لتطبيق طير</Text>
         </View>
         <View style={styles.adminShield}>
@@ -616,8 +698,13 @@ export default function AdminPanelScreen({ user, onBack }) {
         </View>
       )}
 
-      {loading ? (
+      {!accessReady || loading ? (
         <View style={styles.loading}><ActivityIndicator size="large" color={TAIR.emerald} /></View>
+      ) : visibleTabs.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="lock-closed-outline" size={36} color={TAIR.textSoft} />
+          <Text style={styles.emptyText}>هذه اللوحة للمدير والمشرفين فقط</Text>
+        </View>
       ) : tab === "stats" ? renderStats()
         : tab === "broadcast" ? (
           <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
@@ -992,16 +1079,20 @@ const ModeratorRow = ({ item, onRevoke, onAssign }) => (
     <View style={{ flex: 1 }}>
       <Text style={styles.rowTitle} numberOfLines={1}>{item.name || item.user_name || "مشرف"}</Text>
       <Text style={styles.rowMeta} numberOfLines={1}>
-        النطاقات: {(item.scopes || []).join("، ") || "-"}
+        النطاقات: {(item.scopes || []).map((s) => SCOPE_AR[s] || s).join("، ") || "-"}
       </Text>
     </View>
-    <TouchableOpacity onPress={onAssign} style={[styles.resolveBtn, { backgroundColor: TAIR.card, borderWidth: 1, borderColor: TAIR.emerald }]}>
-      <Ionicons name="add-circle-outline" size={14} color={TAIR.emerald} />
-      <Text style={[styles.resolveBtnText, { color: TAIR.emerald }]}>تعديل</Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={onRevoke} style={styles.deleteBtn}>
-      <Ionicons name="close-circle-outline" size={18} color="#8B3A2F" />
-    </TouchableOpacity>
+    {onAssign ? (
+      <TouchableOpacity onPress={onAssign} style={[styles.resolveBtn, { backgroundColor: TAIR.card, borderWidth: 1, borderColor: TAIR.emerald }]}>
+        <Ionicons name="add-circle-outline" size={14} color={TAIR.emerald} />
+        <Text style={[styles.resolveBtnText, { color: TAIR.emerald }]}>تعديل</Text>
+      </TouchableOpacity>
+    ) : null}
+    {onRevoke ? (
+      <TouchableOpacity onPress={onRevoke} style={styles.deleteBtn}>
+        <Ionicons name="close-circle-outline" size={18} color="#8B3A2F" />
+      </TouchableOpacity>
+    ) : null}
   </View>
 );
 

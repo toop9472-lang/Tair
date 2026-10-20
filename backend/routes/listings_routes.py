@@ -14,6 +14,7 @@ from models.species import FAMILY_QUERY_ALIASES, listing_category
 from models.listing_comment import ListingComment, ListingCommentCreate
 from services.r2_storage import r2
 from auth.actor import require_actor
+from services.moderation import moderator_scopes
 
 router = APIRouter(prefix="/listings", tags=["Tair-Listings"])
 
@@ -336,17 +337,9 @@ async def delete_listing(listing_id: str, user_id: str = Query(...), actor: str 
             elif user.get("email"):
                 admin = await db.admins.find_one({"email": user["email"]}, {"_id": 0, "id": 1})
     if not is_owner and not admin:
-        # Also allow moderators with 'market' or 'general' scope
-        try:
-            m = await db.tair_moderators.find_one(
-                {"$or": [{"user_id": user_id}, {"email": user_id}]},
-                {"_id": 0, "scopes": 1},
-            )
-            scopes = (m or {}).get("scopes") or []
-            if "market" in scopes or "general" in scopes:
-                admin = {"id": user_id, "moderator": True}
-        except Exception:
-            pass
+        scopes = await moderator_scopes(db, user_id)
+        if "market" in scopes or "general" in scopes:
+            admin = {"id": user_id, "moderator": True}
     if not is_owner and not admin:
         raise HTTPException(403, "Not authorized")
     if admin:
