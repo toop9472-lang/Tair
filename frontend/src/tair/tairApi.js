@@ -470,6 +470,18 @@ export const tairApi = {
     const { data } = await client.get(`/wholesale/suppliers/${supplierId}`);
     return data;
   },
+  getMySupplier: async () => {
+    const { data } = await client.get("/wholesale/suppliers/mine");
+    return data?.supplier || null;
+  },
+  registerSupplier: async (payload) => {
+    const { data } = await client.post("/wholesale/suppliers", payload);
+    return data;
+  },
+  updateMySupplier: async (payload) => {
+    const { data } = await client.patch("/wholesale/suppliers/mine", payload);
+    return data;
+  },
 
   // Seller storefronts + analytics
   getSellerProfile: async (userId, viewerId) => {

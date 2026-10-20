@@ -405,7 +405,7 @@ function TairApp() {
           onClose={() => setModal({ name: "auction" })}
           onSubmitted={() => setModal({ name: "auction" })} />;
       case "wholesale":
-        return <WholesaleScreen onBack={closeModal} />;
+        return <WholesaleScreen user={user} onBack={closeModal} />;
       case "user_profile":
         return (
           <UserProfileScreen

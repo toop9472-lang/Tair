@@ -210,7 +210,7 @@ export default function TairShell({ user, onLogout }) {
     );
   }
   if (overlay?.name === "wholesale") {
-    return <WholesaleScreen onBack={() => setOverlay(null)} />;
+    return <WholesaleScreen user={user} onBack={() => setOverlay(null)} />;
   }
   if (overlay?.name === "seller_profile") {
     return (
