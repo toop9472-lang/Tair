@@ -339,7 +339,7 @@ export default function SellerStorefrontScreen({
             activeOpacity={0.85}
             testID="share-my-store-btn"
           >
-            <Ionicons name="share-social" size={18} color="#fff" />
+            <Ionicons name="share-social" size={18} color="#C6A15B" />
             <Text style={s.shareStoreCtaText}>شارك متجري</Text>
           </TouchableOpacity>
         )}
@@ -1145,7 +1145,7 @@ const s = StyleSheet.create({
   badgesRow: { flexDirection: "row-reverse", gap: 6, marginTop: 8, flexWrap: "wrap", justifyContent: "center" },
   badge: {
     flexDirection: "row-reverse", alignItems: "center", gap: 4,
-    backgroundColor: "rgba(15,23,42,0.4)",
+    backgroundColor: "rgba(15,36,28,0.55)",
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, borderWidth: 1,
   },
   badgeText: { color: "#fff", fontSize: 10.5, fontWeight: "800" },
@@ -1159,15 +1159,17 @@ const s = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 12,
     paddingHorizontal: 18,
-    backgroundColor: "#0ea5e9",
-    borderRadius: 12,
-    shadowColor: "#0ea5e9",
+    backgroundColor: "#1B3D2F",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#C6A15B",
+    shadowColor: "#0F241C",
     shadowOpacity: 0.25,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  shareStoreCtaText: { color: "#fff", fontWeight: "900", fontSize: 14 },
+  shareStoreCtaText: { color: "#C6A15B", fontWeight: "800", fontSize: 14 },
 
   followBtn: {
     marginTop: 12,
@@ -1287,7 +1289,7 @@ const s = StyleSheet.create({
     paddingVertical: 8, borderBottomWidth: 1, borderColor: "#f1f5f9",
   },
   dayName: { fontSize: 12, color: "#0f172a", fontWeight: "800" },
-  hourVal: { fontSize: 12, color: "#0ea5e9", fontWeight: "800" },
+  hourVal: { fontSize: 12, color: "#1B3D2F", fontWeight: "800" },
 
   locRow: { flexDirection: "row-reverse", alignItems: "center", gap: 8, paddingVertical: 4 },
   locLabel: { fontSize: 13, color: "#0f172a", fontWeight: "800", textAlign: "right" },

@@ -42,6 +42,11 @@ export default function ListingCard({ item, onPress, testID }) {
       <View style={styles.imgWrap}>
         <TairImage uri={img} style={styles.img} iconSize={26} />
         {isSold ? <View style={styles.imgDim} /> : null}
+        {(item?.videos?.length || item?.video_url) ? (
+          <View style={styles.videoMark}>
+            <Ionicons name="play" size={12} color={TAIR.gold} />
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.info}>
@@ -116,6 +121,19 @@ const styles = StyleSheet.create({
     backgroundColor: TAIR.creamDeep,
   },
   img: { width: "100%", height: "100%" },
+  videoMark: {
+    position: "absolute",
+    left: 6,
+    bottom: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(15,36,28,0.78)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: TAIR.gold,
+  },
   imgDim: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(15,36,28,0.28)",

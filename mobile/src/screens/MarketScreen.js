@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import TairHeader from "../components/TairHeader";
 import ListingCard from "../components/ListingCard";
 import { EmptyState, ErrorState, ListingSkeleton, PressableScale } from "../components/TairUI";
+import AuctionMark from "../components/AuctionMark";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { listingsApi } from "../services/tairApi";
 
@@ -160,9 +161,7 @@ export default function MarketScreen({
           style={styles.auctionBtn}
           testID="market-auction-banner"
         >
-          <View style={styles.auctionIconBox}>
-            <Ionicons name="hammer" size={14} color={TAIR.gold} />
-          </View>
+          <AuctionMark size={40} />
           <View style={{ flex: 1 }}>
             <Text style={styles.auctionTitle}>المزاد العام</Text>
             <Text style={styles.auctionSub}>نافذة المساء · زايد بهدوء</Text>

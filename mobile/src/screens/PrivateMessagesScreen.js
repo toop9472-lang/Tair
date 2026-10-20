@@ -19,8 +19,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import TairHeader from '../components/TairHeader';
-import { TAIR } from '../constants/tairTheme';
+import { TAIR, TAIR_ELEVATION } from '../constants/tairTheme';
 import api from '../services/api';
+import { ErrorState, ListSkeleton } from '../components/TairUI';
 
 const { width } = Dimensions.get('window');
 
@@ -47,7 +48,7 @@ const formatClock = (iso) => {
 };
 
 // ---------- Avatar ----------
-const Avatar = ({ uri, name, size = 48, color = '#0ea5e9', verified = false, style }) => {
+const Avatar = ({ uri, name, size = 48, color = TAIR.emerald, verified = false, style }) => {
   const wrap = { width: size, height: size, borderRadius: size / 2 };
   const badgeSize = Math.max(14, Math.round(size * 0.32));
   return (
@@ -78,7 +79,7 @@ const Avatar = ({ uri, name, size = 48, color = '#0ea5e9', verified = false, sty
 
 // ---------- Inbox item ----------
 const InboxItem = ({ item, onPress }) => {
-  const color = item.identity_color || '#0ea5e9';
+  const color = TAIR.emerald;
   const isUnread = (item.unread_count || 0) > 0;
   return (
     <TouchableOpacity
@@ -146,7 +147,7 @@ const MessageItem = ({ message, isOwn, showAvatar, peerAvatar, peerName, peerCol
         style={[
           styles.bubble,
           isOwn
-            ? [styles.bubbleOwn, { backgroundColor: peerColor || '#0ea5e9' }]
+            ? styles.bubbleOwn
             : styles.bubblePeer,
         ]}
         onLongPress={() => !isOwn && onReport && onReport(message)}
@@ -163,7 +164,7 @@ const MessageItem = ({ message, isOwn, showAvatar, peerAvatar, peerName, peerCol
             <Ionicons
               name={message.read ? 'checkmark-done' : 'checkmark'}
               size={13}
-              color={message.read ? '#7dd3fc' : 'rgba(255,255,255,0.55)'}
+              color={message.read ? '#E0C580' : 'rgba(247,241,232,0.55)'}
             />
           ) : null}
         </View>
@@ -177,6 +178,7 @@ const ConversationView = ({ user, friend, onBack, onReport, onOpenUserProfile })
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [sending, setSending] = useState(false);
   const flatListRef = useRef(null);
   const pollInterval = useRef(null);
@@ -184,7 +186,7 @@ const ConversationView = ({ user, friend, onBack, onReport, onOpenUserProfile })
   const peerId = friend.id || friend.from_user_id || friend.user_id;
   const peerName = friend.name || friend.from_user_name || 'مستخدم';
   const peerAvatar = friend.avatar || friend.from_user_avatar;
-  const peerColor = friend.identity_color || '#0ea5e9';
+  const peerColor = TAIR.emerald;
   const peerVerified = !!(friend.is_verified || friend.is_verified_shop || friend.is_verified_carrier);
 
   useEffect(() => {
@@ -204,9 +206,12 @@ const ConversationView = ({ user, friend, onBack, onReport, onOpenUserProfile })
       if (res.ok) {
         const data = await res.json();
         setMessages(data.messages || []);
+        setLoadError(null);
+      } else if (showLoading) {
+        setLoadError("تعذّر فتح المحادثة");
       }
     } catch (e) {
-      console.error('Error loading messages:', e);
+      if (showLoading) setLoadError(e?.message || "تعذّر فتح المحادثة");
     } finally {
       setLoading(false);
     }
@@ -293,9 +298,9 @@ const ConversationView = ({ user, friend, onBack, onReport, onOpenUserProfile })
         keyboardVerticalOffset={80}
       >
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={peerColor} />
-          </View>
+          <ListSkeleton count={4} />
+        ) : loadError && messages.length === 0 ? (
+          <ErrorState title="تعذّر فتح المحادثة" subtitle="تحقق من الاتصال ثم أعد المحاولة." onRetry={() => loadMessages(true)} />
         ) : messages.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={[styles.emptyIconBubble, { backgroundColor: peerColor + '18' }]}>
@@ -359,7 +364,6 @@ const ConversationView = ({ user, friend, onBack, onReport, onOpenUserProfile })
           <TouchableOpacity
             style={[
               styles.sendBtn,
-              { backgroundColor: peerColor },
               (!newMessage.trim() || sending) && styles.sendBtnDisabled,
             ]}
             onPress={() => sendMessage()}
@@ -368,7 +372,7 @@ const ConversationView = ({ user, friend, onBack, onReport, onOpenUserProfile })
             {sending ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Ionicons name="paper-plane" size={18} color="#fff" />
+              <Ionicons name="paper-plane" size={18} color={TAIR.gold} />
             )}
           </TouchableOpacity>
         </View>
@@ -381,6 +385,7 @@ const ConversationView = ({ user, friend, onBack, onReport, onOpenUserProfile })
 const PrivateMessagesScreen = ({ user, onClose, initialFriend, onOpenUserProfile, onOpenNotifications, onOpenAskExperts }) => {
   const [inbox, setInbox] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(initialFriend || null);
   const [totalUnread, setTotalUnread] = useState(0);
 
@@ -398,9 +403,12 @@ const PrivateMessagesScreen = ({ user, onClose, initialFriend, onOpenUserProfile
         const data = await res.json();
         setInbox(data.inbox || []);
         setTotalUnread(data.total_unread || 0);
+        setLoadError(null);
+      } else {
+        setLoadError("تعذّر تحميل الرسائل");
       }
     } catch (e) {
-      console.error('Error loading inbox:', e);
+      setLoadError(e?.message || "تعذّر تحميل الرسائل");
     } finally {
       setLoading(false);
     }
@@ -459,9 +467,9 @@ const PrivateMessagesScreen = ({ user, onClose, initialFriend, onOpenUserProfile
       </View>
 
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={TAIR.emerald} />
-        </View>
+        <ListSkeleton count={5} />
+      ) : loadError && inbox.length === 0 ? (
+        <ErrorState title="تعذّر فتح الرسائل" subtitle="تحقق من الاتصال ثم أعد المحاولة." onRetry={loadInbox} />
       ) : inbox.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconBubble}>
@@ -530,20 +538,24 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontWeight: '900' },
   verifiedDot: {
     position: 'absolute',
-    backgroundColor: '#0ea5e9',
+    backgroundColor: TAIR.goldDark,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: '#fff',
   },
 
   // ---------- Inbox list ----------
-  inboxList: { paddingBottom: 140 },
-  separator: { height: 1, backgroundColor: '#E6DCC8', marginHorizontal: 16 },
+  inboxList: { padding: 16, paddingBottom: 140, gap: 10 },
+  separator: { height: 0 },
   inboxItem: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    backgroundColor: '#FFFDF8',
-    padding: 14,
+    backgroundColor: TAIR.card,
+    padding: 12,
     gap: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: TAIR.divider,
+    ...TAIR_ELEVATION.hair,
   },
   inboxInfo: { flex: 1, gap: 4 },
   inboxTopRow: {
@@ -559,12 +571,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inboxName: {
-    color: '#0f172a', fontSize: 14, fontWeight: '800',
+    color: TAIR.ink, fontSize: 15, fontWeight: '800',
     flex: 1, textAlign: 'right',
   },
-  inboxTime: { color: '#94a3b8', fontSize: 11, fontWeight: '700' },
+  inboxTime: { color: TAIR.faint, fontSize: 11, fontWeight: '700' },
   inboxPreview: {
-    color: '#64748b', fontSize: 12.5, fontWeight: '600',
+    color: TAIR.muted, fontSize: 13, fontWeight: '600',
     flex: 1, textAlign: 'right',
   },
   unreadPill: {
@@ -579,12 +591,13 @@ const styles = StyleSheet.create({
     flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30,
   },
   emptyIconBubble: {
-    width: 96, height: 96, borderRadius: 48,
-    backgroundColor: 'rgba(15,118,110,0.12)',
+    width: 84, height: 84, borderRadius: 28,
+    backgroundColor: TAIR.card,
+    borderWidth: 1, borderColor: TAIR.divider,
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
-  emptyText: { color: '#334155', fontSize: 16, fontWeight: '900', marginBottom: 6 },
-  emptySubtext: { color: '#94a3b8', fontSize: 13, textAlign: 'center' },
+  emptyText: { color: TAIR.emerald, fontSize: 16, fontWeight: '800', marginBottom: 6 },
+  emptySubtext: { color: TAIR.muted, fontSize: 13, textAlign: 'center' },
 
   // ---------- Conversation ----------
   conversationContainer: { flex: 1, backgroundColor: TAIR.bg, paddingBottom: Platform.OS === 'ios' ? 50 : 46 },
@@ -637,18 +650,19 @@ const styles = StyleSheet.create({
   },
   bubbleOwn: {
     backgroundColor: TAIR.emerald,
-    borderBottomRightRadius: 6,
+    borderBottomLeftRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(198,161,91,0.45)",
   },
   bubblePeer: {
     backgroundColor: TAIR.card,
-    borderBottomLeftRadius: 6,
-    shadowColor: '#0f172a', shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    borderBottomRightRadius: 6,
     borderWidth: 1,
     borderColor: TAIR.divider,
+    ...TAIR_ELEVATION.hair,
   },
-  bubbleText: { color: TAIR.text, fontSize: 14, lineHeight: 20, textAlign: 'right' },
-  bubbleTextOwn: { color: TAIR.gold },
+  bubbleText: { color: TAIR.ink, fontSize: 15, lineHeight: 22, textAlign: 'right' },
+  bubbleTextOwn: { color: "#F7F1E8" },
   bubbleFooter: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
@@ -657,7 +671,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   bubbleTime: { color: '#94a3b8', fontSize: 10, fontWeight: '700' },
-  bubbleTimeOwn: { color: 'rgba(255,255,255,0.75)' },
+  bubbleTimeOwn: { color: 'rgba(247,241,232,0.72)' },
 
   emptyChatTitle: { color: '#0f172a', fontSize: 16, fontWeight: '900', marginBottom: 4 },
   emptyChatSub: { color: '#64748b', fontSize: 12, textAlign: 'center' },
@@ -702,10 +716,11 @@ const styles = StyleSheet.create({
     borderColor: TAIR.divider,
   },
   sendBtn: {
-    width: 44, height: 44, borderRadius: 22,
+    width: 46, height: 46, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#0ea5e9', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    backgroundColor: TAIR.emerald,
+    borderWidth: 1,
+    borderColor: TAIR.gold,
   },
   sendBtnDisabled: { opacity: 0.5, shadowOpacity: 0 },
 });

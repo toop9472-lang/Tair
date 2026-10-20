@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Video, ResizeMode } from "expo-av";
 import Constants from "expo-constants";
 import { listingsApi, tairReportsApi } from "../services/tairApi";
 import api from "../services/api";
@@ -182,7 +183,7 @@ export default function ListingDetailsScreen({
               >
                 <TairImage
                   uri={uri}
-                  style={{ width, height: width, backgroundColor: TAIR.creamDeep }}
+                  style={{ width, height: Math.round(width * 0.92), backgroundColor: TAIR.creamDeep }}
                 />
               </TouchableOpacity>
             ))}
@@ -221,7 +222,6 @@ export default function ListingDetailsScreen({
 
         {/* Body */}
         <View style={styles.body}>
-          {/* Title (top, prominent) */}
           <Text style={styles.title}>{listing.title}</Text>
 
           {/* Location + views compact row */}
@@ -320,6 +320,29 @@ export default function ListingDetailsScreen({
               </View>
             </>
           ) : null}
+
+          {(() => {
+            const clips = []
+              .concat(Array.isArray(listing.videos) ? listing.videos : [])
+              .concat(listing.video_url ? [listing.video_url] : [])
+              .map(resolveMediaUrl)
+              .filter(Boolean);
+            if (!clips.length) return null;
+            return (
+              <>
+                <Text style={styles.sectionH}>الفيديو</Text>
+                <View style={styles.videoBox}>
+                  <Video
+                    source={{ uri: clips[0] }}
+                    style={styles.video}
+                    useNativeControls
+                    resizeMode={ResizeMode.COVER}
+                    testID="listing-video"
+                  />
+                </View>
+              </>
+            );
+          })()}
 
           {/* Health */}
           <Text style={styles.sectionH}>الحالة الصحية</Text>
@@ -558,14 +581,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FFFDF8",
     borderWidth: 1,
-    borderColor: "#E6DCC8",
-    borderRadius: 14,
-    padding: 14,
+    borderColor: "rgba(198,161,91,0.45)",
+    borderRadius: 18,
+    padding: 16,
     marginBottom: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
+    shadowColor: "#1B3D2F",
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   priceLabel: { fontSize: 11, color: "#6B5E4A", fontWeight: "700", textAlign: "right", marginBottom: 2 },
   priceCurrency: { fontSize: 15, color: "#1B3D2F", fontWeight: "700" },
@@ -654,13 +678,20 @@ const styles = StyleSheet.create({
   },
   dotActive: { backgroundColor: "#fff", width: 18 },
 
-  body: { padding: 16 },
+  body: {
+    marginTop: -22,
+    padding: 16,
+    paddingTop: 20,
+    backgroundColor: "#F7F1E8",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
   priceRow: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  price: { fontSize: 34, fontWeight: "900", color: "#1B3D2F", lineHeight: 40 },
+  price: { fontSize: 34, fontWeight: "800", color: "#1B3D2F", lineHeight: 42 },
   negotiable: { color: "#8A6A2E", fontSize: 12, fontWeight: "700", marginTop: 4 },
   viewsBadge: {
     flexDirection: "row-reverse",
@@ -693,19 +724,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 12,
-    backgroundColor: "#FBF6EE",
-    borderRadius: 14,
+    backgroundColor: "#FFFDF8",
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: "#E6DCC8",
-    marginBottom: 12,
-    marginTop: 10,
+    marginBottom: 8,
+    marginTop: 4,
+    shadowColor: "#1B3D2F",
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   sellerAvatarWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     borderWidth: 2,
-    borderColor: "#fff",
+    borderColor: "#C6A15B",
     overflow: "hidden",
   },
   sellerAvatarImg: { width: "100%", height: "100%" },
@@ -759,8 +795,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFDF8",
     borderWidth: 1,
     borderColor: "#E6DCC8",
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: 16,
+    padding: 14,
     gap: 4,
   },
   specLabel: { color: "#1B3D2F", fontSize: 11, fontWeight: "600" },
@@ -805,14 +841,28 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#E6DCC8",
-    padding: 12,
-    paddingBottom: 26,
+    backgroundColor: "#FFFDF8",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(198,161,91,0.55)",
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 24,
     flexDirection: "row-reverse",
+    alignItems: "center",
     gap: 8,
+    shadowColor: "#0F241C",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 8,
   },
+  videoBox: {
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "#0F241C",
+    marginBottom: 8,
+  },
+  video: { width: "100%", aspectRatio: 16 / 9 },
   secondaryBtn: {
     flex: 1,
     flexDirection: "row-reverse",
