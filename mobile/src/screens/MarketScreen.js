@@ -188,12 +188,20 @@ export default function MarketScreen({
             />
           }
           ListHeaderComponent={
-            error && listData.length > 0 ? (
+            <>
+              <View style={styles.catalogHead}>
+                <Text style={styles.catalogTitle}>الإعلانات المنشورة</Text>
+                <Text style={styles.catalogCount}>
+                  {listData.length ? `${listData.length} إعلان` : "لا نتائج"}
+                </Text>
+              </View>
+              {error && listData.length > 0 ? (
               <PressableScale onPress={() => load("refresh")} style={styles.inlineError} scaleTo={0.99}>
                 <Ionicons name="cloud-offline-outline" size={16} color={TAIR.error} />
                 <Text style={styles.inlineErrorText}>تعذّر التحديث — اضغط لإعادة المحاولة</Text>
               </PressableScale>
-            ) : null
+              ) : null}
+            </>
           }
           ListFooterComponent={
             <View style={styles.footer}>
@@ -383,6 +391,15 @@ const styles = StyleSheet.create({
   },
   auctionTitle: { color: TAIR.emerald, fontSize: 14, fontWeight: "800", textAlign: "right" },
   auctionSub: { color: TAIR.muted, fontSize: 11, marginTop: 1, textAlign: "right", fontWeight: "600" },
+  catalogHead: {
+    flexDirection: "row-reverse",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  catalogTitle: { color: TAIR.emerald, fontSize: 16, fontWeight: "900" },
+  catalogCount: { color: TAIR.muted, fontSize: 12, fontWeight: "700" },
   listContent: {
     paddingTop: 12,
     paddingBottom: TAIR.tabBarH + 88,

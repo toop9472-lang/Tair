@@ -288,12 +288,9 @@ export default function ListingDetailsScreen({
                   <Text style={styles.sellerName} numberOfLines={1}>
                     {listing.seller_name || "بائع طير"}
                   </Text>
-                  {listing.seller_verified_shop && (
-                    <View style={styles.sellerVerBadge}>
-                      <Ionicons name="checkmark-circle" size={12} color="#C6A15B" />
-                      <Text style={styles.sellerVerText}>موثوق</Text>
-                    </View>
-                  )}
+                  {listing.seller_verified_shop ? (
+                    <Text style={styles.sellerVerText}>موثّق</Text>
+                  ) : null}
                 </View>
                 <Text style={styles.sellerHint}>عرض متجر البائع ›</Text>
               </View>
@@ -301,19 +298,13 @@ export default function ListingDetailsScreen({
             </TouchableOpacity>
           ) : null}
 
-          {/* Spec cards */}
           <Text style={styles.sectionH}>المواصفات</Text>
-          <View style={styles.specGrid}>
-            <SpecCard icon="male-female" label="الجنس" value={genderLabel(listing.gender)} />
-            {listing.age_months ? (
-              <SpecCard icon="calendar" label="العمر" value={`${listing.age_months} شهر`} />
-            ) : null}
-            {listing.breed ? (
-              <SpecCard icon="paw" label="السلالة" value={listing.breed} />
-            ) : null}
-            {listing.color ? (
-              <SpecCard icon="color-palette" label="اللون" value={listing.color} />
-            ) : null}
+          <View style={styles.specSheet}>
+            <SpecRow label="الجنس" value={genderLabel(listing.gender)} />
+            <SpecRow label="العمر" value={listing.age_months ? `${listing.age_months} شهر` : "غير مذكور"} />
+            <SpecRow label="السلالة" value={listing.breed || "غير مذكورة"} />
+            <SpecRow label="اللون" value={listing.color || "غير مذكور"} />
+            <SpecRow label="المدينة" value={[listing.city, listing.district].filter(Boolean).join(" · ") || "—"} last />
           </View>
 
           {/* Description */}
@@ -544,12 +535,11 @@ export default function ListingDetailsScreen({
   );
 }
 
-function SpecCard({ icon, label, value }) {
+function SpecRow({ label, value, last }) {
   return (
-    <View style={styles.spec}>
-      <Ionicons name={icon} size={18} color={TAIR.goldDark} />
+    <View style={[styles.specRow, last && styles.specRowLast]}>
       <Text style={styles.specLabel}>{label}</Text>
-      <Text style={styles.specValue}>{value}</Text>
+      <Text style={styles.specValue} numberOfLines={2}>{value}</Text>
     </View>
   );
 }
@@ -780,24 +770,26 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 
-  specGrid: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 16,
-  },
-  spec: {
-    flex: 1,
-    minWidth: "45%",
+  specSheet: {
     backgroundColor: "#FFFDF8",
     borderWidth: 1,
     borderColor: "#E6DCC8",
-    borderRadius: 16,
-    padding: 14,
-    gap: 4,
+    borderRadius: 14,
+    overflow: "hidden",
   },
-  specLabel: { color: "#1B3D2F", fontSize: 11, fontWeight: "600" },
-  specValue: { color: "#0F241C", fontSize: 14, fontWeight: "700" },
+  specRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E6DCC8",
+  },
+  specRowLast: { borderBottomWidth: 0 },
+  specLabel: { color: "#6B5E4A", fontSize: 13, fontWeight: "700" },
+  specValue: { color: "#0F241C", fontSize: 14, fontWeight: "800", flex: 1, textAlign: "left" },
 
   h3: {
     fontSize: 15,

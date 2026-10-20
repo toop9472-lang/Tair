@@ -33,6 +33,35 @@ import { tripPhase } from "../utils/tripStatus";
 const CITIES = ALL_LOCATIONS;
 const VEHICLES = ["سيدان", "SUV", "بيك أب", "شاحنة صغيرة"];
 
+function localDay(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function dayFromNow(offset) {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return localDay(date);
+}
+
+const DEPART_HOURS = [
+  { h: 6, label: "6 ص" },
+  { h: 9, label: "9 ص" },
+  { h: 12, label: "12 ظ" },
+  { h: 15, label: "3 م" },
+  { h: 18, label: "6 م" },
+  { h: 21, label: "9 م" },
+];
+
+function nearestHour(date) {
+  const h = date.getHours();
+  return DEPART_HOURS.reduce((best, item) => (
+    Math.abs(item.h - h) < Math.abs(best - h) ? item.h : best
+  ), 9);
+}
+
 const STATUS_FILTERS = [
   { id: "active", label: "المتاحة" },
   { id: "upcoming", label: "قادمة" },
@@ -110,41 +139,17 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
         </View>
       </View>
 
-      {/* Trip meta chips */}
-      <View style={styles.metaRow}>
-        <View style={styles.metaChip}>
-          <Ionicons name="calendar-outline" size={12} color="#1B3D2F" />
-          <Text style={styles.metaText}>
-            {dt
-              ? `${dt.toLocaleDateString("ar-SA", { day: "numeric", month: "short" })} · ${dt.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}`
-              : "-"}
-          </Text>
-        </View>
-        <View style={styles.metaChip}>
-          <Ionicons name="cube-outline" size={12} color="#3D6B54" />
-          <Text style={[styles.metaText, { color: "#0F241C" }]}>
-            {trip.available_cages}/{trip.total_cages} قفص
-          </Text>
-        </View>
-        {trip.has_ac ? (
-          <View style={styles.metaChip}>
-            <Ionicons name="snow-outline" size={12} color="#3D6B54" />
-            <Text style={[styles.metaText, { color: "#3D6B54" }]}>مكيّف</Text>
-          </View>
-        ) : null}
-        {trip.is_direct && (
-          <View style={[styles.metaChip, { backgroundColor: "#fef3c7" }]}>
-            <Ionicons name="flash" size={12} color="#d97706" />
-            <Text style={[styles.metaText, { color: "#d97706" }]}>مباشرة</Text>
-          </View>
-        )}
-        <View style={[styles.metaChip, { backgroundColor: TAIR.goldWash }]}>
-          <Ionicons name="cash-outline" size={12} color={TAIR.goldDark} />
-          <Text style={[styles.metaText, { color: TAIR.goldDark, fontWeight: "800" }]}>
-            {trip.price_hint_sar ? `${trip.price_hint_sar} ر.س` : "عند الاتفاق"}
-          </Text>
-        </View>
-      </View>
+      <Text style={styles.factsLine} numberOfLines={2}>
+        {dt
+          ? `${dt.toLocaleDateString("ar-SA", { day: "numeric", month: "short" })} · ${dt.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}`
+          : "الموعد لاحقاً"}
+        {"  ·  "}
+        {trip.available_cages}/{trip.total_cages} قفص
+        {"  ·  "}
+        {trip.price_hint_sar ? `${trip.price_hint_sar} ر.س` : "عند الاتفاق"}
+        {trip.is_direct ? "  ·  مباشرة" : ""}
+        {trip.has_ac ? "  ·  مكيّف" : ""}
+      </Text>
 
       {/* Contact action buttons */}
       <View style={styles.contactRow}>
@@ -215,7 +220,8 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
   const [form, setForm] = useState({
     from_city: "الرياض",
     to_city: "جدة",
-    depart_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    depart_day: dayFromNow(1),
+    depart_hour: 9,
     vehicle_type: "سيدان",
     has_ac: true,
     total_cages: "4",
@@ -240,9 +246,8 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
       setForm({
         from_city: editingTrip.from_city || "الرياض",
         to_city: editingTrip.to_city || "جدة",
-        depart_at: editingTrip.depart_at
-          ? new Date(editingTrip.depart_at).toISOString().slice(0, 16)
-          : new Date(Date.now() + 86400000).toISOString().slice(0, 16),
+        depart_day: editingTrip.depart_at ? localDay(new Date(editingTrip.depart_at)) : dayFromNow(1),
+        depart_hour: editingTrip.depart_at ? nearestHour(new Date(editingTrip.depart_at)) : 9,
         vehicle_type: editingTrip.vehicle_type || "سيدان",
         has_ac: editingTrip.has_ac !== false,
         total_cages: String(editingTrip.total_cages || 4),
@@ -274,7 +279,7 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
       const payload = {
         from_city: form.from_city,
         to_city: form.to_city,
-        depart_at: new Date(form.depart_at).toISOString(),
+        depart_at: new Date(`${form.depart_day}T${String(form.depart_hour).padStart(2, "0")}:00:00`).toISOString(),
         vehicle_type: form.vehicle_type,
         has_ac: form.has_ac,
         total_cages: Number(form.total_cages) || 4,
@@ -414,14 +419,40 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
             </View>
           )}
 
-          <FormLabel>تاريخ ووقت الانطلاق *</FormLabel>
-          <TextInput
-            style={styles.input}
-            value={form.depart_at}
-            onChangeText={(v) => set("depart_at", v)}
-            placeholder="YYYY-MM-DDTHH:mm"
-            placeholderTextColor="#8A7B66"
-          />
+          <FormLabel>تاريخ الانطلاق</FormLabel>
+          <View style={styles.choiceRow}>
+            {[
+              { label: "اليوم", day: dayFromNow(0) },
+              { label: "غداً", day: dayFromNow(1) },
+              { label: "بعد غد", day: dayFromNow(2) },
+            ].map((item) => {
+              const on = form.depart_day === item.day;
+              return (
+                <TouchableOpacity
+                  key={item.label}
+                  style={[styles.choice, on && styles.choiceOn]}
+                  onPress={() => set("depart_day", item.day)}
+                >
+                  <Text style={[styles.choiceText, on && styles.choiceTextOn]}>{item.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <FormLabel>ساعة الانطلاق</FormLabel>
+          <View style={styles.choiceRow}>
+            {DEPART_HOURS.map((item) => {
+              const on = form.depart_hour === item.h;
+              return (
+                <TouchableOpacity
+                  key={item.h}
+                  style={[styles.choice, on && styles.choiceOn]}
+                  onPress={() => set("depart_hour", item.h)}
+                >
+                  <Text style={[styles.choiceText, on && styles.choiceTextOn]}>{item.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
           <FormLabel>نوع المركبة</FormLabel>
           <View style={{ flexDirection: "row-reverse", gap: 6 }}>
@@ -1142,6 +1173,14 @@ const styles = StyleSheet.create({
   addWaypointText: { color: "#1B3D2F", fontSize: 12, fontWeight: "700" },
 
 
+  factsLine: {
+    marginTop: 12,
+    color: TAIR.emerald,
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "right",
+    lineHeight: 18,
+  },
   metaRow: {
     flexDirection: "row-reverse",
     flexWrap: "wrap",
@@ -1194,6 +1233,18 @@ const styles = StyleSheet.create({
     textAlign: "right",
     backgroundColor: "#FFFDF8",
   },
+  choiceRow: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8 },
+  choice: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: TAIR.surfaceMuted,
+    borderWidth: 1,
+    borderColor: TAIR.line,
+  },
+  choiceOn: { backgroundColor: TAIR.emerald, borderColor: TAIR.emerald },
+  choiceText: { color: TAIR.emerald, fontWeight: "800", fontSize: 13 },
+  choiceTextOn: { color: TAIR.gold },
   pill: {
     paddingHorizontal: 12,
     paddingVertical: 8,

@@ -134,6 +134,34 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
     openWhatsApp(rawPhone, `السلام عليكم، أنا مهتم برحلتك من ${trip.from_city} إلى ${trip.to_city}`);
   };
 
+  const bookCage = () => {
+    const uid = user?.user_id || user?.id;
+    if (!uid) {
+      Alert.alert("تنبيه", "سجّل الدخول لحجز قفص");
+      return;
+    }
+    Alert.alert(
+      "حجز قفص",
+      `يُحجز قفص واحد من ${trip.available_cages}، ويصلك الموصل على واتساب.`,
+      [
+        { text: "لا", style: "cancel" },
+        {
+          text: "أحجز",
+          onPress: async () => {
+            try {
+              await tripsApi.book(trip.trip_id, uid);
+              const fresh = await tripsApi.get(trip.trip_id);
+              setTrip(fresh);
+              Alert.alert("تم الحجز", "نقص قفص من الرحلة. يمكنك مراسلة الموصل الآن.");
+            } catch (e) {
+              Alert.alert("تعذّر الحجز", e?.message || "لا توجد أقفاص متاحة");
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const advanceStatus = () => {
     if (!nextStatus) return;
     const label = TRIP_STEP_LABEL[nextStatus];
@@ -310,6 +338,18 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
         ) : null}
 
         {/* Carrier action: end / arrived */}
+        {!isOwner && (trip.available_cages || 0) > 0 && !["completed", "cancelled", "arrived"].includes(trip.status) ? (
+          <TouchableOpacity
+            style={styles.endTripBtn}
+            onPress={bookCage}
+            activeOpacity={0.85}
+            testID="book-cage-btn"
+          >
+            <Ionicons name="cube" size={20} color="#C6A15B" />
+            <Text style={styles.endTripText}>أحجز قفصاً · متبقٍ {trip.available_cages}</Text>
+          </TouchableOpacity>
+        ) : null}
+
         {isOwner && nextStatus ? (
           <TouchableOpacity
             style={styles.endTripBtn}

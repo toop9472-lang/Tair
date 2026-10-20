@@ -300,6 +300,28 @@ async def update_trip_request_status(
         {"$set": updates, "$push": {"status_updates": event}},
     )
     fresh = await db.trip_requests.find_one({"request_id": request_id})
+    try:
+        from routes.tair_notifications_routes import create_tair_notification
+        route = f"{fresh.get('from_city')} ← {fresh.get('to_city')}"
+        carrier_name = fresh.get("accepted_name") or "موصل"
+        titles = {
+            "accepted": ("قُبل طلب رحلتك", f"قبل {carrier_name} طلبك {route}"),
+            "in_progress": ("رحلتك في الطريق", f"انطلقت الرحلة {route}"),
+            "completed": ("اكتملت الرحلة", f"أُغلقت رحلة {route}"),
+            "cancelled": ("أُلغي طلب الرحلة", f"أُلغي طلب {route}"),
+        }
+        title, body = titles.get(nxt, (None, None))
+        target = fresh.get("accepted_by") if user_id == fresh.get("requester_id") else fresh.get("requester_id")
+        if title and target and target != user_id:
+            await create_tair_notification(
+                user_id=target,
+                title=title,
+                body=body,
+                notif_type="trip_request",
+                data={"request_id": request_id, "status": nxt},
+            )
+    except Exception as exc:  # pragma: no cover
+        print(f"[trip request notify] failed: {exc}")
     return _serialize_request(fresh)
 
 
@@ -405,6 +427,48 @@ async def update_trip(
     await db.trips.update_one({"trip_id": trip_id}, {"$set": updates})
     fresh = await db.trips.find_one({"trip_id": trip_id})
     return _serialize(fresh)
+
+
+@router.post("/{trip_id}/book")
+async def book_cage(trip_id: str, user_id: str = Query(...), actor: str = Depends(require_actor)):
+    """Reserve one cage on a published trip and tell the carrier."""
+    doc = await db.trips.find_one({"trip_id": trip_id})
+    if not doc:
+        raise HTTPException(404, "الرحلة غير موجودة")
+    if doc.get("carrier_id") == user_id:
+        raise HTTPException(400, "لا تحجز قفصاً على رحلتك")
+    if doc.get("status") in ("completed", "cancelled", "arrived"):
+        raise HTTPException(400, "هذه الرحلة لا تقبل الحجز")
+    booking_id = f"book_{uuid.uuid4().hex[:12]}"
+    res = await db.trips.update_one(
+        {"trip_id": trip_id, "available_cages": {"$gte": 1}},
+        {
+            "$inc": {"available_cages": -1, "bookings_count": 1},
+            "$push": {"bookings_ids": booking_id},
+            "$set": {"updated_at": _now()},
+        },
+    )
+    if res.modified_count != 1:
+        raise HTTPException(400, "لا توجد أقفاص متاحة")
+    user = await _user_brief(user_id)
+    name = (user or {}).get("name") or "مربي"
+    carrier_id = doc.get("carrier_id")
+    try:
+        from routes.tair_notifications_routes import create_tair_notification
+        if carrier_id:
+            await create_tair_notification(
+                user_id=carrier_id,
+                title="حجز قفص جديد",
+                body=f"{name} حجز قفصاً على رحلتك من {doc.get('from_city')} إلى {doc.get('to_city')}",
+                notif_type="trip_booking",
+                data={"trip_id": trip_id, "booking_id": booking_id},
+            )
+    except Exception as exc:  # pragma: no cover
+        print(f"[trip book notify] failed: {exc}")
+    fresh = await db.trips.find_one({"trip_id": trip_id})
+    out = _serialize(fresh)
+    out["booking_id"] = booking_id
+    return out
 
 
 @router.delete("/{trip_id}")

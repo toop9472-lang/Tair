@@ -7,7 +7,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { API_URL } from "../services/api";
 import { TAIR, TAIR_ELEVATION, toArabicNumerals } from "../constants/tairTheme";
-import { PressableScale, TairBadge, TairImage } from "./TairUI";
+import { PressableScale, TairImage } from "./TairUI";
 
 export function resolveMediaUrl(u) {
   if (!u || typeof u !== "string") return "";
@@ -30,63 +30,57 @@ export default function ListingCard({ item, onPress, testID }) {
   const priceType = item?.price_type || (item?.is_negotiable ? "negotiable" : "fixed");
   const isSold = item?.status === "sold" || !!item?.sold_at;
   const species = item?.species_name || item?.species || item?.family_name;
+  const seller = item?.seller_name;
+  const facts = [item?.city, species].filter(Boolean).join("  ·  ");
+  const priceWord = priceType === "negotiable" ? "على السوم" : "حد";
+  const mark = isSold ? "تم البيع" : isNew ? "جديد" : null;
 
   return (
     <PressableScale
       onPress={onPress}
       haptic
       scaleTo={0.985}
-      style={[styles.card, isVerified && styles.cardVerified, isSold && styles.cardSold]}
+      style={[styles.card, isSold && styles.cardSold]}
       testID={testID || `listing-${item?.listing_id || item?.id}`}
     >
       <View style={styles.imgWrap}>
         <TairImage uri={img} style={styles.img} iconSize={26} />
         {isSold ? <View style={styles.imgDim} /> : null}
+        {mark ? (
+          <View style={[styles.mark, isSold && styles.markSold]}>
+            <Text style={styles.markText}>{mark}</Text>
+          </View>
+        ) : null}
         {(item?.videos?.length || item?.video_url) ? (
           <View style={styles.videoMark}>
-            <Ionicons name="play" size={12} color={TAIR.gold} />
+            <Ionicons name="play" size={11} color={TAIR.gold} />
           </View>
         ) : null}
       </View>
 
       <View style={styles.info}>
-        <View style={styles.badgeRow}>
-          {isSold ? <TairBadge label="تم البيع" tone="sold" icon="checkmark-circle" /> : null}
-          {isVerified ? <TairBadge label="موثّق" tone="emerald" icon="shield-checkmark" /> : null}
-          {isNew && !isSold ? <TairBadge label="جديد" tone="new" /> : null}
-        </View>
-
         <Text style={styles.title} numberOfLines={2}>
           {item?.title || "بلا عنوان"}
         </Text>
-
-        <View style={styles.metaRow}>
-          {item?.city ? (
-            <View style={styles.metaChip}>
-              <Ionicons name="location-outline" size={12} color={TAIR.muted} />
-              <Text style={styles.metaText} numberOfLines={1}>{item.city}</Text>
-            </View>
-          ) : null}
-          {species ? (
-            <Text style={styles.species} numberOfLines={1}>{species}</Text>
-          ) : null}
-        </View>
-
+        {seller ? (
+          <Text style={styles.seller} numberOfLines={1}>
+            {seller}
+            {isVerified ? "  ·  موثّق" : ""}
+          </Text>
+        ) : isVerified ? (
+          <Text style={styles.seller}>موثّق</Text>
+        ) : null}
+        <Text style={styles.facts} numberOfLines={1}>
+          {facts || "السوق"}
+        </Text>
         <View style={styles.priceRow}>
           <Text style={styles.price}>
-            {price != null ? `${toArabicNumerals(price)} ` : "— "}
-            <Text style={styles.currency}>ر.س</Text>
+            {price != null ? toArabicNumerals(price) : "—"}
+            <Text style={styles.currency}>  ر.س</Text>
           </Text>
-          <View style={styles.priceMeta}>
-            <TairBadge
-              label={priceType === "negotiable" ? "على السوم" : "حد"}
-              tone={priceType === "negotiable" ? "gold" : "success"}
-            />
-            <View style={styles.views}>
-              <Ionicons name="eye-outline" size={12} color={TAIR.faint} />
-              <Text style={styles.viewsText}>{toArabicNumerals(item?.view_count || 0)}</Text>
-            </View>
-          </View>
+          <Text style={styles.priceAside}>
+            {priceWord}  ·  {toArabicNumerals(item?.view_count || 0)} مشاهدة
+          </Text>
         </View>
       </View>
     </PressableScale>
@@ -99,40 +93,43 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
     gap: 12,
     marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 10,
+    marginBottom: 10,
+    padding: 12,
     backgroundColor: TAIR.card,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(230,220,200,0.9)",
+    borderColor: TAIR.line,
     ...TAIR_ELEVATION.card,
   },
-  cardVerified: {
-    borderColor: "rgba(198,161,91,0.55)",
-  },
-  cardSold: {
-    opacity: 0.92,
-  },
+  cardSold: { opacity: 0.88 },
   imgWrap: {
-    width: 108,
-    height: 108,
-    borderRadius: 16,
+    width: 104,
+    height: 104,
+    borderRadius: 12,
     overflow: "hidden",
     backgroundColor: TAIR.creamDeep,
   },
   img: { width: "100%", height: "100%" },
+  mark: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: TAIR.emerald,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  markSold: { backgroundColor: TAIR.error },
+  markText: { color: TAIR.gold, fontSize: 10, fontWeight: "800" },
   videoMark: {
     position: "absolute",
     left: 6,
     bottom: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: "rgba(15,36,28,0.78)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: TAIR.gold,
   },
   imgDim: {
     ...StyleSheet.absoluteFillObject,
@@ -142,14 +139,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "flex-end",
     justifyContent: "space-between",
-    paddingVertical: 2,
-  },
-  badgeRow: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 4,
-    minHeight: 0,
   },
   title: {
     color: TAIR.ink,
@@ -159,38 +148,33 @@ const styles = StyleSheet.create({
     textAlign: "right",
     width: "100%",
   },
-  metaRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
+  seller: {
+    color: TAIR.goldDark,
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "right",
+    width: "100%",
+    marginTop: 2,
+  },
+  facts: {
+    color: TAIR.muted,
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "right",
     width: "100%",
     marginTop: 4,
   },
-  metaChip: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 3,
-  },
-  metaText: { color: TAIR.muted, fontSize: 12, fontWeight: "600" },
-  species: { color: TAIR.faint, fontSize: 12, fontWeight: "600", flexShrink: 1 },
   priceRow: {
     flexDirection: "row-reverse",
-    alignItems: "center",
+    alignItems: "flex-end",
     justifyContent: "space-between",
     width: "100%",
     marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: TAIR.line,
   },
-  price: {
-    color: TAIR.emerald,
-    fontSize: 17,
-    fontWeight: "900",
-  },
+  price: { color: TAIR.emerald, fontSize: 18, fontWeight: "900" },
   currency: { fontSize: 12, fontWeight: "700", color: TAIR.emeraldSoft },
-  priceMeta: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-  },
-  views: { flexDirection: "row-reverse", alignItems: "center", gap: 3 },
-  viewsText: { color: TAIR.faint, fontSize: 11, fontWeight: "700" },
+  priceAside: { color: TAIR.faint, fontSize: 11, fontWeight: "700", textAlign: "left" },
 });

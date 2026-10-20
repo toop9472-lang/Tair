@@ -109,6 +109,10 @@ export const tripsApi = {
   get: (id) => req(`/api/trips/${id}`),
   byCarrier: (carrierId, includeCompleted = false) =>
     req(`/api/trips/carrier/${carrierId}?include_completed=${includeCompleted}`),
+  book: (id, userId) =>
+    req(`/api/trips/${id}/book?user_id=${encodeURIComponent(userId)}`, {
+      method: "POST",
+    }),
   updateStatus: (id, userId, status, note) =>
     req(`/api/trips/${id}/status?user_id=${encodeURIComponent(userId)}`, {
       method: "PATCH",
