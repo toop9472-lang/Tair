@@ -35,17 +35,17 @@ export const TAIR_RADIUS = {
 
 export const TAIR_SHADOWS = {
   card: {
-    shadowColor: "#0f172a",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowColor: "#1B3D2F",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    elevation: 3,
   },
   raised: {
-    shadowColor: "#0ea5e9",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
+    shadowColor: "#0F241C",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.14,
+    shadowRadius: 22,
     elevation: 6,
   },
 };

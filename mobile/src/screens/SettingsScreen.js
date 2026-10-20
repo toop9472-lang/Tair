@@ -1,21 +1,22 @@
-// طير — Simple Tair Settings screen
+// طير — الإعدادات
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Alert, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import Constants from "expo-constants";
+import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
+import { PressableScale } from "../components/TairUI";
 
-const TEAL = "#0ea5e9";
-
-function Row({ icon, label, onPress, color = "#0f172a", danger = false }) {
+function Row({ icon, label, onPress, danger = false }) {
+  const color = danger ? TAIR.error : TAIR.emerald;
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.iconBox, { backgroundColor: `${color}15` }]}>
-        <Ionicons name={icon} size={18} color={danger ? "#ef4444" : color} />
+    <PressableScale style={styles.row} onPress={onPress} haptic scaleTo={0.99}>
+      <View style={[styles.iconBox, { backgroundColor: danger ? TAIR.dangerSoft : TAIR.emeraldWash }]}>
+        <Ionicons name={icon} size={18} color={color} />
       </View>
-      <Text style={[styles.label, danger && { color: "#ef4444" }]}>{label}</Text>
-      <Ionicons name="chevron-back" size={18} color="#94a3b8" />
-    </TouchableOpacity>
+      <Text style={[styles.label, danger && { color: TAIR.error }]}>{label}</Text>
+      <Ionicons name="chevron-back" size={16} color={TAIR.faint} />
+    </PressableScale>
   );
 }
 
@@ -32,24 +33,15 @@ export default function SettingsScreen({ user, onBack, onLogout }) {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="الإعدادات" onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScreenHeader title="الإعدادات" subtitle="حسابك وتفضيلات طير" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>الحساب</Text>
-          <View style={styles.infoBlock}>
-            <Text style={styles.infoLabel}>الاسم</Text>
-            <Text style={styles.infoValue}>{user?.name || "زائر"}</Text>
-          </View>
+          <Info label="الاسم" value={user?.name || "زائر"} />
           <View style={styles.divider} />
-          <View style={styles.infoBlock}>
-            <Text style={styles.infoLabel}>البريد الإلكتروني</Text>
-            <Text style={styles.infoValue}>{user?.email || "—"}</Text>
-          </View>
+          <Info label="البريد الإلكتروني" value={user?.email || "—"} />
           <View style={styles.divider} />
-          <View style={styles.infoBlock}>
-            <Text style={styles.infoLabel}>المعرف</Text>
-            <Text style={[styles.infoValue, { fontFamily: "monospace", fontSize: 11 }]}>{uid}</Text>
-          </View>
+          <Info label="المعرف" value={String(uid)} mono />
         </View>
 
         <View style={styles.card}>
@@ -61,36 +53,66 @@ export default function SettingsScreen({ user, onBack, onLogout }) {
 
         {onLogout ? (
           <View style={styles.card}>
-            <Row icon="log-out-outline" label="تسجيل الخروج" onPress={confirmLogout} color="#ef4444" danger />
+            <Row icon="log-out-outline" label="تسجيل الخروج" onPress={confirmLogout} danger />
           </View>
         ) : null}
+
+        <Text style={styles.foot}>طير · سوق الطيور والحيوانات</Text>
       </ScrollView>
     </View>
   );
 }
 
+function Info({ label, value, mono }) {
+  return (
+    <View style={styles.infoBlock}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={[styles.infoValue, mono && styles.mono]}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F7F1E8" },
-  content: { padding: 14, paddingBottom: 80 },
+  container: { flex: 1, backgroundColor: TAIR.bg },
+  content: { padding: 16, paddingBottom: 48 },
   card: {
-    backgroundColor: "#fff", borderRadius: 14, borderWidth: 1,
-    borderColor: "#e2e8f0", overflow: "hidden", marginBottom: 14, padding: 4,
+    backgroundColor: TAIR.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: TAIR.divider,
+    overflow: "hidden",
+    marginBottom: 14,
+    ...TAIR_ELEVATION.hair,
   },
   sectionTitle: {
-    fontSize: 12, color: TEAL, fontWeight: "900",
-    paddingHorizontal: 12, paddingTop: 10, paddingBottom: 6, textAlign: "right",
+    fontSize: 12,
+    color: TAIR.goldDark,
+    fontWeight: "800",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 4,
+    textAlign: "right",
+    letterSpacing: 0.3,
   },
-  infoBlock: { paddingHorizontal: 12, paddingVertical: 10 },
-  infoLabel: { fontSize: 11, color: "#64748b", fontWeight: "700", textAlign: "right" },
-  infoValue: { fontSize: 14, color: "#0f172a", fontWeight: "700", textAlign: "right", marginTop: 3 },
-  divider: { height: 1, backgroundColor: "#f1f5f9", marginHorizontal: 12 },
+  infoBlock: { paddingHorizontal: 16, paddingVertical: 12 },
+  infoLabel: { fontSize: 11, color: TAIR.faint, fontWeight: "700", textAlign: "right" },
+  infoValue: { fontSize: 15, color: TAIR.ink, fontWeight: "700", textAlign: "right", marginTop: 3 },
+  mono: { fontSize: 12, fontWeight: "600", color: TAIR.muted },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: TAIR.divider, marginHorizontal: 16 },
   row: {
-    flexDirection: "row-reverse", alignItems: "center",
-    paddingHorizontal: 12, paddingVertical: 12, gap: 12,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 12,
   },
   iconBox: {
-    width: 34, height: 34, borderRadius: 10,
-    alignItems: "center", justifyContent: "center",
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  label: { flex: 1, color: "#0f172a", fontSize: 14, fontWeight: "700", textAlign: "right" },
+  label: { flex: 1, color: TAIR.ink, fontSize: 14, fontWeight: "700", textAlign: "right" },
+  foot: { textAlign: "center", color: TAIR.faint, fontSize: 12, marginTop: 8, fontWeight: "600" },
 });

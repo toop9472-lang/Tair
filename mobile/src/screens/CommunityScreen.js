@@ -12,8 +12,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import TairHeader from "../components/TairHeader";
-import { TAIR } from "../constants/tairTheme";
+import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { communityApi, communityChatApi, storiesApi } from "../services/tairApi";
+import { EmptyState, ErrorState, PressableScale, Skeleton } from "../components/TairUI";
 
 const CHAT_POLL_MS = 5000;
 const URL_RX = /(https?:\/\/|www\.|[a-z0-9]+\.[a-z]{2,}\/)/i;
@@ -27,8 +28,10 @@ export default function CommunityScreen({
   const [stories, setStories] = useState([]);
   const [topStoryId, setTopStoryId] = useState(null);
   const [storiesLoading, setStoriesLoading] = useState(true);
+  const [storiesError, setStoriesError] = useState(null);
   const [chat, setChat] = useState([]);
   const [chatLoading, setChatLoading] = useState(true);
+  const [chatError, setChatError] = useState(null);
   const [sending, setSending] = useState(false);
   const [text, setText] = useState("");
   const flatRef = useRef(null);
@@ -38,19 +41,27 @@ export default function CommunityScreen({
     try {
       const r = await communityApi.stories();
       setStories(r?.items || []);
-    } catch { setStories([]); }
+      setStoriesError(null);
+    } catch (e) {
+      setStoriesError(e?.message || "تعذّر تحميل القصص");
+    }
     finally { setStoriesLoading(false); }
     try {
       const t = await storiesApi.topToday();
       setTopStoryId(t?.story_id || null);
-    } catch {}
+    } catch {
+      setTopStoryId(null);
+    }
   }, []);
 
   const loadChat = useCallback(async () => {
     try {
       const r = await communityChatApi.list(80);
       setChat(r?.items || []);
-    } catch { setChat([]); }
+      setChatError(null);
+    } catch (e) {
+      setChatError(e?.message || "تعذّر تحميل الدردشة");
+    }
     finally { setChatLoading(false); }
   }, []);
 
@@ -155,7 +166,17 @@ export default function CommunityScreen({
               </View>
               <Text style={s.storyLabel} numberOfLines={1}>قصة جديدة</Text>
             </TouchableOpacity>
-            {storiesLoading ? <ActivityIndicator color={TAIR.emerald} /> :
+            {storiesLoading ? (
+              <View style={{ flexDirection: "row-reverse", gap: 10, alignItems: "center" }}>
+                <Skeleton width={60} height={60} radius={30} />
+                <Skeleton width={60} height={60} radius={30} />
+                <Skeleton width={60} height={60} radius={30} />
+              </View>
+            ) : storiesError && stories.length === 0 ? (
+              <PressableScale onPress={loadStories} style={{ justifyContent: "center", paddingHorizontal: 8 }}>
+                <Text style={{ color: TAIR.error, fontSize: 12, fontWeight: "800" }}>تعذّر تحميل القصص — إعادة</Text>
+              </PressableScale>
+            ) :
               stories.map((st) => {
                 const isTop = topStoryId && st.story_id === topStoryId;
                 return (
@@ -186,9 +207,11 @@ export default function CommunityScreen({
 
         {/* Chat list — fills down to tab bar */}
         <View style={{ flex: 1 }}>
-          {chatLoading ? (
-            <View style={{ padding: 30, alignItems: "center" }}>
-              <ActivityIndicator color={TAIR.emerald} />
+          {chatLoading && chat.length === 0 ? (
+            <View style={{ padding: 16, gap: 10 }}>
+              <Skeleton width="62%" height={46} radius={16} style={{ alignSelf: "flex-end" }} />
+              <Skeleton width="74%" height={46} radius={16} style={{ alignSelf: "flex-start" }} />
+              <Skeleton width="48%" height={46} radius={16} style={{ alignSelf: "flex-end" }} />
             </View>
           ) : (
             <FlatList
@@ -196,12 +219,13 @@ export default function CommunityScreen({
               data={chat}
               keyExtractor={(m) => m.msg_id}
               renderItem={renderMsg}
-              contentContainerStyle={{ padding: 10, paddingBottom: 20 }}
+              contentContainerStyle={{ padding: 12, paddingBottom: 20, flexGrow: 1 }}
               ListEmptyComponent={
-                <View style={{ alignItems: "center", padding: 36, gap: 8 }}>
-                  <Ionicons name="chatbubbles-outline" size={44} color={TAIR.divider} />
-                  <Text style={{ color: TAIR.textSoft, textAlign: "center" }}>كن أول من يبدأ الدردشة اليوم</Text>
-                </View>
+                chatError ? (
+                  <ErrorState title="تعذّر فتح الدردشة" subtitle="تحقق من الاتصال ثم أعد المحاولة." onRetry={loadChat} />
+                ) : (
+                  <EmptyState icon="chatbubbles-outline" title="الدردشة هادئة" subtitle="كن أول من يبدأ الحديث اليوم." />
+                )
               }
             />
           )}
@@ -237,7 +261,12 @@ export default function CommunityScreen({
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: TAIR.bg },
 
-  storiesWrap: { backgroundColor: TAIR.card, borderBottomWidth: 1, borderBottomColor: TAIR.divider },
+  storiesWrap: {
+    backgroundColor: TAIR.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: TAIR.divider,
+    ...TAIR_ELEVATION.hair,
+  },
   storyItem: { alignItems: "center", width: 70 },
   storyCircle: {
     width: 60, height: 60, borderRadius: 30,
@@ -261,7 +290,7 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center", overflow: "hidden",
   },
   bubble: {
-    maxWidth: "75%", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14,
+    maxWidth: "75%", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16,
     backgroundColor: TAIR.card, borderWidth: 1, borderColor: TAIR.divider,
   },
   bubbleMine: {
@@ -277,11 +306,11 @@ const s = StyleSheet.create({
 
   composer: {
     flexDirection: "row-reverse", alignItems: "center", gap: 8,
-    paddingHorizontal: 10, paddingTop: 10,
+    paddingHorizontal: 12, paddingTop: 10,
     paddingBottom: Platform.OS === "ios" ? 24 : 14,
     marginBottom: TAIR.tabBarH,
-    backgroundColor: "#fff",
-    borderTopWidth: 1, borderTopColor: TAIR.divider,
+    backgroundColor: TAIR.card,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(198,161,91,0.4)",
   },
   inp: {
     flex: 1, backgroundColor: TAIR.bg, borderRadius: 20,

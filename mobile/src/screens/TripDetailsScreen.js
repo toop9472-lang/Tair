@@ -1,12 +1,11 @@
 // طير — Trip Details
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Image,
   Linking,
   Alert,
@@ -15,6 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { tripsApi } from "../services/tairApi";
+import { DetailSkeleton, ErrorState } from "../components/TairUI";
 
 const API_BASE =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -32,7 +32,7 @@ const statusColor = (s) =>
     scheduled: "#0891b2",
     departed: "#eab308",
     in_transit: "#f59e0b",
-    arrived: "#10b981",
+    arrived: "#2F6B45",
     completed: "#064e3b",
     cancelled: "#ef4444",
   }[s] || "#64748b");
@@ -48,37 +48,47 @@ const statusLabel = (s) =>
 
 export default function TripDetailsScreen({ user, tripId, onBack, onContactCarrier, onOpenCarrier }) {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [trip, setTrip] = useState(null);
 
-  useEffect(() => {
+  const loadTrip = useCallback(() => {
     let alive = true;
     setLoading(true);
+    setLoadError(null);
     tripsApi
       .get(tripId)
       .then((doc) => {
         if (!alive) return;
         setTrip(doc);
       })
-      .catch(() => {})
+      .catch((e) => {
+        if (!alive) return;
+        setTrip(null);
+        setLoadError(e?.message || "تعذّر تحميل الرحلة");
+      })
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
     };
   }, [tripId]);
 
+  useEffect(() => loadTrip(), [loadTrip]);
+
   if (loading) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#10b981" size="large" />
+      <View style={styles.container}>
+        <DetailSkeleton />
       </View>
     );
   }
   if (!trip) {
     return (
       <View style={[styles.container, styles.center]}>
-        <Ionicons name="alert-circle-outline" size={56} color="#94a3b8" />
-        <Text style={styles.emptyTitle}>الرحلة غير موجودة</Text>
-        <Text style={styles.emptyText}>ربما تم حذفها أو انتهت.</Text>
+        <ErrorState
+          title={loadError ? "تعذّر فتح الرحلة" : "الرحلة غير موجودة"}
+          subtitle={loadError ? "تحقق من الاتصال ثم أعد المحاولة." : "ربما تم حذفها أو انتهت."}
+          onRetry={loadError ? loadTrip : undefined}
+        />
         <TouchableOpacity style={styles.linkBtn} onPress={onBack}>
           <Text style={styles.linkText}>عودة للرحلات</Text>
         </TouchableOpacity>
@@ -119,7 +129,9 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
       if (canNative) {
         return Linking.openURL(nativeUrl).catch(() => Linking.openURL(webUrl));
       }
-    } catch {}
+    } catch {
+      // إن تعذّر فحص التطبيق نكمل برابط الويب
+    }
     try {
       await Linking.openURL(webUrl);
     } catch {
@@ -224,7 +236,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
               <Text style={styles.carrierName} numberOfLines={1}>{carrierName}</Text>
               {trip.carrier_verified && (
                 <View style={styles.verBadge}>
-                  <Ionicons name="checkmark-circle" size={12} color="#0ea5e9" />
+                  <Ionicons name="checkmark-circle" size={12} color="#1B3D2F" />
                   <Text style={styles.verText}>موصل موثوق</Text>
                 </View>
               )}
@@ -279,7 +291,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
               icon="cash-outline"
               label="السعر الإرشادي"
               value={`${trip.price_hint_sar} ر.س`}
-              color="#0ea5e9"
+              color="#1B3D2F"
               highlight
             />
           ) : null}
@@ -291,7 +303,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
             <View style={styles.waypointsList}>
               {trip.waypoints.map((w, i) => (
                 <View key={`${w}-${i}`} style={styles.waypointChip}>
-                  <Ionicons name="location" size={12} color="#0ea5e9" />
+                  <Ionicons name="location" size={12} color="#1B3D2F" />
                   <Text style={styles.waypointText}>{w}</Text>
                 </View>
               ))}
@@ -314,7 +326,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
             activeOpacity={0.85}
             testID="end-trip-btn"
           >
-            <Ionicons name="checkmark-done-circle" size={20} color="#fff" />
+            <Ionicons name="checkmark-done-circle" size={20} color="#C6A15B" />
             <Text style={styles.endTripText}>أنهيت الرحلة — وصلت</Text>
           </TouchableOpacity>
         )}
@@ -351,7 +363,7 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
         ) : null}
         {digits ? (
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: "#0ea5e9" }]}
+            style={[styles.actionBtn, { backgroundColor: "#1B3D2F" }]}
             onPress={openCall}
             testID="trip-call"
           >
@@ -361,16 +373,16 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
         ) : null}
         {!isOwner ? (
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: "#0369a1", flex: digits ? 1 : 2 }]}
+            style={[styles.actionBtn, { backgroundColor: "#C6A15B", flex: digits ? 1 : 2 }]}
             onPress={() => onContactCarrier && onContactCarrier(trip.carrier_id, carrierName)}
             testID="trip-message"
           >
-            <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
-            <Text style={styles.actionText}>مراسلة</Text>
+            <Ionicons name="chatbubble-ellipses" size={18} color="#0F241C" />
+            <Text style={[styles.actionText, { color: "#0F241C" }]}>مراسلة</Text>
           </TouchableOpacity>
         ) : (
           <View style={[styles.ownerBadge, { flex: digits ? 1 : 2 }]}>
-            <Ionicons name="checkmark-circle" size={16} color="#0ea5e9" />
+            <Ionicons name="checkmark-circle" size={16} color="#1B3D2F" />
             <Text style={styles.ownerBadgeText}>رحلتك</Text>
           </View>
         )}
@@ -379,14 +391,14 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
   );
 }
 
-function DetailCard({ icon, label, value, color = "#0ea5e9", highlight }) {
+function DetailCard({ icon, label, value, color = "#1B3D2F", highlight }) {
   return (
-    <View style={[styles.detailCard, highlight && { backgroundColor: "#ecfdf5", borderColor: "#a7f3d0" }]}>
+    <View style={[styles.detailCard, highlight && { backgroundColor: "#FBF6EE", borderColor: "#E6DCC8" }]}>
       <View style={[styles.detailIcon, { backgroundColor: `${color}15` }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
       <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={[styles.detailValue, { color: highlight ? "#065f46" : "#0f172a" }]}>{value}</Text>
+      <Text style={[styles.detailValue, { color: highlight ? "#065f46" : "#0F241C" }]}>{value}</Text>
     </View>
   );
 }
@@ -403,7 +415,7 @@ const styles = StyleSheet.create({
   emptyTitle: { color: "#334155", fontSize: 16, fontWeight: "800" },
   emptyText: { color: "#64748b", fontSize: 13 },
   linkBtn: { paddingVertical: 10, paddingHorizontal: 20, marginTop: 6 },
-  linkText: { color: "#10b981", fontWeight: "800", fontSize: 14 },
+  linkText: { color: "#1B3D2F", fontWeight: "800", fontSize: 14 },
 
   hero: { paddingTop: 50, paddingBottom: 26, paddingHorizontal: 16 },
   heroTop: {
@@ -457,49 +469,51 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.4)",
   },
-  heroStatusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#a7f3d0" },
+  heroStatusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#E6DCC8" },
   heroStatusText: { color: "#fff", fontSize: 12, fontWeight: "800" },
 
   carrierCard: {
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
-    marginHorizontal: 14,
+    backgroundColor: "#FFFDF8",
+    marginHorizontal: 16,
     marginTop: -18,
     padding: 14,
-    borderRadius: 16,
-    shadowColor: "#0f172a",
-    shadowOffset: { width: 0, height: 4 },
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E6DCC8",
+    shadowColor: "#1B3D2F",
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowRadius: 16,
+    elevation: 3,
   },
   carrierAvatarWrap: {
     width: 52, height: 52, borderRadius: 26,
-    borderWidth: 2, borderColor: "#a7f3d0", overflow: "hidden",
+    borderWidth: 2, borderColor: "#E6DCC8", overflow: "hidden",
   },
   carrierAvatarImg: { width: "100%", height: "100%" },
   carrierAvatarPh: {
     width: "100%", height: "100%",
-    backgroundColor: "#0ea5e9",
+    backgroundColor: "#1B3D2F",
     alignItems: "center", justifyContent: "center",
   },
   carrierInitial: { color: "#fff", fontSize: 22, fontWeight: "800" },
   carrierNameRow: { flexDirection: "row-reverse", alignItems: "center", gap: 6, flexWrap: "wrap" },
-  carrierName: { fontSize: 15, fontWeight: "900", color: "#0f172a", flexShrink: 1 },
+  carrierName: { fontSize: 15, fontWeight: "900", color: "#0F241C", flexShrink: 1 },
   verBadge: {
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 3,
-    backgroundColor: "#f0fdfa",
+    backgroundColor: "#FBF6EE",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#a7f3d0",
+    borderColor: "#E6DCC8",
   },
-  verText: { fontSize: 10, fontWeight: "800", color: "#0ea5e9" },
+  verText: { fontSize: 10, fontWeight: "800", color: "#1B3D2F" },
   carrierMeta: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -530,7 +544,7 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center", marginBottom: 4,
   },
   detailLabel: { color: "#64748b", fontSize: 11, fontWeight: "700" },
-  detailValue: { color: "#0f172a", fontSize: 14, fontWeight: "800" },
+  detailValue: { color: "#0F241C", fontSize: 14, fontWeight: "800" },
 
   waypointsCard: {
     backgroundColor: "#fff",
@@ -544,7 +558,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: "900",
-    color: "#0ea5e9",
+    color: "#1B3D2F",
     textAlign: "right",
     marginBottom: 10,
   },
@@ -553,9 +567,9 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#f0fdfa",
+    backgroundColor: "#FBF6EE",
     borderWidth: 1,
-    borderColor: "#a7f3d0",
+    borderColor: "#E6DCC8",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
@@ -580,17 +594,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#0ea5e9",
+    backgroundColor: "#1B3D2F",
     paddingVertical: 14,
     paddingHorizontal: 18,
     borderRadius: 14,
-    shadowColor: "#0ea5e9",
+    shadowColor: "#1B3D2F",
     shadowOpacity: 0.25,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  endTripText: { color: "#fff", fontWeight: "900", fontSize: 15 },
+  endTripText: { color: "#C6A15B", fontWeight: "800", fontSize: 15 },
 
   safetyBox: {
     flexDirection: "row-reverse",
@@ -632,9 +646,9 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "#f0fdfa",
+    backgroundColor: "#FBF6EE",
     borderWidth: 1,
-    borderColor: "#a7f3d0",
+    borderColor: "#E6DCC8",
   },
-  ownerBadgeText: { color: "#0ea5e9", fontWeight: "900", fontSize: 13 },
+  ownerBadgeText: { color: "#1B3D2F", fontWeight: "900", fontSize: 13 },
 });

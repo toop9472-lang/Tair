@@ -9,7 +9,7 @@ import React from "react";
 import { View, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { TAIR, TAIR_HEADERS } from "../constants/tairTheme";
+import { TAIR, TAIR_ELEVATION, TAIR_HEADERS } from "../constants/tairTheme";
 
 export default function TairHeader({
   variant = "market",
@@ -116,13 +116,9 @@ const styles = StyleSheet.create({
     backgroundColor: TAIR.card,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.14,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
     borderWidth: 1,
-    borderColor: TAIR.gold + "55",
+    borderColor: "rgba(198,161,91,0.55)",
+    ...TAIR_ELEVATION.card,
   },
   /* زر الرسائل — يُغطي الجرس المرسوم بالكامل على اليمين */
   msgBtn: {
@@ -158,15 +154,13 @@ const styles = StyleSheet.create({
     width: "14%",
     aspectRatio: 1,
     borderRadius: 999,
-    backgroundColor: "rgba(27,61,47,0.85)",
+    backgroundColor: "rgba(15,36,28,0.88)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
     borderColor: TAIR.gold,
-    shadowColor: "#000",
-    shadowOpacity: 0.18, shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 }, elevation: 4,
     zIndex: 10,
+    ...TAIR_ELEVATION.raised,
   },
   unreadDot: {
     position: "absolute",

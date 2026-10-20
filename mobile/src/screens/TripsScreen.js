@@ -24,7 +24,8 @@ import { CityTriggerButton, CitySelectorSheet } from "../components/CitySelector
 import { SAUDI_CITIES, ALL_LOCATIONS } from "../constants/saudiCities";
 import ScreenHeader from "../components/ScreenHeader";
 import TairHeader from "../components/TairHeader";
-import { TAIR } from "../constants/tairTheme";
+import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
+import { EmptyState, ErrorState, ListSkeleton } from "../components/TairUI";
 
 const CITIES = ALL_LOCATIONS;
 const VEHICLES = ["سيدان", "SUV", "بيك أب", "شاحنة صغيرة"];
@@ -509,6 +510,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [fromCity, setFromCity] = useState(null);
   const [toCity, setToCity] = useState(null);
   const [createOpen, setCreateOpen] = useState(!!initialCreateOpen);
@@ -535,8 +537,9 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
       if (toCity) params.to_city = toCity;
       const res = await tripsApi.list(params);
       setTrips(res.items || []);
+      setLoadError(null);
     } catch (e) {
-      setTrips([]);
+      setLoadError(e?.message || "تعذّر تحميل الرحلات");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -648,7 +651,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
           testID="add-trip-cta"
           activeOpacity={0.85}
         >
-          <Ionicons name="add-circle" size={18} color="#fff" />
+          <Ionicons name="add-circle" size={18} color="#C6A15B" />
           <Text style={styles.addTripCtaText}>أضف رحلة</Text>
         </TouchableOpacity>
       </View>
@@ -687,13 +690,11 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
         >
           {renderHeader}
           {loading ? (
-            <ActivityIndicator color="#3D6B54" size="large" style={{ marginTop: 40 }} />
+            <ListSkeleton count={3} />
+          ) : loadError && trips.length === 0 ? (
+            <ErrorState title="تعذّر تحميل الرحلات" onRetry={load} />
           ) : trips.length === 0 ? (
-            <View style={styles.empty}>
-              <Ionicons name="map-outline" size={64} color="#C6A15B" />
-              <Text style={styles.emptyTitle}>لا توجد رحلات على الخريطة</Text>
-              <Text style={styles.emptyText}>غيّر الفلاتر أو انشر رحلة جديدة</Text>
-            </View>
+            <EmptyState icon="map-outline" title="لا توجد رحلات على الخريطة" subtitle="غيّر الفلاتر أو انشر رحلة جديدة" />
           ) : (
             <TripsMapMobile
               trips={trips}
@@ -719,13 +720,11 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={
             loading ? (
-              <ActivityIndicator color="#3D6B54" size="large" style={{ marginTop: 40 }} />
+              <ListSkeleton count={4} />
+            ) : loadError ? (
+              <ErrorState title="تعذّر تحميل الرحلات" subtitle="تحقق من الاتصال ثم أعد المحاولة." onRetry={load} />
             ) : (
-              <View style={styles.empty}>
-                <Ionicons name="car-outline" size={64} color="#C6A15B" />
-                <Text style={styles.emptyTitle}>لا توجد رحلات حالياً</Text>
-                <Text style={styles.emptyText}>كن أول موصل! انشر رحلتك واستقبل الطلبات</Text>
-              </View>
+              <EmptyState icon="airplane-outline" title="لا توجد رحلات حالياً" subtitle="كن أول موصل. انشر رحلتك واستقبل الطلبات." />
             )
           }
           refreshControl={
@@ -819,7 +818,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  addTripCtaText: { color: "#fff", fontWeight: "900", fontSize: 14 },
+  addTripCtaText: { color: "#C6A15B", fontWeight: "800", fontSize: 14 },
   createRouteRow: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -885,12 +884,13 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: "#FFFDF8",
-    marginHorizontal: 12,
-    marginTop: 8,
-    borderRadius: 14,
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 18,
     padding: 14,
     borderWidth: 1,
     borderColor: "#E6DCC8",
+    ...TAIR_ELEVATION.card,
   },
 
   // Carrier header (new redesigned card)
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   carrierInitial: { color: "#fff", fontSize: 18, fontWeight: "800" },
-  carrierName: { fontSize: 14, fontWeight: "800", color: "#0f172a", textAlign: "right" },
+  carrierName: { fontSize: 14, fontWeight: "800", color: "#0F241C", textAlign: "right" },
   carrierMeta: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -923,7 +923,7 @@ const styles = StyleSheet.create({
   },
   starRow: { flexDirection: "row-reverse", alignItems: "center", gap: 3 },
   starText: { fontSize: 11, color: "#334155", fontWeight: "700" },
-  carrierSub: { fontSize: 11, color: "#94a3b8", fontWeight: "600" },
+  carrierSub: { fontSize: 11, color: "#8A7B66", fontWeight: "600" },
 
   // Route visual
   routeVisual: {
@@ -933,8 +933,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   routeCityBlock: { flex: 1, alignItems: "center" },
-  routeCityName: { fontSize: 15, fontWeight: "800", color: "#0f172a" },
-  routeCityLabel: { fontSize: 10, color: "#94a3b8", fontWeight: "600", marginTop: 2 },
+  routeCityName: { fontSize: 15, fontWeight: "800", color: "#0F241C" },
+  routeCityLabel: { fontSize: 10, color: "#8A7B66", fontWeight: "600", marginTop: 2 },
   routeLine: {
     flex: 1.4,
     flexDirection: "row-reverse",
@@ -964,7 +964,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 3,
-    backgroundColor: "#ccfbf1",
+    backgroundColor: "#F3EDE2",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 999,
@@ -1007,7 +1007,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#ecfdf5",
+    backgroundColor: "#F3EDE2",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
@@ -1041,7 +1041,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#ecfdf5",
+    backgroundColor: "#F3EDE2",
     borderWidth: 1,
     borderColor: "#C6A15B",
     borderStyle: "dashed",

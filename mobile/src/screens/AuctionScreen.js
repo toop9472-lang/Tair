@@ -9,11 +9,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
-  TextInput, Alert, Modal, Image, Platform, Dimensions, FlatList,
+  TextInput, Alert, Modal, Platform, Dimensions, FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { TAIR } from "../constants/tairTheme";
+import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { auctionsApi } from "../services/tairApi";
+import { ErrorState, ListSkeleton, TairImage } from "../components/TairUI";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -45,6 +46,7 @@ export default function AuctionScreen({ user, onBack, onOpenSubmit }) {
   const [now, setNow] = useState(Date.now());
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [showBid, setShowBid] = useState(null);
   const [bidAmount, setBidAmount] = useState("");
   const [busy, setBusy] = useState(false);
@@ -57,17 +59,19 @@ export default function AuctionScreen({ user, onBack, onOpenSubmit }) {
 
   const load = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [o, w, l] = await Promise.all([
         uid ? auctionsApi.oathStatus(uid).catch(() => ({ accepted: false })) : Promise.resolve({ accepted: false }),
         auctionsApi.window().catch(() => null),
-        auctionsApi.list().catch(() => ({ items: [] })),
+        auctionsApi.list(),
       ]);
       setOath(o || { accepted: false });
       setWin(w);
       setList(l?.items || []);
-    } catch { }
-    finally { setLoading(false); }
+    } catch (e) {
+      setLoadError(e?.message || "تعذّر تحميل المزاد");
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, [uid]);
@@ -130,7 +134,14 @@ export default function AuctionScreen({ user, onBack, onOpenSubmit }) {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={TAIR.emerald} />
+        <ListSkeleton count={3} />
+      ) : loadError && list.length === 0 ? (
+        <ErrorState
+          title="تعذّر فتح المزاد"
+          subtitle="تحقق من الاتصال ثم أعد المحاولة."
+          onRetry={load}
+          testID="auction-error"
+        />
       ) : !oath?.accepted ? (
         <View style={s.oathBox}>
           <View style={s.oathIcon}>
@@ -265,7 +276,7 @@ function BigLiveCard({ a, now, onBid, isOpen, activeIdx, onImgChange }) {
               onImgChange(i);
             }}
             renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={{ width: w, aspectRatio: 1.3 }} />
+              <TairImage uri={item} style={{ width: w, aspectRatio: 1.3 }} iconSize={36} />
             )}
           />
           <View style={s.dotsRow}>
@@ -331,7 +342,7 @@ function UpcomingCard({ a, rank, onOpen }) {
         <Text style={s.upRankText}>#{arNum(a.sequence_number || rank)}</Text>
       </View>
       {first ? (
-        <Image source={{ uri: first }} style={s.upImg} />
+        <TairImage uri={first} style={s.upImg} />
       ) : (
         <View style={[s.upImg, { alignItems: "center", justifyContent: "center", backgroundColor: TAIR.divider }]}>
           <Ionicons name="image-outline" size={22} color={TAIR.textSoft} />
@@ -379,11 +390,13 @@ const s = StyleSheet.create({
 
   statusBar: {
     flexDirection: "row-reverse", alignItems: "center", gap: 8,
-    paddingVertical: 10, paddingHorizontal: 16,
+    marginHorizontal: 14, marginTop: 12,
+    paddingVertical: 10, paddingHorizontal: 14,
+    borderRadius: 14,
   },
   statusText: { fontSize: 12, fontWeight: "800" },
 
-  oathBox: { margin: 16, padding: 20, backgroundColor: TAIR.card, borderRadius: 16, borderWidth: 1, borderColor: TAIR.gold, alignItems: "center" },
+  oathBox: { margin: 16, padding: 22, backgroundColor: TAIR.card, borderRadius: 20, borderWidth: 1, borderColor: "rgba(198,161,91,0.55)", alignItems: "center", ...TAIR_ELEVATION.card },
   oathIcon: { width: 78, height: 78, borderRadius: 39, backgroundColor: TAIR.emerald, alignItems: "center", justifyContent: "center", marginBottom: 14 },
   oathTitle: { color: TAIR.emerald, fontSize: 18, fontWeight: "900", marginBottom: 10 },
   oathText: { color: TAIR.text, fontSize: 14, lineHeight: 24, textAlign: "center", marginBottom: 18 },
@@ -405,10 +418,9 @@ const s = StyleSheet.create({
 
   // ---- Big Card ----
   bigCard: {
-    backgroundColor: TAIR.card, borderRadius: 18, overflow: "hidden",
-    borderWidth: 1.5, borderColor: TAIR.gold,
-    shadowColor: TAIR.emerald, shadowOpacity: 0.15, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 4,
+    backgroundColor: TAIR.card, borderRadius: 20, overflow: "hidden",
+    borderWidth: 1, borderColor: "rgba(198,161,91,0.55)",
+    ...TAIR_ELEVATION.raised,
   },
   seqBadge: {
     position: "absolute", top: 12, right: 12, zIndex: 10,
@@ -451,8 +463,9 @@ const s = StyleSheet.create({
   // ---- Upcoming ----
   upCard: {
     flexDirection: "row-reverse", alignItems: "center", gap: 10,
-    backgroundColor: TAIR.card, padding: 10, borderRadius: 14, marginBottom: 10,
+    backgroundColor: TAIR.card, padding: 10, borderRadius: 16, marginBottom: 10,
     borderWidth: 1, borderColor: TAIR.divider,
+    ...TAIR_ELEVATION.hair,
   },
   upRank: {
     width: 44, height: 44, borderRadius: 22,

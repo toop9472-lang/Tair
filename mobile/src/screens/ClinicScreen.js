@@ -6,14 +6,14 @@
  */
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, FlatList, Image, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Linking, Alert,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  RefreshControl, Linking, Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import TairHeader from "../components/TairHeader";
-import { TAIR } from "../constants/tairTheme";
+import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { clinicTopicsApi, adminExtApi } from "../services/tairApi";
+import { EmptyState, ErrorState, ListSkeleton, PressableScale, TairImage } from "../components/TairUI";
 
 const EMERGENCY_TG = "https://t.me/parrotsnbirds2020";
 
@@ -24,6 +24,7 @@ export default function ClinicScreen({
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [myScopes, setMyScopes] = useState([]);
   const uid = user?.user_id || user?.id || user?.email;
   const isAdmin = !!(user?.is_admin || user?.role === "admin" || user?.role === "super_admin");
@@ -37,14 +38,18 @@ export default function ClinicScreen({
     try {
       const r = await clinicTopicsApi.list(30, 0);
       setItems(r?.items || []);
-    } catch { setItems([]); }
-    finally { setLoading(false); setRefreshing(false); }
+      setLoadError(null);
+    } catch (e) {
+      setLoadError(e?.message || "تعذّر تحميل المواضيع");
+    } finally { setLoading(false); setRefreshing(false); }
     try {
       if (uid) {
         const r = await adminExtApi.myScopes(uid);
         setMyScopes(r?.scopes || []);
       }
-    } catch {}
+    } catch {
+      setMyScopes([]);
+    }
   }, [uid]);
 
   useEffect(() => { load(); }, [load]);
@@ -59,17 +64,17 @@ export default function ClinicScreen({
   const renderTopic = ({ item }) => {
     const img = (item.images && item.images[0]) || item.user_avatar;
     return (
-      <TouchableOpacity
+      <PressableScale
         onPress={() => onOpenTopic?.(item.topic_id)}
         style={s.topicCard}
-        activeOpacity={0.86}
+        haptic
         testID={`clinic-topic-${item.topic_id}`}
       >
         <View style={s.topicLeft}>
           {img ? (
-            <Image source={{ uri: img }} style={s.topicImg} />
+            <TairImage uri={img} style={s.topicImg} icon="medkit-outline" />
           ) : (
-            <View style={[s.topicImg, { backgroundColor: TAIR.divider, alignItems: "center", justifyContent: "center" }]}>
+            <View style={[s.topicImg, { backgroundColor: TAIR.creamDeep, alignItems: "center", justifyContent: "center" }]}>
               <Ionicons name="medkit-outline" size={22} color={TAIR.emerald} />
             </View>
           )}
@@ -93,7 +98,7 @@ export default function ClinicScreen({
             ) : null}
           </View>
         </View>
-      </TouchableOpacity>
+      </PressableScale>
     );
   };
 
@@ -142,20 +147,27 @@ export default function ClinicScreen({
           </>
         }
         ListEmptyComponent={
-          !loading ? (
-            <View style={s.empty}>
-              <Ionicons name="medkit-outline" size={48} color={TAIR.divider} />
-              <Text style={s.emptyTitle}>لا توجد مواضيع بعد</Text>
-              <Text style={s.emptyHint}>كن أول من يطرح استشارة طبية — اضغط «إضافة موضوع»</Text>
-            </View>
-          ) : null
+          loading ? null : loadError ? (
+            <ErrorState
+              title="تعذّر تحميل العيادة"
+              subtitle="تحقق من الاتصال ثم أعد المحاولة."
+              onRetry={load}
+              testID="clinic-error"
+            />
+          ) : (
+            <EmptyState
+              icon="medkit-outline"
+              title="لا توجد مواضيع بعد"
+              subtitle="كن أول من يطرح استشارة طبية — اضغط «إضافة موضوع»"
+            />
+          )
         }
-        contentContainerStyle={{ paddingBottom: TAIR.tabBarH + 90 }}
+        contentContainerStyle={{ paddingBottom: TAIR.tabBarH + 90, flexGrow: 1 }}
       />
 
       {loading && items.length === 0 ? (
         <View style={s.loading} pointerEvents="none">
-          <ActivityIndicator color={TAIR.emerald} />
+          <ListSkeleton count={4} />
         </View>
       ) : null}
 
@@ -177,7 +189,7 @@ export default function ClinicScreen({
 
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: TAIR.bg },
-  loading: { position: "absolute", top: 300, left: 0, right: 0, alignItems: "center" },
+  loading: { position: "absolute", top: 250, left: 0, right: 0 },
 
   banner: {
     marginHorizontal: 14, marginTop: 10,
@@ -219,11 +231,11 @@ const s = StyleSheet.create({
 
   topicCard: {
     flexDirection: "row-reverse", alignItems: "center", gap: 12,
-    marginHorizontal: 14, marginBottom: 10,
-    backgroundColor: TAIR.card, borderRadius: 14,
+    marginHorizontal: 16, marginBottom: 10,
+    backgroundColor: TAIR.card, borderRadius: 18,
     paddingHorizontal: 12, paddingVertical: 12,
     borderWidth: 1, borderColor: TAIR.divider,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1,
+    ...TAIR_ELEVATION.card,
   },
   topicLeft: {},
   topicImg: { width: 54, height: 54, borderRadius: 27, backgroundColor: TAIR.divider, overflow: "hidden" },

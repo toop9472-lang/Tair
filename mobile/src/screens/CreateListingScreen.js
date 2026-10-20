@@ -357,7 +357,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
                 onPress={pickImages}
                 data-testid="pick-images-btn"
               >
-                <Ionicons name="camera" size={22} color="#0ea5e9" />
+                <Ionicons name="camera" size={22} color="#1B3D2F" />
                 <Text style={styles.imgAddText}>إضافة</Text>
               </TouchableOpacity>
             )}
@@ -377,10 +377,10 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
                 data-testid="add-video-btn"
               >
                 {uploadingVideo ? (
-                  <ActivityIndicator color="#0ea5e9" />
+                  <ActivityIndicator color="#1B3D2F" />
                 ) : (
                   <>
-                    <Ionicons name="videocam" size={28} color="#0ea5e9" />
+                    <Ionicons name="videocam" size={28} color="#1B3D2F" />
                     <Text style={styles.videoAddText}>أضف مقطع فيديو</Text>
                   </>
                 )}
@@ -420,7 +420,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             onPress={() => setAiOpen(true)}
             testID="btn-ai-identify"
           >
-            <Ionicons name="sparkles" size={16} color="#fff" />
+            <Ionicons name="sparkles" size={16} color="#C6A15B" />
             <Text style={styles.aiButtonText}>تعرّف على الطائر بالذكاء الاصطناعي</Text>
           </TouchableOpacity>
 
@@ -441,7 +441,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
               onPress={() => setFamilySheetOpen(true)}
               data-testid="input-family"
             >
-              <Ionicons name="leaf" size={14} color="#0ea5e9" />
+              <Ionicons name="leaf" size={14} color="#1B3D2F" />
               <Text style={styles.selectBtnText}>
                 {currentFamily?.name_ar || "اختر الفئة"}
               </Text>
@@ -456,7 +456,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
                 onPress={() => setSpeciesSheetOpen(true)}
                 data-testid="input-species"
               >
-                <Ionicons name="paw" size={14} color="#0ea5e9" />
+                <Ionicons name="paw" size={14} color="#1B3D2F" />
                 <Text style={styles.selectBtnText}>
                   {currentSpecies?.name_ar || "اختر النوع"}
                 </Text>
@@ -668,7 +668,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             <Field label="المدينة *" style={{ flex: 1 }}>
               <CityTriggerButton
                 iconName="location"
-                iconColor="#0ea5e9"
+                iconColor="#1B3D2F"
                 label="المدينة"
                 value={form.city}
                 onPress={() => setCitySheetOpen(true)}
@@ -698,10 +698,10 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
           data-testid="submit-listing-btn"
         >
           {saving ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#C6A15B" />
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Ionicons name="checkmark-circle" size={20} color="#C6A15B" />
               <Text style={styles.submitText}>نشر الإعلان</Text>
             </>
           )}
@@ -802,7 +802,7 @@ function PickerSheet({ visible, title, options, selected, onSelect, onClose }) {
                   {o.label}
                 </Text>
                 {selected === o.id && (
-                  <Ionicons name="checkmark-circle" size={18} color="#0ea5e9" />
+                  <Ionicons name="checkmark-circle" size={18} color="#1B3D2F" />
                 )}
               </TouchableOpacity>
             ))}
@@ -828,16 +828,16 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: "#FFFDF8",
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 18,
+    padding: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E6DCC8",
-    shadowColor: "rgba(27,61,47,0.08)",
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    shadowColor: "#1B3D2F",
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   cardTitle: {
     fontSize: 15,
@@ -939,13 +939,13 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#a7f3d0",
+    borderColor: "#C6A15B",
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ecfdf5",
+    backgroundColor: "#FBF6EE",
   },
-  imgAddText: { color: "#0ea5e9", fontSize: 11, marginTop: 4, fontWeight: "700" },
+  imgAddText: { color: "#1B3D2F", fontSize: 11, marginTop: 4, fontWeight: "700" },
 
   videoSection: {
     marginTop: 14,
@@ -961,13 +961,13 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: "#a7f3d0",
+    borderColor: "#C6A15B",
     borderStyle: "dashed",
-    backgroundColor: "#f0fdfa",
+    backgroundColor: "#FBF6EE",
     alignItems: "center",
     justifyContent: "center",
   },
-  videoAddText: { color: "#0ea5e9", fontSize: 12.5, fontWeight: "800", marginTop: 6 },
+  videoAddText: { color: "#1B3D2F", fontSize: 12.5, fontWeight: "800", marginTop: 6 },
   videoTile: {
     aspectRatio: 16 / 9,
     borderRadius: 14,
@@ -1015,28 +1015,30 @@ const styles = StyleSheet.create({
   submitBar: {
     position: "absolute",
     bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 30,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 28,
+    backgroundColor: "#FFFDF8",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(198,161,91,0.45)",
   },
   submitBtn: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#0ea5e9",
-    paddingVertical: 14,
+    backgroundColor: "#1B3D2F",
+    paddingVertical: 15,
     borderRadius: 16,
-    shadowColor: "#0ea5e9",
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#C6A15B",
+    shadowColor: "#0F241C",
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
   },
-  submitText: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  submitText: { color: "#C6A15B", fontSize: 16, fontWeight: "800" },
 
   aiButton: {
     flexDirection: "row-reverse",
@@ -1046,9 +1048,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 11,
     borderRadius: 10,
-    backgroundColor: "#0ea5e9",
+    backgroundColor: "#1B3D2F",
   },
-  aiButtonText: { color: "#fff", fontSize: 13, fontWeight: "800" },
+  aiButtonText: { color: "#C6A15B", fontSize: 13, fontWeight: "800" },
 
   // Picker Sheet
   sheetBackdrop: {
@@ -1088,7 +1090,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f1f5f9",
   },
-  sheetItemActive: { backgroundColor: "#f0fdfa" },
+  sheetItemActive: { backgroundColor: "#FBF6EE" },
   sheetItemText: { fontSize: 14, fontWeight: "700", color: "#334155" },
-  sheetItemTextActive: { color: "#0ea5e9", fontWeight: "900" },
+  sheetItemTextActive: { color: "#1B3D2F", fontWeight: "900" },
 });

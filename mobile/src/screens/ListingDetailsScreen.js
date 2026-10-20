@@ -1,5 +1,5 @@
 // طير — Listing Details
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
-  ActivityIndicator,
   Alert,
   Share,
   Linking,
@@ -21,6 +20,8 @@ import Constants from "expo-constants";
 import { listingsApi, tairReportsApi } from "../services/tairApi";
 import api from "../services/api";
 import { SafetyNotice, OwnerStatsCard } from "../components/TairShared";
+import { DetailSkeleton, ErrorState, TairImage } from "../components/TairUI";
+import { TAIR } from "../constants/tairTheme";
 
 const { width } = Dimensions.get("window");
 
@@ -56,21 +57,32 @@ export default function ListingDetailsScreen({
   onOpenSeller,
 }) {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [listing, setListing] = useState(null);
   const [imgIdx, setImgIdx] = useState(0);
   const [favorited, setFavorited] = useState(false);
   const [zoomImg, setZoomImg] = useState(null);
 
-  useEffect(() => {
+  const loadListing = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
     const viewerId = user?.user_id || user?.id;
     listingsApi
       .get(listingId, viewerId)
       .then((doc) => {
         setListing(doc);
-        setLoading(false);
+        setLoadError(null);
       })
-      .catch(() => setLoading(false));
+      .catch((e) => {
+        setListing(null);
+        setLoadError(e?.message || "تعذّر تحميل الإعلان");
+      })
+      .finally(() => setLoading(false));
   }, [listingId, user]);
+
+  useEffect(() => {
+    loadListing();
+  }, [loadListing]);
 
   const toggleFav = async () => {
     try {
@@ -123,15 +135,19 @@ export default function ListingDetailsScreen({
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#10b981" size="large" />
+      <View style={styles.container}>
+        <DetailSkeleton />
       </View>
     );
   }
   if (!listing) {
     return (
       <View style={[styles.container, styles.center]}>
-        <Text style={styles.emptyText}>الإعلان غير موجود</Text>
+        <ErrorState
+          title={loadError ? "تعذّر فتح الإعلان" : "الإعلان غير موجود"}
+          subtitle={loadError ? "تحقق من الاتصال ثم أعد المحاولة." : "ربما حُذف أو لم يعد متاحاً."}
+          onRetry={loadError ? loadListing : undefined}
+        />
         <TouchableOpacity onPress={onBack} style={styles.linkBtn}>
           <Text style={styles.linkText}>رجوع</Text>
         </TouchableOpacity>
@@ -164,9 +180,9 @@ export default function ListingDetailsScreen({
                 onPress={() => setZoomImg(uri)}
                 testID={`listing-img-${i}`}
               >
-                <Image
-                  source={{ uri }}
-                  style={{ width, height: width, backgroundColor: "#f1f5f9" }}
+                <TairImage
+                  uri={uri}
+                  style={{ width, height: width, backgroundColor: TAIR.creamDeep }}
                 />
               </TouchableOpacity>
             ))}
@@ -186,17 +202,17 @@ export default function ListingDetailsScreen({
           {/* Top actions */}
           <View style={styles.topActions}>
             <TouchableOpacity style={styles.iconBtn} onPress={onBack}>
-              <Ionicons name="arrow-forward" size={22} color="#0f172a" />
+              <Ionicons name="arrow-forward" size={22} color="#0F241C" />
             </TouchableOpacity>
             <View style={{ flexDirection: "row-reverse", gap: 8 }}>
               <TouchableOpacity style={styles.iconBtn} onPress={shareListing}>
-                <Ionicons name="share-social-outline" size={20} color="#0f172a" />
+                <Ionicons name="share-social-outline" size={20} color="#0F241C" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={toggleFav}>
                 <Ionicons
                   name={favorited ? "heart" : "heart-outline"}
                   size={20}
-                  color={favorited ? "#ef4444" : "#0f172a"}
+                  color={favorited ? "#ef4444" : "#0F241C"}
                 />
               </TouchableOpacity>
             </View>
@@ -211,14 +227,14 @@ export default function ListingDetailsScreen({
           {/* Location + views compact row */}
           <View style={styles.metaRow}>
             <View style={styles.locationRow}>
-              <Ionicons name="location" size={14} color="#10b981" />
+              <Ionicons name="location" size={14} color="#1B3D2F" />
               <Text style={styles.locationText}>
                 {listing.city}
                 {listing.district ? ` · ${listing.district}` : ""}
               </Text>
             </View>
             <View style={styles.viewsBadge}>
-              <Ionicons name="eye-outline" size={13} color="#64748b" />
+              <Ionicons name="eye-outline" size={13} color="#6B5E4A" />
               <Text style={styles.viewsText}>{listing.view_count || 0}</Text>
             </View>
           </View>
@@ -269,7 +285,7 @@ export default function ListingDetailsScreen({
                   </Text>
                   {listing.seller_verified_shop && (
                     <View style={styles.sellerVerBadge}>
-                      <Ionicons name="checkmark-circle" size={12} color="#0ea5e9" />
+                      <Ionicons name="checkmark-circle" size={12} color="#C6A15B" />
                       <Text style={styles.sellerVerText}>موثوق</Text>
                     </View>
                   )}
@@ -317,7 +333,7 @@ export default function ListingDetailsScreen({
               icon="shield-checkmark"
               label="محصّن"
               value={listing.health?.vaccinated ? "نعم" : "لا"}
-              color={listing.health?.vaccinated ? "#10b981" : "#94a3b8"}
+              color={listing.health?.vaccinated ? "#1B3D2F" : "#94a3b8"}
             />
             {listing.health?.ring_number ? (
               <Row icon="pricetag" label="رقم الخاتم" value={listing.health.ring_number} />
@@ -366,8 +382,8 @@ export default function ListingDetailsScreen({
                 }}
                 style={{
                   flexDirection: "row-reverse", alignItems: "center", justifyContent: "center",
-                  gap: 8, backgroundColor: (listing.status === "sold" || listing.sold_at) ? "#DC2626" : "rgba(37,99,235,0.10)",
-                  borderColor: (listing.status === "sold" || listing.sold_at) ? "#fff" : "#2563EB",
+                  gap: 8, backgroundColor: (listing.status === "sold" || listing.sold_at) ? "#8B3A2F" : "rgba(27,61,47,0.08)",
+                  borderColor: (listing.status === "sold" || listing.sold_at) ? "#FFFDF8" : "#1B3D2F",
                   borderWidth: 1.5, padding: 12, borderRadius: 12, marginTop: 10,
                 }}
                 testID="mark-sold-btn"
@@ -375,10 +391,10 @@ export default function ListingDetailsScreen({
                 <Ionicons
                   name={(listing.status === "sold" || listing.sold_at) ? "refresh" : "checkmark-done-circle"}
                   size={16}
-                  color={(listing.status === "sold" || listing.sold_at) ? "#fff" : "#2563EB"}
+                  color={(listing.status === "sold" || listing.sold_at) ? "#FFFDF8" : "#1B3D2F"}
                 />
                 <Text style={{
-                  color: (listing.status === "sold" || listing.sold_at) ? "#fff" : "#2563EB",
+                  color: (listing.status === "sold" || listing.sold_at) ? "#FFFDF8" : "#1B3D2F",
                   fontWeight: "900", fontSize: 13,
                 }}>
                   {(listing.status === "sold" || listing.sold_at) ? "إلغاء تعليم البيع" : "تم البيع — علّم الإعلان"}
@@ -438,7 +454,7 @@ export default function ListingDetailsScreen({
               onPress={() => onOpenSeller(listing.seller_id)}
               testID="open-seller-storefront"
             >
-              <Ionicons name="storefront-outline" size={18} color="#0ea5e9" />
+              <Ionicons name="storefront-outline" size={18} color="#C6A15B" />
             </TouchableOpacity>
           )}
           {listing?.seller_whatsapp || listing?.whatsapp || listing?.seller_phone ? (
@@ -466,7 +482,7 @@ export default function ListingDetailsScreen({
             onPress={() => onContactSeller && onContactSeller(listing.seller_id, listing.seller_name)}
             data-testid="contact-seller-btn"
           >
-            <Ionicons name="chatbubble-outline" size={18} color="#065f46" />
+            <Ionicons name="chatbubble-outline" size={18} color="#1B3D2F" />
             <Text style={styles.secondaryText}>تواصل</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -475,20 +491,20 @@ export default function ListingDetailsScreen({
             data-testid="order-btn"
           >
             <LinearGradient
-              colors={["#10b981", "#06b6d4"]}
+              colors={["#0F241C", "#1B3D2F"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.primaryGrad}
             >
-              <Ionicons name="cube" size={18} color="#fff" />
-              <Text style={styles.primaryText}>اطلب مع موصل</Text>
+              <Ionicons name="cube" size={18} color="#C6A15B" />
+              <Text style={[styles.primaryText, { color: "#C6A15B" }]}>اطلب مع موصل</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.bottomBar}>
           <View style={{ flex: 1, alignItems: "center", paddingVertical: 14 }}>
-            <Text style={{ color: "#64748b", fontSize: 13 }}>
+            <Text style={{ color: "#6B5E4A", fontSize: 13 }}>
               هذا إعلانك — عدّله من "حسابي"
             </Text>
           </View>
@@ -511,7 +527,7 @@ export default function ListingDetailsScreen({
 function SpecCard({ icon, label, value }) {
   return (
     <View style={styles.spec}>
-      <Ionicons name={icon} size={18} color="#10b981" />
+      <Ionicons name={icon} size={18} color={TAIR.goldDark} />
       <Text style={styles.specLabel}>{label}</Text>
       <Text style={styles.specValue}>{value}</Text>
     </View>
@@ -521,7 +537,7 @@ function Row({ icon, label, value, color }) {
   return (
     <View style={styles.hrow}>
       <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 8 }}>
-        <Ionicons name={icon} size={16} color={color || "#64748b"} />
+        <Ionicons name={icon} size={16} color={color || "#6B5E4A"} />
         <Text style={styles.hlabel}>{label}</Text>
       </View>
       <Text style={[styles.hvalue, color && { color }]}>{value}</Text>
@@ -594,7 +610,7 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   center: { alignItems: "center", justifyContent: "center", padding: 40, gap: 12 },
-  emptyText: { color: "#64748b", fontSize: 15 },
+  emptyText: { color: "#6B5E4A", fontSize: 15 },
   tairDisclaimer: {
     marginTop: 14, marginBottom: 8, padding: 10, borderRadius: 10,
     backgroundColor: "#FFFDF8", borderWidth: 1, borderColor: "#E6DCC8",
@@ -602,9 +618,9 @@ const styles = StyleSheet.create({
   },
   tairDisclaimerText: { flex: 1, color: "#6B5E4A", fontSize: 11, fontWeight: "600", textAlign: "right", lineHeight: 18 },
   linkBtn: { paddingVertical: 10, paddingHorizontal: 20 },
-  linkText: { color: "#10b981", fontWeight: "700" },
+  linkText: { color: "#1B3D2F", fontWeight: "700" },
 
-  gallery: { position: "relative", backgroundColor: "#f1f5f9" },
+  gallery: { position: "relative", backgroundColor: "#EFE4D2" },
   topActions: {
     position: "absolute",
     top: 50,
@@ -645,17 +661,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   price: { fontSize: 34, fontWeight: "900", color: "#1B3D2F", lineHeight: 40 },
-  negotiable: { color: "#0891b2", fontSize: 12, fontWeight: "700", marginTop: 4 },
+  negotiable: { color: "#8A6A2E", fontSize: 12, fontWeight: "700", marginTop: 4 },
   viewsBadge: {
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#EFE4D2",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
   },
-  viewsText: { color: "#64748b", fontSize: 12 },
+  viewsText: { color: "#6B5E4A", fontSize: 12 },
   title: {
     fontSize: 22,
     fontWeight: "900",
@@ -670,17 +686,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  locationText: { color: "#065f46", fontSize: 13, fontWeight: "600" },
+  locationText: { color: "#1B3D2F", fontSize: 13, fontWeight: "600" },
 
   sellerCard: {
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 12,
     padding: 12,
-    backgroundColor: "#f0fdfa",
+    backgroundColor: "#FBF6EE",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#a7f3d0",
+    borderColor: "#E6DCC8",
     marginBottom: 12,
     marginTop: 10,
   },
@@ -695,7 +711,7 @@ const styles = StyleSheet.create({
   sellerAvatarImg: { width: "100%", height: "100%" },
   sellerAvatarPh: {
     width: "100%", height: "100%",
-    backgroundColor: "#0ea5e9",
+    backgroundColor: "#C6A15B",
     alignItems: "center", justifyContent: "center",
   },
   sellerAvatarInit: { color: "#fff", fontSize: 18, fontWeight: "800" },
@@ -707,7 +723,7 @@ const styles = StyleSheet.create({
   sellerName: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#0f172a",
+    color: "#0F241C",
     textAlign: "right",
     flexShrink: 1,
   },
@@ -720,12 +736,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#a7f3d0",
+    borderColor: "#E6DCC8",
   },
-  sellerVerText: { fontSize: 10, fontWeight: "800", color: "#0ea5e9" },
+  sellerVerText: { fontSize: 10, fontWeight: "800", color: "#C6A15B" },
   sellerHint: {
     fontSize: 11,
-    color: "#0ea5e9",
+    color: "#C6A15B",
     fontWeight: "700",
     marginTop: 2,
     textAlign: "right",
@@ -740,23 +756,25 @@ const styles = StyleSheet.create({
   spec: {
     flex: 1,
     minWidth: "45%",
-    backgroundColor: "#ecfdf5",
+    backgroundColor: "#FFFDF8",
+    borderWidth: 1,
+    borderColor: "#E6DCC8",
     borderRadius: 14,
     padding: 12,
     gap: 4,
   },
-  specLabel: { color: "#065f46", fontSize: 11, fontWeight: "600" },
-  specValue: { color: "#064e3b", fontSize: 14, fontWeight: "700" },
+  specLabel: { color: "#1B3D2F", fontSize: 11, fontWeight: "600" },
+  specValue: { color: "#0F241C", fontSize: 14, fontWeight: "700" },
 
   h3: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#0f172a",
+    color: "#0F241C",
     marginTop: 20,
     marginBottom: 8,
     textAlign: "right",
   },
-  desc: { color: "#475569", fontSize: 14, lineHeight: 22, textAlign: "right" },
+  desc: { color: "#6B5E4A", fontSize: 14, lineHeight: 22, textAlign: "right" },
 
   healthBox: {
     backgroundColor: "#F7F1E8",
@@ -769,8 +787,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  hlabel: { color: "#64748b", fontSize: 13 },
-  hvalue: { color: "#0f172a", fontSize: 13, fontWeight: "700" },
+  hlabel: { color: "#6B5E4A", fontSize: 13 },
+  hvalue: { color: "#0F241C", fontSize: 13, fontWeight: "700" },
 
   reportBtn: {
     flexDirection: "row-reverse",
@@ -789,7 +807,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
+    borderTopColor: "#E6DCC8",
     padding: 12,
     paddingBottom: 26,
     flexDirection: "row-reverse",
@@ -804,12 +822,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: "#10b981",
+    borderColor: "#1B3D2F",
   },
-  secondaryText: { color: "#065f46", fontWeight: "700", fontSize: 14 },
+  secondaryText: { color: "#1B3D2F", fontWeight: "700", fontSize: 14 },
   storefrontBtn: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: "#f0fdfa", borderWidth: 1, borderColor: "#a7f3d0",
+    backgroundColor: "#FBF6EE", borderWidth: 1, borderColor: "#E6DCC8",
     alignItems: "center", justifyContent: "center",
   },
   whatsappBtn: {
@@ -819,7 +837,7 @@ const styles = StyleSheet.create({
     shadowColor: "#22c55e", shadowOpacity: 0.35,
     shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3,
   },
-  primaryBtn: { flex: 1.5, borderRadius: 14, overflow: "hidden" },
+  primaryBtn: { flex: 1.5, borderRadius: 14, overflow: "hidden", backgroundColor: "#1B3D2F" },
   primaryGrad: {
     flexDirection: "row-reverse",
     alignItems: "center",

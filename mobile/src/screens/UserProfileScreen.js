@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  ActivityIndicator,
   FlatList,
   Alert,
   Dimensions,
@@ -15,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Video, ResizeMode } from "expo-av";
 import api from "../services/api";
+import { DetailSkeleton, ErrorState } from "../components/TairUI";
 
 const PLACEHOLDER_SIGNATURES = [
   "static.prod-images.emergentagent.com/jobs/3943d011-4c0b-4252-9b99-046dc8",
@@ -65,6 +65,7 @@ const UserProfileScreen = ({
   const [profile, setProfile] = useState(null);
   const [clips, setClips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [followBusy, setFollowBusy] = useState(false);
   const [followListMode, setFollowListMode] = useState(null);
   const playLocal = () => {};
@@ -77,6 +78,7 @@ const UserProfileScreen = ({
   const loadProfile = useCallback(async () => {
     if (!targetUserId) return;
     setLoading(true);
+    setLoadError(null);
     try {
       const profileRes = await api.fetch(
         `/api/users/public-profile/${encodeURIComponent(
@@ -101,7 +103,8 @@ const UserProfileScreen = ({
         setClips([]);
       }
     } catch (e) {
-      Alert.alert("خطأ", String(e?.message || e));
+      setProfile(null);
+      setLoadError(e?.message || "تعذّر تحميل الملف الشخصي");
     } finally {
       setLoading(false);
     }
@@ -181,7 +184,7 @@ const UserProfileScreen = ({
             />
           ) : (
             <LinearGradient
-              colors={["#0f172a", "#1e293b"]}
+              colors={["#0F241C", "#1B3D2F"]}
               style={StyleSheet.absoluteFillObject}
             />
           )}
@@ -201,7 +204,7 @@ const UserProfileScreen = ({
   if (loading) {
     return (
       <View style={styles.loaderWrap}>
-        <ActivityIndicator size="large" color="#60a5fa" />
+        <DetailSkeleton />
       </View>
     );
   }
@@ -209,7 +212,11 @@ const UserProfileScreen = ({
   if (!profile) {
     return (
       <View style={styles.loaderWrap}>
-        <Text style={styles.errorText}>تعذر تحميل الملف الشخصي</Text>
+        <ErrorState
+          title="تعذّر فتح الملف"
+          subtitle={loadError || "تحقق من الاتصال ثم أعد المحاولة."}
+          onRetry={loadProfile}
+        />
         <TouchableOpacity style={styles.backBtn} onPress={onClose}>
           <Text style={styles.backBtnText}>عودة</Text>
         </TouchableOpacity>
@@ -220,7 +227,7 @@ const UserProfileScreen = ({
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#0f172a", "#1e1b4b"]}
+        colors={["#0F241C", "#1B3D2F"]}
         style={StyleSheet.absoluteFillObject}
       />
 
@@ -315,12 +322,12 @@ const UserProfileScreen = ({
               <Ionicons
                 name={profile.followed_by_me ? "person-remove-outline" : "person-add"}
                 size={17}
-                color={profile.followed_by_me ? "#cbd5e1" : "#fff"}
+                color={profile.followed_by_me ? "#E0C580" : "#0F241C"}
               />
               <Text
                 style={[
                   styles.actionBtnText,
-                  profile.followed_by_me && { color: "#cbd5e1" },
+                  profile.followed_by_me ? { color: "#E0C580" } : { color: "#0F241C" },
                 ]}
               >
                 {profile.followed_by_me ? "إلغاء المتابعة" : "متابعة"}
@@ -332,8 +339,8 @@ const UserProfileScreen = ({
               onPress={handleMessage}
               activeOpacity={0.8}
             >
-              <Ionicons name="paper-plane-outline" size={17} color="#bfdbfe" />
-              <Text style={[styles.actionBtnText, { color: "#bfdbfe" }]}>
+              <Ionicons name="paper-plane-outline" size={17} color="#C6A15B" />
+              <Text style={[styles.actionBtnText, { color: "#C6A15B" }]}>
                 رسالة خاصة
               </Text>
             </TouchableOpacity>
@@ -378,21 +385,23 @@ const UserProfileScreen = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a" },
+  container: { flex: 1, backgroundColor: "#0F241C" },
   loaderWrap: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0f172a",
+    backgroundColor: "#F7F1E8",
   },
   errorText: { color: "#fff", marginBottom: 16 },
   backBtn: {
     paddingHorizontal: 24,
     paddingVertical: 10,
-    backgroundColor: "#3b82f6",
+    backgroundColor: "#1B3D2F",
+    borderWidth: 1,
+    borderColor: "#C6A15B",
     borderRadius: 14,
   },
-  backBtnText: { color: "#fff", fontWeight: "600" },
+  backBtnText: { color: "#C6A15B", fontWeight: "800" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -423,7 +432,7 @@ const styles = StyleSheet.create({
     padding: 3,
     borderRadius: 60,
     borderWidth: 2,
-    borderColor: "rgba(96,165,250,0.4)",
+    borderColor: "rgba(198,161,91,0.7)",
     marginBottom: 12,
   },
   avatar: { width: 96, height: 96, borderRadius: 48 },
@@ -459,7 +468,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 20,
     marginVertical: 16,
-    backgroundColor: "rgba(15,23,42,0.6)",
+    backgroundColor: "rgba(255,253,248,0.06)",
     borderColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
     borderRadius: 16,
@@ -490,16 +499,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   actionBtnPrimary: {
-    backgroundColor: "#3b82f6",
-    borderColor: "#3b82f6",
+    backgroundColor: "#C6A15B",
+    borderColor: "#C6A15B",
   },
   actionBtnSecondary: {
     backgroundColor: "rgba(255,255,255,0.06)",
     borderColor: "rgba(255,255,255,0.16)",
   },
   actionBtnGhost: {
-    backgroundColor: "rgba(99,102,241,0.16)",
-    borderColor: "rgba(99,102,241,0.38)",
+    backgroundColor: "rgba(198,161,91,0.12)",
+    borderColor: "rgba(198,161,91,0.45)",
   },
   actionBtnGift: {
     backgroundColor: "#ec4899",
@@ -517,7 +526,7 @@ const styles = StyleSheet.create({
   tile: {
     width: GRID_TILE_SIZE,
     height: GRID_TILE_SIZE * 1.55,
-    backgroundColor: "rgba(15,23,42,0.8)",
+    backgroundColor: "rgba(15,36,28,0.8)",
     overflow: "hidden",
     borderRadius: 4,
   },
@@ -536,7 +545,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(30,41,59,0.7)",
+    backgroundColor: "rgba(27,61,47,0.7)",
   },
   tileBadge: {
     position: "absolute",

@@ -15,6 +15,7 @@ import * as ImagePicker from "expo-image-picker";
 import { TAIR } from "../constants/tairTheme";
 import { clinicTopicsApi, adminExtApi } from "../services/tairApi";
 import api from "../services/api";
+import { DetailSkeleton, ErrorState } from "../components/TairUI";
 
 const QLABELS = {
   q_lethargy: "خمول", q_appetite: "الشهية", q_onset: "بداية الأعراض",
@@ -31,6 +32,7 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
   const [topic, setTopic] = useState(null);
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [replyImgs, setReplyImgs] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -46,6 +48,8 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
   const isOwner = topic?.user_id === uid;
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
       const [t, r] = await Promise.all([
         clinicTopicsApi.get(topicId),
@@ -53,14 +57,18 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
       ]);
       setTopic(t);
       setReplies(r?.items || []);
-    } catch { Alert.alert("خطأ", "تعذّر تحميل الموضوع"); }
-    finally { setLoading(false); }
+    } catch (e) {
+      setTopic(null);
+      setLoadError(e?.message || "تعذّر تحميل الموضوع");
+    } finally { setLoading(false); }
     try {
       if (uid) {
         const r = await adminExtApi.myScopes(uid);
         setMyScopes(r?.scopes || []);
       }
-    } catch {}
+    } catch {
+      setMyScopes([]);
+    }
   }, [topicId, uid]);
 
   useEffect(() => { load(); }, [load]);
@@ -144,16 +152,20 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
 
   if (loading) {
     return (
-      <View style={[s.page, { alignItems: "center", justifyContent: "center" }]}>
-        <ActivityIndicator color={TAIR.emerald} size="large" />
+      <View style={s.page}>
+        <DetailSkeleton />
       </View>
     );
   }
   if (!topic) {
     return (
       <View style={s.page}>
-        <TouchableOpacity onPress={onBack} style={{ padding: 16 }}><Text style={{ color: TAIR.emerald }}>‹ رجوع</Text></TouchableOpacity>
-        <Text style={{ textAlign: "center", color: TAIR.textSoft, marginTop: 40 }}>الموضوع غير موجود</Text>
+        <TouchableOpacity onPress={onBack} style={{ padding: 16 }}><Text style={{ color: TAIR.emerald, fontWeight: "800" }}>رجوع</Text></TouchableOpacity>
+        <ErrorState
+          title={loadError ? "تعذّر فتح الموضوع" : "الموضوع غير موجود"}
+          subtitle={loadError ? "تحقق من الاتصال ثم أعد المحاولة." : "ربما حُذف هذا الموضوع."}
+          onRetry={loadError ? load : undefined}
+        />
       </View>
     );
   }

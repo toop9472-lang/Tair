@@ -1,14 +1,13 @@
 /**
- * TairBottomBar — شريط سفلي هادئ ورفيع بأيقونات ممتلئة عند النشاط
- * الترتيب RTL: السوق | الرحلات | الرسائل | المجتمع | حسابي
- * - النشط: أيقونة ذهبية ممتلئة + نقطة تحت + نص بارز
- * - غير النشط: أيقونة outline زمرد فاتح + نص خفيف
- * - شفاف يندمج مع الخلفية بلا حواف حادة
+ * TairBottomBar — شريط سفلي هادئ.
+ * الترتيب RTL: السوق | الرحلات | العيادة | المجتمع | حسابي
+ * النشط: كبسولة كريمية + أيقونة زمردية + نقطة ذهبية.
  */
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { TAIR } from "../constants/tairTheme";
+import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
+import { PressableScale } from "./TairUI";
 
 const TABS = [
   { key: "account",   label: "حسابي",   iconOn: "person",              iconOff: "person-outline" },
@@ -25,25 +24,26 @@ export default function TairBottomBar({ active = "market", onChange, testID }) {
         {TABS.map((t) => {
           const isActive = t.key === active;
           return (
-            <TouchableOpacity
+            <PressableScale
               key={t.key}
               onPress={() => onChange?.(t.key)}
-              activeOpacity={0.7}
+              haptic
+              scaleTo={0.96}
               style={styles.item}
               testID={`tab-${t.key}`}
             >
-              <View style={styles.iconWrap}>
+              <View style={[styles.pill, isActive && styles.pillActive]}>
                 <Ionicons
                   name={isActive ? t.iconOn : t.iconOff}
                   size={20}
-                  color={isActive ? TAIR.emerald : "#8A7E67"}
+                  color={isActive ? TAIR.emerald : TAIR.faint}
                 />
+                <Text style={[styles.label, isActive && styles.labelActive]} numberOfLines={1}>
+                  {t.label}
+                </Text>
               </View>
-              <Text style={[styles.label, isActive && styles.labelActive]}>
-                {t.label}
-              </Text>
-              {isActive ? <View style={styles.activeDot} /> : <View style={styles.activeDotHidden} />}
-            </TouchableOpacity>
+              <View style={[styles.dot, isActive && styles.dotOn]} />
+            </PressableScale>
           );
         })}
       </View>
@@ -57,52 +57,52 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingBottom: Platform.OS === "ios" ? 14 : 6,
-    paddingTop: 2,
-    backgroundColor: TAIR.bg,
-    // خط ذهبي رفيع بلا ثقل
+    paddingBottom: Platform.OS === "ios" ? 16 : 8,
+    paddingTop: 8,
+    paddingHorizontal: 8,
+    backgroundColor: TAIR.card,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TAIR.gold + "55",
+    borderTopColor: "rgba(198,161,91,0.45)",
+    ...TAIR_ELEVATION.raised,
   },
   inner: {
     flexDirection: "row-reverse",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    paddingHorizontal: 4,
   },
   item: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 3,
-    paddingHorizontal: 2,
   },
-  iconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  pill: {
+    minWidth: 58,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 16,
+  },
+  pillActive: {
+    backgroundColor: TAIR.emeraldWash,
   },
   label: {
     fontSize: 10,
-    color: "#8A7E67",
+    color: TAIR.faint,
     fontWeight: "700",
-    marginTop: 0,
+    marginTop: 2,
   },
   labelActive: {
     color: TAIR.emerald,
-    fontWeight: "900",
+    fontWeight: "800",
   },
-  activeDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: TAIR.gold,
-    marginTop: 2,
-  },
-  activeDotHidden: {
-    width: 3, height: 3, marginTop: 2,
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 4,
     backgroundColor: "transparent",
+  },
+  dotOn: {
+    backgroundColor: TAIR.gold,
   },
 });

@@ -26,6 +26,8 @@ import {
   adminExtApi,
 } from "../services/tairApi";
 import { TAIR_BANNER_IMAGE } from "../constants/tairDesign";
+import { ErrorState, ListSkeleton } from "../components/TairUI";
+import { TAIR_ELEVATION } from "../constants/tairTheme";
 
 const API_BASE =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -98,6 +100,7 @@ export default function ProfileScreen({
   const [ratings, setRatings] = useState([]);
   const [avg, setAvg] = useState({ seller: 0, carrier: 0 });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState(user?.name || "");
@@ -179,6 +182,9 @@ export default function ProfileScreen({
           ? Math.round((arr.reduce((s, r) => s + (r.stars || 0), 0) / arr.length) * 10) / 10
           : 0;
       setAvg({ seller: avgOf(bySeller), carrier: avgOf(byCarrier) });
+      setLoadError(null);
+    } catch (e) {
+      setLoadError(e?.message || "تعذّر تحميل الحساب");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -206,7 +212,9 @@ export default function ProfileScreen({
       try {
         const r = await adminExtApi.myScopes(uid);
         setMyScopes(r?.scopes || []);
-      } catch {}
+      } catch {
+        setMyScopes([]);
+      }
     })();
   }, [uid, isGuest]);
 
@@ -472,7 +480,9 @@ export default function ProfileScreen({
             </View>
 
             {loading ? (
-              <ActivityIndicator color={TEAL} size="large" style={{ marginTop: 30 }} />
+              <ListSkeleton count={3} />
+            ) : loadError && myListings.length === 0 && myTrips.length === 0 ? (
+              <ErrorState title="تعذّر تحميل حسابك" subtitle="تحقق من الاتصال ثم أعد المحاولة." onRetry={load} />
             ) : (
               <View style={{ gap: 8, marginBottom: 20 }}>
                 {tab === "listings" &&
@@ -500,7 +510,7 @@ export default function ProfileScreen({
                             onPress={() => onEditListing && onEditListing(l)}
                             testID={`edit-listing-${l.listing_id}`}
                           >
-                            <Ionicons name="create-outline" size={18} color="#0ea5e9" />
+                            <Ionicons name="create-outline" size={18} color="#1B3D2F" />
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.deleteIconBtn}
@@ -560,7 +570,7 @@ export default function ProfileScreen({
                             onPress={() => onEditTrip && onEditTrip(t)}
                             testID={`edit-trip-${t.trip_id}`}
                           >
-                            <Ionicons name="create-outline" size={18} color="#0ea5e9" />
+                            <Ionicons name="create-outline" size={18} color="#1B3D2F" />
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.deleteIconBtn}
@@ -742,7 +752,7 @@ export default function ProfileScreen({
           <View style={styles.modalCard}>
             <View style={styles.modalHead}>
               <TouchableOpacity onPress={() => setEditOpen(false)}>
-                <Ionicons name="close" size={24} color="#64748b" />
+                <Ionicons name="close" size={24} color="#6B5E4A" />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>تعديل المتجر</Text>
               <View style={{ width: 24 }} />
@@ -763,8 +773,8 @@ export default function ProfileScreen({
                   </ImageBackground>
                 ) : (
                   <View style={[styles.bgPreview, { backgroundColor: "#f0fdfa" }]}>
-                    <Ionicons name="image-outline" size={26} color="#0ea5e9" />
-                    <Text style={[styles.bgLabel, { color: "#0ea5e9" }]}>اختر خلفية للمتجر</Text>
+                    <Ionicons name="image-outline" size={26} color="#1B3D2F" />
+                    <Text style={[styles.bgLabel, { color: "#1B3D2F" }]}>اختر خلفية للمتجر</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -940,7 +950,7 @@ const styles = StyleSheet.create({
   avatarImage: { width: 84, height: 84, borderRadius: 42 },
   avatarText: { color: TEAL, fontSize: 32, fontWeight: "900" },
   name: { color: "#0f172a", fontSize: 20, fontWeight: "900", marginTop: 10 },
-  email: { color: "#64748b", fontSize: 12, marginTop: 4, textAlign: "center" },
+  email: { color: "#6B5E4A", fontSize: 12, marginTop: 4, textAlign: "center" },
 
   verifiedBadge: {
     flexDirection: "row-reverse",
@@ -973,12 +983,13 @@ const styles = StyleSheet.create({
   },
   stat: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFDF8",
     borderWidth: 1,
     borderColor: BORDER,
-    borderRadius: 14,
+    borderRadius: 16,
     paddingVertical: 12,
     alignItems: "center",
+    ...TAIR_ELEVATION.hair,
   },
   statIcon: {
     width: 32,
@@ -990,12 +1001,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   statValue: { color: "#0f172a", fontSize: 16, fontWeight: "900" },
-  statLabel: { color: "#64748b", fontSize: 10, fontWeight: "700", marginTop: 2 },
+  statLabel: { color: "#6B5E4A", fontSize: 10, fontWeight: "700", marginTop: 2 },
 
   tabsRow: {
     flexDirection: "row-reverse",
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: "#FFFDF8",
+    borderRadius: 14,
     padding: 4,
     marginBottom: 12,
     borderWidth: 1,
@@ -1008,8 +1019,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabActive: { backgroundColor: TEAL },
-  tabText: { color: "#64748b", fontSize: 12, fontWeight: "800" },
-  tabTextActive: { color: "#fff" },
+  tabText: { color: "#6B5E4A", fontSize: 12, fontWeight: "800" },
+  tabTextActive: { color: "#C6A15B" },
 
   emptyCard: {
     backgroundColor: "#fff",
@@ -1019,17 +1030,18 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     alignItems: "center",
   },
-  emptyText: { color: "#64748b", fontSize: 13 },
+  emptyText: { color: "#6B5E4A", fontSize: 13 },
 
   rowCard: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFDF8",
     padding: 10,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: BORDER,
     gap: 10,
+    ...TAIR_ELEVATION.hair,
   },
   rowThumb: {
     width: 48,
@@ -1042,7 +1054,7 @@ const styles = StyleSheet.create({
   },
   thumbImg: { width: 48, height: 48 },
   rowTitle: { color: "#0f172a", fontSize: 13.5, fontWeight: "800", textAlign: "right" },
-  rowMeta: { color: "#64748b", fontSize: 11, fontWeight: "600", textAlign: "right", marginTop: 2 },
+  rowMeta: { color: "#6B5E4A", fontSize: 11, fontWeight: "600", textAlign: "right", marginTop: 2 },
   rowActions: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -1052,7 +1064,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#f0fdfa",
+    backgroundColor: "#F3EDE2",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1084,12 +1096,13 @@ const styles = StyleSheet.create({
   ratingComment: { color: "#334155", fontSize: 13, lineHeight: 20, textAlign: "right" },
 
   menuSection: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: "#FFFDF8",
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: BORDER,
     overflow: "hidden",
     marginTop: 8,
+    ...TAIR_ELEVATION.hair,
   },
   menuItem: {
     flexDirection: "row-reverse",
@@ -1131,7 +1144,7 @@ const styles = StyleSheet.create({
   },
   bannerScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(15,23,42,0.42)",
+    backgroundColor: "rgba(15,36,28,0.38)",
   },
   identityContent: {
     alignItems: "center",
@@ -1213,14 +1226,14 @@ const styles = StyleSheet.create({
   },
   emailSmall: {
     fontSize: 12,
-    color: "#64748b",
+    color: "#6B5E4A",
     fontWeight: "600",
     textAlign: "center",
   },
   avatarEditBadge: {
     position: "absolute", right: -2, bottom: -2,
     width: 26, height: 26, borderRadius: 13,
-    backgroundColor: "#0ea5e9", alignItems: "center", justifyContent: "center",
+    backgroundColor: "#1B3D2F", alignItems: "center", justifyContent: "center",
     borderWidth: 2, borderColor: "#fff",
   },
   modalOverlay: {
@@ -1248,7 +1261,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
   },
   bgLabel: { color: "#fff", fontSize: 12, fontWeight: "800", marginTop: 6 },
-  fieldLabel: { fontSize: 12, color: "#0ea5e9", fontWeight: "800", marginBottom: 6, textAlign: "right" },
+  fieldLabel: { fontSize: 12, color: "#1B3D2F", fontWeight: "800", marginBottom: 6, textAlign: "right" },
   input: {
     backgroundColor: "#F7F1E8",
     borderWidth: 1, borderColor: "#e2e8f0",
@@ -1258,7 +1271,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     flexDirection: "row-reverse", alignItems: "center", justifyContent: "center",
-    gap: 8, backgroundColor: "#0ea5e9",
+    gap: 8, backgroundColor: "#1B3D2F",
     paddingVertical: 14, borderRadius: 14, marginTop: 4, marginBottom: 20,
   },
   saveBtnText: { color: "#fff", fontWeight: "900", fontSize: 14 },

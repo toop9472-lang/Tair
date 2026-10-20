@@ -1,32 +1,24 @@
-// طير — Screen header with the branded banner background image.
-// Mirrors the web's TairBanner styling. Use as the top bar for all main screens.
+// طير — Screen header. عنوان هادئ فوق تدرّج زمردي حتى تبقى الشاشات الداخلية من نفس العائلة.
 import React from "react";
 import {
   View,
   Text,
   ImageBackground,
-  TouchableOpacity,
   StyleSheet,
+  Platform,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { TAIR_BANNER_IMAGE } from "../constants/tairDesign";
+import { TAIR } from "../constants/tairTheme";
+import { PressableScale } from "./TairUI";
 
-/**
- * A reusable branded screen header.
- *
- * Props:
- *   title          → screen title text
- *   subtitle       → optional secondary line
- *   onBack         → if set, shows a back button on the right (RTL)
- *   rightAction    → JSX rendered on the far left (RTL) e.g. an add button
- *   height         → optional (default 130)
- */
 export default function ScreenHeader({
   title,
   subtitle,
   onBack,
   rightAction,
-  height = 88,
+  height = 108,
 }) {
   return (
     <ImageBackground
@@ -34,16 +26,21 @@ export default function ScreenHeader({
       style={[styles.banner, { height }]}
       imageStyle={styles.image}
     >
-      <View style={styles.overlay} />
+      <LinearGradient
+        colors={["rgba(15,36,28,0.28)", "rgba(27,61,47,0.88)"]}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.row}>
         {onBack ? (
-          <TouchableOpacity
+          <PressableScale
             style={styles.circleBtn}
             onPress={onBack}
-            data-testid="screen-header-back"
+            haptic
+            scaleTo={0.94}
+            testID="screen-header-back"
           >
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
-          </TouchableOpacity>
+            <Ionicons name="arrow-forward" size={20} color={TAIR.gold} />
+          </PressableScale>
         ) : (
           <View style={styles.circleSlot} />
         )}
@@ -64,54 +61,42 @@ const styles = StyleSheet.create({
     width: "100%",
     justifyContent: "flex-end",
   },
-  image: {
-    resizeMode: "cover",
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "transparent",
-  },
+  image: { resizeMode: "cover" },
   row: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 10,
-    paddingTop: 40,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    paddingTop: Platform.OS === "ios" ? 48 : 28,
     gap: 8,
   },
   circleBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,253,248,0.14)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
+    borderColor: "rgba(198,161,91,0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
   circleSlot: {
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
   },
-  center: {
-    flex: 1,
-    alignItems: "center",
-  },
+  center: { flex: 1, alignItems: "center" },
   title: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "900",
-    textShadowColor: "rgba(0,0,0,0.25)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    color: TAIR.gold,
+    fontSize: 17,
+    fontWeight: "800",
   },
   subtitle: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 11,
+    color: "rgba(247,241,232,0.82)",
+    fontSize: 12,
     fontWeight: "600",
-    marginTop: 1,
+    marginTop: 2,
   },
 });
