@@ -1,0 +1,136 @@
+{
+  "project_name": "Saqr (صقر) - Watch-to-Earn Platform",
+  "design_philosophy": {
+    "identity": "The Golden Falcon",
+    "vibe": "Luxury Fintech meet Cyberpunk Rewards",
+    "core_principles": [
+      "Fusion: Digital Gold textures + Deep Void Black",
+      "Motion: Every point earned feels physical (haptic/visual feedback)",
+      "RTL First: Design purely with logical properties (start/end) for Arabic support",
+      "Glow: Interactive elements must emit light, not just reflect it"
+    ]
+  },
+  "typography": {
+    "font_family": {
+      "heading": "Cairo, sans-serif",
+      "body": "Tajawal, sans-serif",
+      "mono": "IBM Plex Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-6xl font-bold tracking-tight",
+      "h2": "text-3xl md:text-5xl font-bold tracking-tight",
+      "h3": "text-2xl md:text-3xl font-semibold",
+      "body": "text-base md:text-lg leading-relaxed",
+      "caption": "text-xs md:text-sm text-muted-foreground"
+    },
+    "instructions": "Import 'Cairo' and 'Tajawal' from Google Fonts in index.css. Use 'Cairo' for all UI elements (buttons, nav, headings) and 'Tajawal' for long-form text."
+  },
+  "colors": {
+    "palette": {
+      "background": "#0a0a0f",
+      "foreground": "#ffffff",
+      "primary": "#FFD700",
+      "primary_hover": "#E6C200",
+      "secondary": "#1A1A1F",
+      "accent": "#F59E0B",
+      "success": "#10B981",
+      "error": "#EF4444",
+      "gold_gradient": "linear-gradient(135deg, #FFD700 0%, #F59E0B 100%)",
+      "void_gradient": "linear-gradient(to bottom, #0a0a0f, #000000)"
+    },
+    "tailwind_config": {
+      "extend": {
+        "colors": {
+          "saqr-gold": "#FFD700",
+          "saqr-dark": "#0a0a0f",
+          "saqr-card": "rgba(26, 26, 31, 0.6)",
+          "saqr-border": "rgba(255, 215, 0, 0.15)"
+        },
+        "boxShadow": {
+          "glow": "0 0 20px rgba(255, 215, 0, 0.15)",
+          "glow-lg": "0 0 40px rgba(255, 215, 0, 0.25)"
+        }
+      }
+    }
+  },
+  "rtl_strategy": {
+    "rule": "ALWAYS use logical properties. NEVER use left/right for layout.",
+    "mappings": {
+      "ml-": "ms-",
+      "mr-": "me-",
+      "pl-": "ps-",
+      "pr-": "pe-",
+      "left-": "start-",
+      "right-": "end-",
+      "text-left": "text-start",
+      "text-right": "text-end"
+    },
+    "root_setup": "Ensure <html dir='rtl' lang='ar'> is set in index.html or root layout."
+  },
+  "components": {
+    "SaqrCard": {
+      "style": "bg-saqr-card backdrop-blur-xl border border-saqr-border rounded-xl p-6 shadow-glow transition-all hover:shadow-glow-lg hover:border-saqr-gold/40",
+      "usage": "Dashboard widgets, Stat boxes, Ad containers"
+    },
+    "GoldenButton": {
+      "style": "bg-gradient-to-r from-saqr-gold to-amber-500 text-black font-bold rounded-lg px-8 py-3 shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:scale-105 hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] transition-transform active:scale-95",
+      "usage": "Primary CTAs (Watch Ad, Withdraw)"
+    },
+    "GlassNav": {
+      "style": "fixed bottom-4 left-4 right-4 md:top-4 md:bottom-auto bg-black/80 backdrop-blur-2xl border border-white/10 rounded-full px-6 py-3 flex justify-between items-center z-50 shadow-2xl",
+      "usage": "Main Navigation"
+    }
+  },
+  "layout_patterns": {
+    "bento_grid": "grid grid-cols-1 md:grid-cols-4 gap-4 p-4 md:p-8",
+    "hero_section": "relative h-[60vh] flex items-center justify-center overflow-hidden bg-saqr-dark",
+    "ad_viewer": "fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center"
+  },
+  "visual_enhancers": {
+    "glow_effects": "Use 'shadow-glow' on all interactive cards.",
+    "textures": "Add a subtle noise texture overlay to the background with opacity-5.",
+    "3d_elements": {
+      "library": "@react-three/fiber @react-three/drei",
+      "components": [
+        "FloatingCoin: A spinning gold coin for rewards.",
+        "PulseOrb: For AI support button."
+      ]
+    }
+  },
+  "assets": {
+    "images": [
+      {
+        "category": "hero_bg",
+        "url": "https://images.unsplash.com/photo-1760978631959-87fa2724d6e9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGdvbGQlMjBmYWxjb24lMjBnZW9tZXRyaWMlMjBkYXJrJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzA3NzY3NzF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Wavy metallic grid - Use as subtle background texture for Hero"
+      },
+      {
+        "category": "rewards_hero",
+        "url": "https://images.unsplash.com/photo-1750598243589-1cc3770356b8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHw0fHwzZCUyMGdvbGQlMjBjb2lucyUyMGZsb2F0aW5nJTIwZGFyayUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzcwNzc2NzcyfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Liquid Gold Splash - Use for 'Withdraw' or 'Earnings' section header"
+      },
+      {
+        "category": "ai_support_bg",
+        "url": "https://images.unsplash.com/photo-1760274479255-b8bf81991ef2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHw0fHxmdXR1cmlzdGljJTIwYWklMjBhYnN0cmFjdCUyMG5ldHdvcmslMjBub2RlcyUyMGdvbGQlMjBnbG93fGVufDB8fHx8MTc3MDc3Njc3Mnww&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract Yellow Lines - Use for AI Support Page background"
+      }
+    ],
+    "icons": "Use 'lucide-react' for standard UI icons. Use 'framer-motion' for icon animations."
+  },
+  "instructions_to_main_agent": [
+    "1. INSTALLATION: Run `yarn add framer-motion @react-three/fiber @react-three/drei three lucide-react clsx tailwind-merge`.",
+    "2. SETUP: Add the custom colors and animations to `tailwind.config.js` immediately.",
+    "3. RTL: Ensure specific RTL classes (ps-4, me-2) are used. Verify logical properties.",
+    "4. 3D: Implement the `ThreeDCoin` component using R3F. If R3F fails or is too complex for the setup, fallback to a CSS 3D transform coin.",
+    "5. AI SUPPORT: Create a floating action button (FAB) that pulses with a gold glow.",
+    "6. AD VIEWER: This is the core. Make it cinematic. Dim the lights, spotlight the ad, show a 3D countdown.",
+    "7. PRESERVE: Do not break existing auth or database logic. Only wrap the UI."
+  ],
+  "universal_guidelines": [
+    "Don't make generic centered layouts.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters.",
+    "Every interaction needs micro-animations.",
+    "NEVER use transparent backgrounds without a blur or scrim."
+  ]
+}

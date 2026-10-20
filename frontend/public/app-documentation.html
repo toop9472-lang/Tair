@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>توثيق تطبيق صقر - Saqr App Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            color: #1a1a2e;
+            background: #fff;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        @media print {
+            body {
+                padding: 20px;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+        
+        .header {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            border-radius: 16px;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.8;
+            font-size: 14px;
+        }
+        
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-right: 4px solid #3b82f6;
+        }
+        
+        .section h2 {
+            color: #1a1a2e;
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .section h3 {
+            color: #3b82f6;
+            font-size: 16px;
+            margin: 20px 0 10px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        th {
+            background: #1a1a2e;
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:nth-child(even) {
+            background: #f1f5f9;
+        }
+        
+        .highlight-box {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .warning-box {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .success-box {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        code {
+            background: #1a1a2e;
+            color: #60a5fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            direction: ltr;
+            display: inline-block;
+        }
+        
+        pre {
+            background: #1a1a2e;
+            color: #e5e7eb;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            direction: ltr;
+            text-align: left;
+            margin: 15px 0;
+        }
+        
+        ul {
+            margin: 10px 0;
+            padding-right: 20px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .contact-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .contact-card h4 {
+            color: #3b82f6;
+            margin-bottom: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            background: #1a1a2e;
+            color: white;
+            border-radius: 12px;
+            margin-top: 40px;
+        }
+        
+        .download-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: #3b82f6;
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-bottom: 20px;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+        
+        .download-btn:hover {
+            background: #2563eb;
+        }
+        
+        .logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            margin: 0 auto 15px;
+            overflow: hidden;
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .stat-card .number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+        
+        .stat-card .label {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .game-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .check {
+            color: #10b981;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Download Button -->
+    <button class="download-btn no-print" onclick="window.print()">
+        📥 تحميل كـ PDF (اضغط Ctrl+P أو ⌘+P)
+    </button>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">
+            <img src="https://customer-assets.emergentagent.com/job_9adfbe89-e232-4a49-a08d-77e7ac54e22d/artifacts/4dnhr5jf_IMG_3860.png" alt="صقر Logo">
+        </div>
+        <h1>توثيق تطبيق صقر الشامل</h1>
+        <p>Saqr Rewards App - Comprehensive Documentation</p>
+        <div class="badges">
+            <span class="badge">الإصدار 5.8.0</span>
+            <span class="badge">iOS + Android</span>
+            <span class="badge">جاهز للإنتاج</span>
+        </div>
+    </div>
+
+    <!-- Section 1: Overview -->
+    <div class="section">
+        <h2>القسم الأول: نظرة عامة على التطبيق</h2>
+        
+        <p><strong>صقر</strong> هو تطبيق ألعاب ومكافآت تفاعلي مصمم للسوق العربي، يتيح للمستخدمين لعب مجموعة متنوعة من الألعاب الذهنية والترفيهية وكسب نقاط ومكافآت حقيقية.</p>
+        
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="number">12+</div>
+                <div class="label">لعبة متاحة</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">1000+</div>
+                <div class="label">سؤال ثقافي</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">24/7</div>
+                <div class="label">دعم متواصل</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">100%</div>
+                <div class="label">آمن ومشفر</div>
+            </div>
+        </div>
+
+        <h3>معلومات التطبيق الأساسية</h3>
+        <table>
+            <tr><th>البند</th><th>القيمة</th></tr>
+            <tr><td>اسم التطبيق</td><td>صقر - Saqr Rewards</td></tr>
+            <tr><td>معرّف الحزمة (Bundle ID)</td><td><code>com.saqr.rewards</code></td></tr>
+            <tr><td>الإصدار الحالي</td><td>5.8.0 (Build 26)</td></tr>
+            <tr><td>SDK Version</td><td>Expo SDK 53</td></tr>
+            <tr><td>iOS Deployment Target</td><td>iOS 15.1+</td></tr>
+            <tr><td>Android Min SDK</td><td>API 24 (Android 7.0)</td></tr>
+            <tr><td>اللغة الأساسية</td><td>العربية (RTL Support)</td></tr>
+            <tr><td>الفئة العمرية</td><td>12+</td></tr>
+            <tr><td>فئة المتجر</td><td>Games / Trivia</td></tr>
+        </table>
+    </div>
+
+    <!-- Section 2: Features -->
+    <div class="section page-break">
+        <h2>القسم الثاني: الميزات والوظائف</h2>
+        
+        <h3>2.1 نظام المصادقة (Authentication)</h3>
+        <table>
+            <tr><th>طريقة تسجيل الدخول</th><th>الوصف</th><th>الحالة</th></tr>
+            <tr><td>البريد الإلكتروني</td><td>تسجيل + تحقق + استعادة كلمة المرور</td><td class="check">✓ يعمل</td></tr>
+            <tr><td>Apple Sign In</td><td>متوافق مع Apple Guidelines</td><td class="check">✓ يعمل</td></tr>
+            <tr><td>Google Sign In</td><td>OAuth 2.0</td><td class="check">✓ يعمل</td></tr>
+            <tr><td>وضع الضيف</td><td>تجربة محدودة بدون تسجيل</td><td class="check">✓ يعمل</td></tr>
+        </table>
+
+        <h3>2.2 الألعاب المتاحة (12 لعبة)</h3>
+        <div class="game-grid">
+            <div class="game-card"><strong>الشطرنج</strong><br>أونلاين</div>
+            <div class="game-card"><strong>إكس أو</strong><br>أونلاين</div>
+            <div class="game-card"><strong>أسئلة ثقافية</strong><br>1000+ سؤال</div>
+            <div class="game-card"><strong>AI Quest</strong><br>جديد</div>
+            <div class="game-card"><strong>تركيب الصور</strong><br>أحجية</div>
+            <div class="game-card"><strong>الذاكرة</strong><br>تحدي</div>
+            <div class="game-card"><strong>الثعبان</strong><br>كلاسيك</div>
+            <div class="game-card"><strong>الألغاز</strong><br>500+ لغز</div>
+            <div class="game-card"><strong>تكسير الطوب</strong><br>أركيد</div>
+            <div class="game-card"><strong>سباق الحساب</strong><br>رياضيات</div>
+            <div class="game-card"><strong>سباق الكلمات</strong><br>بحث</div>
+            <div class="game-card"><strong>تبديل الألوان</strong><br>سرعة</div>
+        </div>
+
+        <h3>2.3 النظام الاقتصادي</h3>
+        <div class="two-columns">
+            <div class="highlight-box">
+                <h4>نقاط صقر (Saqr Points)</h4>
+                <ul>
+                    <li>تُكتسب من الفوز في الألعاب</li>
+                    <li>الحد اليومي: 150 نقطة</li>
+                    <li>500 نقطة = 1 دولار</li>
+                    <li>الحد الأدنى للسحب: 5000 نقطة</li>
+                </ul>
+            </div>
+            <div class="highlight-box">
+                <h4>الألماسات (Diamonds)</h4>
+                <ul>
+                    <li>300 ألماسة ترحيبية مجانية</li>
+                    <li>للعب أونلاين والمتجر</li>
+                    <li>قابلة للشراء</li>
+                    <li>تُكتسب من تحديات الإعلانات</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>2.4 باقات الألماسات (In-App Purchases)</h3>
+        <table>
+            <tr><th>الباقة</th><th>الألماسات</th><th>السعر</th></tr>
+            <tr><td>البداية</td><td>100</td><td>$4.99</td></tr>
+            <tr><td>الفضية</td><td>275</td><td>$9.99</td></tr>
+            <tr><td>الذهبية</td><td>575</td><td>$19.99</td></tr>
+            <tr><td>البلاتينية</td><td>1,200</td><td>$39.99</td></tr>
+        </table>
+
+        <h3>2.5 تحديات الإعلانات (اختيارية)</h3>
+        <table>
+            <tr><th>التحدي</th><th>الهدف</th><th>المكافأة</th></tr>
+            <tr><td>المشاهد المبتدئ</td><td>شاهد 1 إعلان</td><td>5 ألماسات</td></tr>
+            <tr><td>المشاهد النشط</td><td>شاهد 3 إعلانات</td><td>20 ألماسة</td></tr>
+            <tr><td>المشاهد المتحمس</td><td>شاهد 5 إعلانات</td><td>50 ألماسة</td></tr>
+            <tr><td>المشاهد المحترف</td><td>شاهد 10 إعلانات</td><td>150 ألماسة</td></tr>
+            <tr><td>المثابر</td><td>3 أيام متتالية</td><td>100 ألماسة</td></tr>
+        </table>
+        
+        <div class="warning-box">
+            <strong>ملاحظة:</strong> جميع الإعلانات اختيارية تماماً ولا تؤثر على اللعب الأساسي. المستخدم يختار مشاهدة الإعلان مقابل مكافأة.
+        </div>
+    </div>
+
+    <!-- Section 3: Technical -->
+    <div class="section page-break">
+        <h2>القسم الثالث: البنية التقنية</h2>
+        
+        <h3>3.1 التقنيات المستخدمة</h3>
+        <div class="two-columns">
+            <div>
+                <h4>Frontend (Mobile)</h4>
+                <table>
+                    <tr><td>React Native</td><td>0.79.2</td></tr>
+                    <tr><td>Expo</td><td>SDK 53</td></tr>
+                    <tr><td>React Navigation</td><td>7.x</td></tr>
+                    <tr><td>AsyncStorage</td><td>2.x</td></tr>
+                    <tr><td>WebView</td><td>13.x</td></tr>
+                </table>
+            </div>
+            <div>
+                <h4>Backend</h4>
+                <table>
+                    <tr><td>Python</td><td>3.11+</td></tr>
+                    <tr><td>FastAPI</td><td>0.115.x</td></tr>
+                    <tr><td>MongoDB</td><td>7.x</td></tr>
+                    <tr><td>Motor</td><td>3.x</td></tr>
+                    <tr><td>JWT</td><td>-</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <h3>3.2 هيكل المشروع</h3>
+        <pre>
+/app/mobile/
+├── App.js                    # نقطة الدخول الرئيسية
+├── app.json                  # إعدادات Expo
+├── src/
+│   ├── screens/              # 15+ شاشة
+│   │   ├── AuthScreen.js     # تسجيل الدخول
+│   │   ├── GamesScreen.js    # قائمة الألعاب
+│   │   ├── ProfileScreen.js  # الملف الشخصي
+│   │   └── games/            # شاشات الألعاب
+│   ├── components/           # المكونات المشتركة
+│   ├── services/             # API, Storage, Multiplayer
+│   └── data/                 # 1000+ سؤال
+└── assets/
+
+/app/backend/
+├── server.py                 # FastAPI Server
+├── routes/                   # 40+ API endpoint
+├── models/                   # نماذج البيانات
+└── services/                 # الخدمات
+        </pre>
+
+        <h3>3.3 API Endpoints الرئيسية</h3>
+        <table>
+            <tr><th>Method</th><th>Endpoint</th><th>الوصف</th></tr>
+            <tr><td>POST</td><td>/api/auth/register</td><td>تسجيل مستخدم جديد</td></tr>
+            <tr><td>POST</td><td>/api/auth/login</td><td>تسجيل الدخول</td></tr>
+            <tr><td>GET</td><td>/api/auth/google</td><td>تسجيل الدخول بـ Google</td></tr>
+            <tr><td>GET</td><td>/api/auth/apple</td><td>تسجيل الدخول بـ Apple</td></tr>
+            <tr><td>GET</td><td>/api/economy/balance/{id}</td><td>رصيد المستخدم</td></tr>
+            <tr><td>POST</td><td>/api/economy/record-game</td><td>تسجيل نتيجة اللعبة</td></tr>
+            <tr><td>GET</td><td>/api/games/leaderboard</td><td>لوحة المتصدرين</td></tr>
+            <tr><td>GET</td><td>/api/diamonds/packages</td><td>باقات الألماسات</td></tr>
+            <tr><td>POST</td><td>/api/support/tickets</td><td>إنشاء تذكرة دعم</td></tr>
+        </table>
+    </div>
+
+    <!-- Section 4: Security -->
+    <div class="section page-break">
+        <h2>القسم الرابع: الأمان والخصوصية</h2>
+        
+        <h3>4.1 إجراءات الأمان</h3>
+        <table>
+            <tr><th>الإجراء</th><th>الوصف</th><th>الحالة</th></tr>
+            <tr><td>JWT Authentication</td><td>توكنات آمنة للمصادقة</td><td class="check">✓</td></tr>
+            <tr><td>Password Hashing</td><td>تشفير bcrypt لكلمات المرور</td><td class="check">✓</td></tr>
+            <tr><td>HTTPS</td><td>جميع الاتصالات مشفرة</td><td class="check">✓</td></tr>
+            <tr><td>Rate Limiting</td><td>حماية من هجمات DDoS</td><td class="check">✓</td></tr>
+            <tr><td>Input Validation</td><td>التحقق من جميع المدخلات</td><td class="check">✓</td></tr>
+            <tr><td>Secure Storage</td><td>تخزين آمن للتوكنات</td><td class="check">✓</td></tr>
+        </table>
+
+        <h3>4.2 البيانات المجمعة</h3>
+        <table>
+            <tr><th>البيانات</th><th>الغرض</th><th>مشاركة مع طرف ثالث</th></tr>
+            <tr><td>البريد الإلكتروني</td><td>تسجيل الحساب</td><td>لا</td></tr>
+            <tr><td>الاسم</td><td>العرض في الملف الشخصي</td><td>لا</td></tr>
+            <tr><td>نتائج الألعاب</td><td>لوحة المتصدرين</td><td>لا</td></tr>
+            <tr><td>معرف الإعلان</td><td>تخصيص الإعلانات</td><td>Google AdMob فقط</td></tr>
+        </table>
+
+        <h3>4.3 الأذونات</h3>
+        <div class="two-columns">
+            <div>
+                <h4>iOS</h4>
+                <ul>
+                    <li><span class="check">✓</span> Internet Access</li>
+                    <li><span class="check">✓</span> User Tracking (Ads)</li>
+                    <li>○ Camera (اختياري)</li>
+                    <li>○ Photo Library (اختياري)</li>
+                </ul>
+            </div>
+            <div>
+                <h4>Android</h4>
+                <ul>
+                    <li><span class="check">✓</span> INTERNET</li>
+                    <li><span class="check">✓</span> VIBRATE</li>
+                    <li><span class="check">✓</span> AD_ID</li>
+                    <li>✗ RECORD_AUDIO (محظور)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="success-box">
+            <strong>الامتثال:</strong> التطبيق متوافق مع App Store Guidelines، Google Play Policies، GDPR، و COPPA (12+).
+        </div>
+    </div>
+
+    <!-- Section 5: Ads -->
+    <div class="section">
+        <h2>القسم الخامس: الإعلانات</h2>
+        
+        <h3>5.1 شبكة الإعلانات</h3>
+        <div class="highlight-box">
+            <strong>المزود:</strong> Google AdMob<br><br>
+            <code>App ID: ca-app-pub-5132559433385403~1073385732</code><br><br>
+            <code>iOS Rewarded: ca-app-pub-5132559433385403/2999033852</code><br>
+            <code>Android Rewarded: ca-app-pub-5132559433385403/3389052725</code>
+        </div>
+
+        <h3>5.2 أنواع الإعلانات</h3>
+        <table>
+            <tr><th>النوع</th><th>الوصف</th><th>اختياري</th></tr>
+            <tr><td>Rewarded Video Ads</td><td>إعلانات فيديو مقابل مكافآت</td><td class="check">نعم - 100%</td></tr>
+        </table>
+        
+        <div class="warning-box">
+            <strong>هام:</strong> لا توجد إعلانات إجبارية في التطبيق. جميع الإعلانات اختيارية ويختار المستخدم مشاهدتها مقابل مكافأة.
+        </div>
+
+        <h3>5.3 SKAdNetwork IDs</h3>
+        <pre>
+cstr6suwn9.skadnetwork    4fzdc2evr5.skadnetwork    2fnua5tdw4.skadnetwork
+ydx93a7ass.skadnetwork    5a6flpkh64.skadnetwork    p78axxw29g.skadnetwork
+v72qych5uu.skadnetwork    c6k4g5qg8m.skadnetwork    s39g8k73mm.skadnetwork
+3qy4746246.skadnetwork
+        </pre>
+    </div>
+
+    <!-- Section 6: Testing -->
+    <div class="section page-break">
+        <h2>القسم السادس: معلومات الاختبار</h2>
+        
+        <h3>6.1 كيفية الاختبار</h3>
+        <ol>
+            <li>تحميل التطبيق من TestFlight أو Google Play Console</li>
+            <li>إنشاء حساب جديد باستخدام البريد الإلكتروني أو Google/Apple</li>
+            <li>الحصول على 300 ألماسة ترحيبية تلقائياً</li>
+            <li>تجربة جميع الميزات فوراً</li>
+        </ol>
+
+        <div class="success-box">
+            <strong>لا حاجة لحساب تجريبي:</strong> جميع الميزات متاحة لأي مستخدم جديد مع 300 ألماسة مجانية للبدء.
+        </div>
+
+        <h3>6.2 الأجهزة المختبرة</h3>
+        <div class="two-columns">
+            <div>
+                <h4>iOS</h4>
+                <ul>
+                    <li>iPhone 15 Pro Max (iOS 18)</li>
+                    <li>iPhone 14 (iOS 17)</li>
+                    <li>iPad Air M3 (iPadOS 18)</li>
+                    <li>iPad Pro 12.9" (iPadOS 17)</li>
+                </ul>
+            </div>
+            <div>
+                <h4>Android</h4>
+                <ul>
+                    <li>Samsung Galaxy S24 (Android 14)</li>
+                    <li>Google Pixel 8 (Android 14)</li>
+                    <li>OnePlus 12 (Android 14)</li>
+                    <li>Samsung Tab S9 (Android 14)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 7: Links -->
+    <div class="section">
+        <h2>القسم السابع: الروابط المهمة</h2>
+        
+        <table>
+            <tr><th>الصفحة</th><th>الرابط</th></tr>
+            <tr><td>الموقع الرسمي</td><td>https://quality-restore-1.preview.emergentagent.com</td></tr>
+            <tr><td>صفحة الدعم</td><td>https://quality-restore-1.preview.emergentagent.com/support</td></tr>
+            <tr><td>سياسة الخصوصية</td><td>https://quality-restore-1.preview.emergentagent.com/privacy</td></tr>
+            <tr><td>شروط الاستخدام</td><td>https://quality-restore-1.preview.emergentagent.com/terms</td></tr>
+            <tr><td>التوثيق التقني</td><td>https://quality-restore-1.preview.emergentagent.com/docs</td></tr>
+        </table>
+    </div>
+
+    <!-- Section 8: Contact -->
+    <div class="section">
+        <h2>القسم الثامن: معلومات الاتصال</h2>
+        
+        <div class="two-columns">
+            <div class="contact-card">
+                <h4>📧 البريد الإلكتروني</h4>
+                <p><strong>sky-321@hotmail.com</strong></p>
+                <p style="color: #6b7280; font-size: 12px;">رد خلال 24 ساعة</p>
+            </div>
+            <div class="contact-card">
+                <h4>📱 واتساب</h4>
+                <p><strong>+966539999415</strong></p>
+                <p style="color: #6b7280; font-size: 12px;">تواصل فوري</p>
+            </div>
+        </div>
+        
+        <div class="highlight-box" style="text-align: center; margin-top: 20px;">
+            <strong>أوقات الدعم:</strong> 24 ساعة / 7 أيام في الأسبوع<br>
+            <strong>الموقع:</strong> المملكة العربية السعودية
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <h3>صقر - Saqr Rewards</h3>
+        <p>الإصدار 5.8.0 | فبراير 2026</p>
+        <p style="margin-top: 15px; opacity: 0.7;">
+            نشكركم على وقتكم في مراجعة تطبيقنا<br>
+            نحن ملتزمون بتقديم أفضل تجربة ممكنة لمستخدمينا
+        </p>
+        <p style="margin-top: 20px;">
+            sky-321@hotmail.com | +966539999415
+        </p>
+    </div>
+
+    <script>
+        // Auto print hint
+        console.log('لتحميل الملف كـ PDF: اضغط Ctrl+P (Windows) أو ⌘+P (Mac)');
+    </script>
+</body>
+</html>

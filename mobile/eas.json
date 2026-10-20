@@ -1,0 +1,61 @@
+{
+  "cli": {
+    "version": ">= 12.8.2",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "image": "latest"
+      },
+      "android": {
+        "image": "latest"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "buildType": "apk",
+        "image": "latest"
+      },
+      "ios": {
+        "simulator": true,
+        "image": "latest"
+      }
+    },
+    "production": {
+      "channel": "production",
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease",
+        "image": "latest"
+      },
+      "ios": {
+        "distribution": "store",
+        "credentialsSource": "remote",
+        "image": "latest"
+      },
+      "env": {
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "1",
+        "EX_UPDATES_NATIVE_DEBUG": "0",
+        "EXPO_PUBLIC_BACKEND_URL": "https://saqr-ui-sync.emergent.host"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6758868843",
+        "ascApiKeyIssuerId": "2b3dfd1a-b44d-4cf7-94b8-6f10d64b9567",
+        "ascApiKeyId": "L598DUD53L",
+        "ascApiKeyPath": "./certificates/AuthKey_L598DUD53L.p8"
+      },
+      "android": {
+        "track": "internal"
+      }
+    }
+  }
+}

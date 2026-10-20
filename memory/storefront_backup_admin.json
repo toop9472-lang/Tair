@@ -1,0 +1,71 @@
+{
+  "storefront_settings": {
+    "identity_color": "#0369a1",
+    "logo_url": "https://pub-9849a8b610d448febb21ebea9a01ad1e.r2.dev/storefront/logo_sky-321@hotm_40f8bb00.jpg",
+    "about_text": "",
+    "contact_prefs": {
+      "whatsapp": true,
+      "call": false,
+      "chat": true
+    },
+    "business_hours": [
+      {
+        "day": "sat",
+        "open": "09:00",
+        "close": "22:00",
+        "closed": false
+      },
+      {
+        "day": "sun",
+        "open": "09:00",
+        "close": "22:00",
+        "closed": false
+      },
+      {
+        "day": "mon",
+        "open": "09:00",
+        "close": "22:00",
+        "closed": false
+      },
+      {
+        "day": "tue",
+        "open": "09:00",
+        "close": "22:00",
+        "closed": false
+      },
+      {
+        "day": "wed",
+        "open": "09:00",
+        "close": "22:00",
+        "closed": false
+      },
+      {
+        "day": "thu",
+        "open": "09:00",
+        "close": "22:00",
+        "closed": false
+      },
+      {
+        "day": "fri",
+        "open": "16:00",
+        "close": "22:00",
+        "closed": false
+      }
+    ],
+    "portfolio_images": [],
+    "highlights": [],
+    "banner_slides": [],
+    "location": null,
+    "pickup_enabled": false,
+    "pickup_note": "",
+    "flash_sales": [],
+    "coupons": [],
+    "auto_reply_enabled": true,
+    "auto_reply_message": "شكراً لتواصلك مع متجرنا. متجرنا يعمل من 9 صباحاً إلى 10 مساءً. سنرد قريباً."
+  },
+  "user_fields": {
+    "phone": "0539999415",
+    "whatsapp": "0539999415",
+    "profile_bg_url": "https://pub-9849a8b610d448febb21ebea9a01ad1e.r2.dev/storefront/banner_sky-321@hotm_20b6d6fa.png"
+  }
+}

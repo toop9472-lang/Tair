@@ -1,0 +1,10 @@
+{
+  "android": {
+    "gradleProps": {
+      "android.experimental.enableSourceSetPathsMap": "true",
+      "android.experimental.cacheCompileLibClasses": "true",
+      "android.experimental.enableLinkerAlignment": "true",
+      "android.experimental.enableUncompressedNativeLibsMinSdk": "23"
+    }
+  }
+}

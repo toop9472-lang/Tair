@@ -1,0 +1,201 @@
+<analysis>**original_problem_statement:**
+The user's initial goal was to fix critical iPad crashes for an App Store submission. This expanded into a full UI/UX overhaul, adding social features, an in-app economy, and building/submitting the app.
+
+After a recent build and submission, the user tested the application and reported a new, extensive list of critical bugs and feature requests. The current goal is to fix these issues, bring the app to a world-class state, and then re-build and re-submit it to the app stores.
+
+**PRODUCT REQUIREMENTS (New & Unaddressed):**
+1.  **Bug Fixes:**
+    *   The login page has disappeared (the app logs in automatically).
+    *   Chess pieces have inconsistent designs between black and white.
+    *   The puzzle game has no images and is buggy.
+    *   Shop packages show colors instead of real images.
+    *   The achievements system is based on games; it should be based on watching ads and sharing the app.
+    *   Theme (dark/light mode) and language settings do not work correctly.
+2.  **Feature Requests:**
+    *   Rewards (like the Golden Saqr) should distribute diamonds in addition to other currency.
+    *   Generate AI images for all UI elements that currently lack graphics (e.g., icons, frames).
+    *   Temporarily hide the Who Wants to Be a Millionaire game.
+    *   Find and integrate professional, free-to-use games from a third-party source.
+3.  **Core Task:**
+    *   Fix all the listed issues, ensure everything works on mobile, then build and upload the new version to the stores.
+
+**User's preferred language**: العربية
+
+**what currently exists?**
+The application is a full-stack project (React web, React Native mobile, FastAPI backend). The agent successfully completed a major feature overhaul, built the mobile app for both Android and iOS, and submitted the iOS version to App Store Connect. The Android version is built but requires manual submission.
+
+Following the submission, the user tested the app and identified numerous critical bugs. The agent has begun addressing these issues by:
+*   Hiding the Who Wants to Be a Millionaire game.
+*   Initiating fixes for the Chess and Puzzle games.
+*   Investigating the files related to the Shop, Achievements, and Settings screens.
+
+**Last working item**:
+*   Last item agent was working: Addressing a new, large batch of user-reported bugs after the latest app submission. The agent was investigating the code for the Shop (), Achievements (), and non-functional Settings () to prepare for the fixes.
+*   Status: IN PROGRESS
+*   Agent Testing Done: N
+*   Which testing method agent to use? both. A new mobile app build will be required after fixing all reported issues. The testing agent must be used to perform regression testing on all fixed components (Login, Games, Shop, Achievements, Settings) and verify the overall app stability before the next build.
+*   User Testing Done: Y (The user's testing of the previous build is what generated the current list of issues).
+
+**All Pending/In progress Issue list**:
+*   Issue 1: Fix batch of post-submission bugs (P0 - BLOCKER)
+*   Issue 2: Critical iPad-specific bugs causing crashes (P1)
+*   Issue 3: Obtain Google Client IDs from the user (P2)
+*   Issue 4: Android App requires manual submission (P2 - BLOCKED)
+*   Issue 5: User complaint about game sounds (P3)
+*   Issue 6: Implement Redis for backend caching (P3)
+
+**Issues Detail:**
+-   **Issue 1: Fix batch of post-submission bugs**
+    -   **Description**: A set of critical bugs reported by the user after testing the latest build, making the app feel broken. This includes a hidden login screen, inconsistent chess pieces, a broken puzzle game, placeholder images in the shop, incorrect achievements, and non-functional theme/language settings.
+    -   **Attempted fixes**:
+        -   : Hid the Who Wants to Be a Millionaire game.
+        -   : Started changing unicode characters to unify piece design.
+        -   : Started adding image sources and fixing display logic.
+        -   Viewed , ,  to understand the code.
+    -   **Next debug checklist**:
+        1.  **Shop:** Modify  to use real images for purchase packages instead of solid colors.
+        2.  **Achievements:** Rewrite the logic in  to track and display achievements related to ad views and app shares, not game completions.
+        3.  **Settings:** Debug  and  to ensure that theme and language selections are correctly saved to  and applied on app startup/re-render.
+        4.  **Login Flow:** Investigate . The login screen likely isn't showing because a user token is already stored. Confirm this is the intended behavior and add a Logout button in the Settings screen to allow the user to test the login flow again.
+        5.  **Games:** Finalize the fixes for  and .
+    -   **Why fix this issue and what will be achieved with the fix?**: The app is currently unusable and does not meet the user's quality standards. These fixes are required before the app can be re-submitted.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+
+-   **Issue 2: Critical iPad-specific bugs**
+    -   **Attempted fixes**: None. This has been consistently postponed.
+    -   **Next debug checklist**: 1. Create a new development build. 2. Deploy to an iPad/simulator to reproduce the crashes. 3. Inspect layout files (Flexbox) and platform-specific code.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a direct blocker for App Store approval.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None.
+
+-   **Issue 3: Obtain Google Client IDs from the user**
+    -   **Attempted fixes**: Placeholders were added.
+    -   **Next debug checklist**: 1. Ask the user for , , , and . 2. Provide instructions on where to find them in the Google Cloud Console.
+    -   **Why fix this issue and what will be achieved with the fix?**: Google Sign-In is not functional without real keys.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: None.
+
+-   **Issue 4: Android App requires manual submission**
+    -   **Attempted fixes**: Agent informed the user of the requirement.
+    -   **Next debug checklist**: Ask the user if they were able to upload the AAB file. If not, provide instructions on creating a Google Service Account key for automated submissions.
+    -   **Why fix this issue and what will be achieved with the fix?**: To get the Android app live on the Google Play Store.
+    -   **Status**: BLOCKED (on user)
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: N/A
+    -   **Blocked on other issue**: User action.
+
+**In progress Task List**:
+-   **Task 1: Complete All User-Reported Bug Fixes**
+    -   **Where to resume**: Continue implementing fixes based on the Next debug checklist for Issue #1. Start with the Shop, Achievements, and Settings screens.
+    -   **What will be achieved with this?**: A stable, functional application that meets the user's immediate quality expectations, ready for a new build and submission cycle.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on something**: No.
+
+**Upcoming and Future Tasks**
+-   **Upcoming Tasks:**
+    -   (P0) Build a new version of the app for Android and iOS after all current bugs are fixed.
+    -   (P0) Submit the new, fixed builds to the App Store and Google Play.
+-   **Future Tasks:**
+    -   (P1) Implement new user requests: Golden Saqr rewards giving diamonds, generating AI images for UI elements.
+    -   (P1) Research and integrate professional, free-to-use games from a third-party source.
+    -   (P1) Address the critical iPad bugs.
+    -   (P2) Web App Parity: Bring new mobile features to the web app.
+    -   (P2) Technical Debt: Refactor the hardcoded API URL in .
+    -   (P2) Add crash reporting (Sentry) and analytics (Firebase).
+    -   (P3) Improve game sounds to address user complaints.
+
+**Completed work in this session**
+-   **App Build & Submission:**
+    -   Diagnosed and resolved an iOS build failure related to Associated Domains by editing .
+    -   Successfully built new production versions of the iOS (.ipa) and Android (.aab) apps.
+    -   Successfully submitted the iOS build to App Store Connect via .
+    -   Provided the user with the Android build link and instructions for manual upload.
+-   **Bug Fixes (Started):**
+    -   Hid the Who Wants to Be a Millionaire game from the .
+    -   Started refactoring  to unify the appearance of chess pieces.
+    -   Started refactoring  to use real images and fix game logic.
+
+**Earlier issues found/mentioned but not fixed**
+-   **Hardcoded API URL in mobile app**: Known technical debt in .
+-   **Sub-par game sounds**: User complained about primitive sounds (vibration); this was deferred by the previous agent.
+
+**Known issue recurrence from previous fork**
+-   **Issue recurrence in previous fork**: Critical iPad bugs (no internet connection error, UI glitches, crashes).
+-   **Recurrence count**: 3+
+-   **Status**: NOT STARTED
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+-   **EAS Build Pipeline**: Using , , and  to create and deploy production builds. Diagnosing build failures via logs.
+-   **iOS App Configuration**: Modified  to resolve a provisioning profile issue by removing the  capability.
+-   **State Management**: App relies on  for persisting user sessions, theme, and language settings, which is central to debugging the current issues.
+
+**key DB schema**
+No changes in this session.
+
+**All files of reference**
+-   : Modified to fix the iOS build.
+-   : Modified to hide a feature.
+-   : Under modification for UI fixes.
+-   : Under modification for logic and content fixes.
+-   **Files to be modified next**: , , , .
+
+**Areas that need refactoring**:
+-   The implementation of settings (Theme & Language) needs to be fixed to correctly apply stored values.
+-   The Achievements and Shop screens require significant rework to meet user requirements.
+-   Hardcoded  in .
+
+**key api endpoints**
+No new endpoints were created in this session.
+
+**Critical Info for New Agent**
+-   **PRIORITY #1**: The user has rejected the latest build due to numerous critical bugs. Your immediate and sole focus must be to fix the entire list of issues detailed in Issue 1: Fix batch of post-submission bugs. Do not proceed to new features or other tasks until these are resolved.
+-   **RE-BUILD AND RE-SUBMIT**: After fixing all bugs, you must run a new build () and submit () the app to both stores again.
+-   **USER COMMUNICATION**: The user is frustrated. Communicate clearly about the fixes you are implementing. Always respond in Arabic (العربية).
+-   **IPAD BUGS**: The critical iPad bugs are still unresolved and will block App Store approval. This must be the next priority after the current bug-fixing cycle.
+
+**documents and test reports created in this job**
+-   None. The  was from a previous session.
+
+**Last 10 User Messages and any pending HUMAN messages**
+The user's last two messages are the most critical, providing a detailed list of bugs and new requirements after they tested the app.
+1.  **User**: Instructed the agent to upload the apps.
+2.  **User**: **(CRITICAL FEEDBACK)** The login page disappeared completely after testing... I see the rewards... only. Also make the icons give diamonds. Any icon without AI-generated graphics, generate an image for it... a Who Wants to Be a Millionaire game, make it temporarily hidden... The chess stones are inconsistent... I want them all the same shape... The puzzle game is without pictures. A lot of mistakes. This is boring. Make sure everything works on the mobile and build and upload.
+3.  **User**: **(CRITICAL FEEDBACK)** Before building, check the store and add a real picture to each package. I see that the packages have only colors. Also, make the achievements related to ads and publishing the application, not for games. Also, the appearance does not work, the language does not work. And build and upload. And the games, if you can bring professional games from a free source, do this.
+
+**Project Health Check:**
+-   **Broken**:
+    -   Key user-facing features: Login Flow, Puzzle Game, Shop, Achievements, Settings.
+    -   iPad compatibility (unresolved critical blocker).
+    -   Google Sign-In (placeholder keys).
+-   **Mocked**:
+    -   Redis caching system.
+
+**3rd Party Integrations**
+-   
+-   
+-   
+-   EAS (Build and Submit)
+
+**Testing status**
+-   Testing agent used after significant changes: NO
+-   Troubleshoot agent used after agent stuck in loop: NO
+-   Test files created: None.
+-   Known regressions: A significant number of features are now considered broken by the user after the last build, including the puzzle game, chess UI, shop, achievements, and settings.
+
+**Credentials to test flow:**
+-   **Email**: 
+-   **Password**: 
+
+**What agent forgot to execute**
+-   The previous agent did not perform thorough testing before building and submitting the app, which led to the user discovering a large number of bugs in the finished product.
+-   The agent has not yet planned or addressed the user's newest requests (e.g., integrating third-party games, making rewards give diamonds, generating AI images for UI). These should be logged for future tasks.</analysis>

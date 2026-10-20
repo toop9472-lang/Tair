@@ -1,0 +1,129 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.App {
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Constrain to a mobile-frame "app column" so the web preview mirrors the
+   React Native mobile app exactly (iPhone-class width). */
+@media (min-width: 480px) {
+    .App {
+        max-width: 430px;
+        margin: 0 auto;
+        min-height: 100vh;
+        box-shadow: 0 0 40px rgba(15, 23, 42, 0.10);
+        position: relative;
+        background: #ffffff;
+    }
+    /* Softer painted canvas around the app column */
+    body {
+        background:
+            radial-gradient(1000px 600px at 50% 0%, rgba(15,118,110,0.06), transparent 60%),
+            radial-gradient(800px 460px at 50% 100%, rgba(236,72,153,0.04), transparent 60%),
+            linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%);
+    }
+}
+/* Same width on very wide screens — keep true mobile parity */
+@media (min-width: 900px) {
+    .App {
+        max-width: 430px;
+    }
+}
+
+/* Disable pull-to-refresh on mobile */
+body {
+    overscroll-behavior-y: contain;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Animations for Saqr Fortunes */
+@keyframes scale-in {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-20px) rotate(180deg);
+        opacity: 0.5;
+    }
+}
+
+@keyframes bounce-in {
+    0% {
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+}
+
+.animate-float {
+    animation: float 2s ease-in-out infinite;
+}
+
+.animate-bounce-in {
+    animation: bounce-in 0.5s ease-out;
+}
+
+/* Admin UI contrast hardening (texts must stay readable) */
+.admin-shell {
+    color: #e5e7eb;
+}
+
+.admin-shell .text-gray-500 {
+    color: #9ca3af !important;
+}
+
+.admin-shell .text-gray-400,
+.admin-shell .text-muted-foreground {
+    color: #cbd5e1 !important;
+}
+
+.admin-shell .text-gray-300 {
+    color: #e5e7eb !important;
+}

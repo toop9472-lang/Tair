@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>رفع مفتاح Apple IAP — صقر</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Tajawal', system-ui, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #05070d, #0e172d 50%, #1e1b4b);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      padding: 36px;
+      max-width: 520px;
+      width: 100%;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    }
+    h1 { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+    .subtitle { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 28px; line-height: 1.6; }
+    label { display: block; font-size: 13px; font-weight: 700; margin: 14px 0 6px; }
+    input[type=text], input[type=password] {
+      width: 100%; padding: 12px 14px; border-radius: 10px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff; font-size: 14px; font-family: inherit;
+      direction: ltr; text-align: left;
+    }
+    input:focus { outline: none; border-color: #60a5fa; }
+    .dropzone {
+      margin-top: 16px;
+      padding: 32px 18px;
+      border: 2px dashed rgba(96,165,250,0.4);
+      border-radius: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(96,165,250,0.05);
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: #60a5fa;
+      background: rgba(96,165,250,0.12);
+    }
+    .dropzone-icon { font-size: 42px; margin-bottom: 8px; }
+    .dropzone-text { font-size: 14px; color: rgba(255,255,255,0.8); }
+    .dropzone-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+    .file-name {
+      font-size: 13px; color: #22c55e; font-weight: 700;
+      margin-top: 10px; direction: ltr;
+    }
+    button {
+      width: 100%; margin-top: 24px; padding: 14px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border: none; border-radius: 12px; color: #fff;
+      font-size: 15px; font-weight: 800; font-family: inherit;
+      cursor: pointer; transition: transform 0.15s;
+    }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .result {
+      margin-top: 18px; padding: 14px; border-radius: 10px;
+      font-size: 13px; line-height: 1.6;
+    }
+    .result.ok { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #86efac; }
+    .result.err { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; }
+    .note {
+      margin-top: 18px; padding: 12px 14px;
+      background: rgba(251,191,36,0.1);
+      border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 10px; font-size: 12px; color: #fde68a;
+      line-height: 1.7;
+    }
+    input[type=file] { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🍎 رفع مفتاح Apple IAP</h1>
+    <p class="subtitle">رفع آمن لملف <code>.p8</code> الخاص بـ App Store Connect لتفعيل التحقق من المشتريات داخل التطبيق.</p>
+
+    <form id="uploadForm">
+      <label>Key ID</label>
+      <input type="text" id="keyId" placeholder="KX82RC2996" required>
+
+      <label>Issuer ID</label>
+      <input type="text" id="issuerId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required>
+
+      <label>Upload Token</label>
+      <input type="password" id="token" placeholder="الرمز الذي زوّدك به الوكيل" required>
+
+      <label>ملف المفتاح (.p8)</label>
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">📄</div>
+        <div class="dropzone-text">اسحب ملف .p8 هنا، أو اضغط للاختيار</div>
+        <div class="dropzone-sub">SubscriberKey_*.p8 من App Store Connect</div>
+        <div class="file-name" id="fileName"></div>
+        <input type="file" id="fileInput" accept=".p8,application/x-x509-ca-cert,application/octet-stream,text/plain">
+      </div>
+
+      <button type="submit" id="submitBtn" disabled>رفع وتحقق</button>
+
+      <div id="result"></div>
+
+      <div class="note">
+        🔐 يتم حفظ المفتاح في <code>/app/backend/secrets/</code> بصلاحيات 600 (مالك فقط).<br>
+        ⚠️ يتم التحقق من صحته كمفتاح EC P-256 قبل الحفظ.
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropzone = document.getElementById('dropzone');
+    const fileName = document.getElementById('fileName');
+    const submitBtn = document.getElementById('submitBtn');
+    const result = document.getElementById('result');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    ['dragover', 'dragenter'].forEach(ev => {
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+      });
+    });
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        fileChanged();
+      }
+    });
+    fileInput.addEventListener('change', fileChanged);
+
+    function fileChanged() {
+      const f = fileInput.files[0];
+      if (f) {
+        fileName.textContent = `✓ ${f.name} (${f.size} bytes)`;
+        submitBtn.disabled = false;
+      } else {
+        fileName.textContent = '';
+        submitBtn.disabled = true;
+      }
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      result.className = '';
+      result.textContent = '';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'جاري الرفع...';
+
+      const fd = new FormData();
+      fd.append('file', fileInput.files[0]);
+      fd.append('token', document.getElementById('token').value);
+      fd.append('key_id', document.getElementById('keyId').value);
+      fd.append('issuer_id', document.getElementById('issuerId').value);
+
+      try {
+        const r = await fetch('/api/admin/upload-apple-iap-key', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (r.ok) {
+          result.className = 'result ok';
+          result.innerHTML = `✅ ${data.message}<br>Key ID: <code>${data.key_id}</code><br>Issuer: <code>${data.issuer_id}</code>`;
+        } else {
+          result.className = 'result err';
+          result.textContent = `❌ ${data.detail || 'فشل الرفع'}`;
+        }
+      } catch (err) {
+        result.className = 'result err';
+        result.textContent = `❌ تعذر الاتصال: ${err.message}`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'رفع وتحقق';
+      }
+    });
+  </script>
+</body>
+</html>

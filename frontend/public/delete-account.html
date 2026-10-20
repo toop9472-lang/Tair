@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طلب حذف الحساب - تطبيق صقر</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background-color: #0a0a0f;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            background-color: #1a1a24;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        .app-name {
+            color: #888;
+            font-size: 14px;
+        }
+        .warning-box {
+            background-color: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            color: #fca5a5;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .warning-icon {
+            font-size: 20px;
+        }
+        .section {
+            margin-bottom: 24px;
+        }
+        .section-title {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+        ul {
+            color: #aaa;
+            font-size: 14px;
+            line-height: 2;
+            padding-right: 20px;
+        }
+        .text {
+            color: #aaa;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            color: #ccc;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        input, select {
+            width: 100%;
+            padding: 14px 16px;
+            background-color: #0a0a0f;
+            border: 1px solid #333;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+        input:focus, select:focus {
+            border-color: #3b82f6;
+        }
+        .delete-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: #dc2626;
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .delete-btn:hover {
+            background-color: #b91c1c;
+        }
+        .delete-btn:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        .footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #333;
+            text-align: center;
+        }
+        .footer-text {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .footer-contact {
+            color: #60a5fa;
+            font-size: 14px;
+            margin: 4px 0;
+        }
+        .success-container {
+            text-align: center;
+            display: none;
+        }
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            font-size: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+        .success-title {
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+        .success-text {
+            color: #aaa;
+            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+        .contact-box {
+            background-color: rgba(96, 165, 250, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+        .contact-email {
+            color: #60a5fa;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Form Container -->
+        <div id="formContainer">
+            <div class="header">
+                <img src="/logo_saqr.png" alt="صقر" class="logo" onerror="this.style.display='none'">
+                <h1>طلب حذف الحساب</h1>
+                <p class="app-name">تطبيق صقر - Saqr App</p>
+            </div>
+
+            <div class="warning-box">
+                <span class="warning-icon">⚠️</span>
+                <div>
+                    <strong>تحذير:</strong> حذف الحساب عملية نهائية ولا يمكن التراجع عنها.
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">البيانات التي سيتم حذفها:</h2>
+                <ul>
+                    <li>معلومات الحساب (الاسم، البريد الإلكتروني، رقم الهاتف)</li>
+                    <li>نقاط صقر وجواهر صقر والألماسات</li>
+                    <li>سجل الألعاب والإنجازات</li>
+                    <li>الرسائل والمحادثات</li>
+                    <li>قائمة الأصدقاء</li>
+                    <li>سجل المشتريات</li>
+                    <li>جميع البيانات المرتبطة بحسابك</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">مدة الحذف:</h2>
+                <p class="text">
+                    سيتم حذف جميع بياناتك خلال <strong>30 يوم عمل</strong> من تاريخ تقديم الطلب.
+                </p>
+            </div>
+
+            <form id="deleteForm" onsubmit="handleSubmit(event)">
+                <div class="form-group">
+                    <label>البريد الإلكتروني المسجل *</label>
+                    <input type="email" id="email" placeholder="أدخل بريدك الإلكتروني" required>
+                </div>
+
+                <div class="form-group">
+                    <label>سبب حذف الحساب (اختياري)</label>
+                    <select id="reason">
+                        <option value="">اختر السبب</option>
+                        <option value="no_longer_needed">لم أعد بحاجة للتطبيق</option>
+                        <option value="privacy_concerns">مخاوف تتعلق بالخصوصية</option>
+                        <option value="too_many_notifications">إشعارات كثيرة</option>
+                        <option value="found_alternative">وجدت تطبيق بديل</option>
+                        <option value="technical_issues">مشاكل تقنية</option>
+                        <option value="other">سبب آخر</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>للتأكيد، اكتب "حذف حسابي" *</label>
+                    <input type="text" id="confirmText" placeholder='اكتب "حذف حسابي"' required oninput="checkConfirm()">
+                </div>
+
+                <button type="submit" class="delete-btn" id="submitBtn" disabled>تأكيد حذف الحساب</button>
+            </form>
+
+            <div class="footer">
+                <p class="footer-text">للمساعدة أو الاستفسارات، تواصل معنا:</p>
+                <p class="footer-contact">البريد: sky-321@hotmail.com</p>
+                <p class="footer-contact">واتساب: +966539999415</p>
+            </div>
+        </div>
+
+        <!-- Success Container -->
+        <div id="successContainer" class="success-container">
+            <div class="success-icon">✓</div>
+            <h1 class="success-title">تم استلام طلبك</h1>
+            <p class="success-text">
+                سيتم مراجعة طلبك وحذف حسابك وجميع البيانات المرتبطة به خلال 30 يوم عمل.
+            </p>
+            <p class="success-text">
+                ستصلك رسالة تأكيد على بريدك الإلكتروني عند اكتمال عملية الحذف.
+            </p>
+            <div class="contact-box">
+                <p class="footer-text">للاستفسارات:</p>
+                <p class="contact-email">sky-321@hotmail.com</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function checkConfirm() {
+            const confirmText = document.getElementById('confirmText').value;
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = confirmText !== 'حذف حسابي';
+        }
+
+        function handleSubmit(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const reason = document.getElementById('reason').value;
+            const confirmText = document.getElementById('confirmText').value;
+
+            if (confirmText !== 'حذف حسابي') {
+                alert('يرجى كتابة "حذف حسابي" للتأكيد');
+                return;
+            }
+
+            // Send request to backend (optional)
+            fetch('/api/auth/request-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, reason })
+            }).catch(() => {});
+
+            // Show success message
+            document.getElementById('formContainer').style.display = 'none';
+            document.getElementById('successContainer').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,713 @@
+// طير — Private Messages Screen (redesigned)
+// Modern chat inbox + conversation view with proper avatars and identity color.
+
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  TextInput,
+  ActivityIndicator,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  Image,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import TairHeader from '../components/TairHeader';
+import { TAIR } from '../constants/tairTheme';
+import api from '../services/api';
+
+const { width } = Dimensions.get('window');
+
+// ---------- helpers ----------
+const initialsOf = (name = '') => {
+  const t = (name || '').trim();
+  if (!t) return '؟';
+  return t.charAt(0);
+};
+
+const timeAgo = (iso) => {
+  if (!iso) return '';
+  const diff = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return 'الآن';
+  if (diff < 3600) return `قبل ${Math.floor(diff / 60)}د`;
+  if (diff < 86400) return `قبل ${Math.floor(diff / 3600)}س`;
+  if (diff < 86400 * 7) return `قبل ${Math.floor(diff / 86400)}ي`;
+  return new Date(iso).toLocaleDateString('ar-SA');
+};
+
+const formatClock = (iso) => {
+  const d = new Date(iso);
+  return d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+};
+
+// ---------- Avatar ----------
+const Avatar = ({ uri, name, size = 48, color = '#0ea5e9', verified = false, style }) => {
+  const wrap = { width: size, height: size, borderRadius: size / 2 };
+  const badgeSize = Math.max(14, Math.round(size * 0.32));
+  return (
+    <View style={[wrap, styles.avatarWrap, style]}>
+      {uri ? (
+        <Image source={{ uri }} style={[wrap, { borderRadius: size / 2 }]} />
+      ) : (
+        <LinearGradient
+          colors={[color, color + 'CC']}
+          style={[wrap, styles.avatarFallback]}
+        >
+          <Text style={[styles.avatarText, { fontSize: Math.round(size * 0.42) }]}>
+            {initialsOf(name)}
+          </Text>
+        </LinearGradient>
+      )}
+      {verified ? (
+        <View style={[styles.verifiedDot, {
+          width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2,
+          bottom: -2, insetInlineStart: -2,
+        }]}>
+          <Ionicons name="checkmark" size={Math.round(badgeSize * 0.7)} color="#fff" />
+        </View>
+      ) : null}
+    </View>
+  );
+};
+
+// ---------- Inbox item ----------
+const InboxItem = ({ item, onPress }) => {
+  const color = item.identity_color || '#0ea5e9';
+  const isUnread = (item.unread_count || 0) > 0;
+  return (
+    <TouchableOpacity
+      style={[styles.inboxItem, isUnread && { backgroundColor: color + '08' }]}
+      onPress={() => onPress(item)}
+      activeOpacity={0.7}
+    >
+      <Avatar
+        uri={item.from_user_avatar}
+        name={item.from_user_name}
+        size={54}
+        color={color}
+        verified={item.is_verified}
+      />
+
+      <View style={styles.inboxInfo}>
+        <View style={styles.inboxTopRow}>
+          <Text style={[styles.inboxName, isUnread && { fontWeight: '900' }]} numberOfLines={1}>
+            {item.from_user_name}
+          </Text>
+          <Text style={[styles.inboxTime, isUnread && { color }]}>
+            {timeAgo(item.last_time)}
+          </Text>
+        </View>
+        <View style={styles.inboxBottomRow}>
+          <Text
+            style={[
+              styles.inboxPreview,
+              isUnread && { color: '#0f172a', fontWeight: '700' },
+            ]}
+            numberOfLines={1}
+          >
+            {item.last_message}
+          </Text>
+          {isUnread ? (
+            <View style={[styles.unreadPill, { backgroundColor: color }]}>
+              <Text style={styles.unreadPillText}>{item.unread_count > 9 ? '9+' : item.unread_count}</Text>
+            </View>
+          ) : item.last_is_own ? (
+            <Ionicons name="checkmark-done" size={14} color="#94a3b8" />
+          ) : null}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// ---------- Message bubble ----------
+const MessageItem = ({ message, isOwn, showAvatar, peerAvatar, peerName, peerColor, onReport }) => {
+  return (
+    <View style={[styles.msgRow, isOwn && styles.msgRowOwn]}>
+      {!isOwn && showAvatar ? (
+        <Avatar
+          uri={peerAvatar}
+          name={peerName}
+          size={30}
+          color={peerColor}
+          style={{ marginRight: 8, marginLeft: 0 }}
+        />
+      ) : (
+        !isOwn ? <View style={{ width: 38 }} /> : null
+      )}
+
+      <TouchableOpacity
+        style={[
+          styles.bubble,
+          isOwn
+            ? [styles.bubbleOwn, { backgroundColor: peerColor || '#0ea5e9' }]
+            : styles.bubblePeer,
+        ]}
+        onLongPress={() => !isOwn && onReport && onReport(message)}
+        activeOpacity={0.9}
+      >
+        <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn]}>
+          {message.message}
+        </Text>
+        <View style={styles.bubbleFooter}>
+          <Text style={[styles.bubbleTime, isOwn && styles.bubbleTimeOwn]}>
+            {formatClock(message.created_at)}
+          </Text>
+          {isOwn ? (
+            <Ionicons
+              name={message.read ? 'checkmark-done' : 'checkmark'}
+              size={13}
+              color={message.read ? '#7dd3fc' : 'rgba(255,255,255,0.55)'}
+            />
+          ) : null}
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+// ---------- Conversation view ----------
+const ConversationView = ({ user, friend, onBack, onReport, onOpenUserProfile }) => {
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const flatListRef = useRef(null);
+  const pollInterval = useRef(null);
+
+  const peerId = friend.id || friend.from_user_id || friend.user_id;
+  const peerName = friend.name || friend.from_user_name || 'مستخدم';
+  const peerAvatar = friend.avatar || friend.from_user_avatar;
+  const peerColor = friend.identity_color || '#0ea5e9';
+  const peerVerified = !!(friend.is_verified || friend.is_verified_shop || friend.is_verified_carrier);
+
+  useEffect(() => {
+    loadMessages();
+    pollInterval.current = setInterval(() => loadMessages(false), 3000);
+    return () => {
+      if (pollInterval.current) clearInterval(pollInterval.current);
+    };
+  }, []);
+
+  const loadMessages = async (showLoading = true) => {
+    try {
+      if (showLoading) setLoading(true);
+      const myId = user?.user_id || user?.id;
+      if (!myId || !peerId) { setLoading(false); return; }
+      const res = await api.fetch(`/api/social/messages/conversation/${myId}/${peerId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages || []);
+      }
+    } catch (e) {
+      console.error('Error loading messages:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendMessage = async (overrideText) => {
+    const text = (overrideText ?? newMessage).trim();
+    if (!text) return;
+    const myId = user?.user_id || user?.id;
+    if (!myId || !peerId) {
+      Alert.alert('خطأ', 'تعذّر تحديد المستقبل — أعد فتح المحادثة');
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await api.fetch('/api/social/messages/send', {
+        method: 'POST',
+        body: JSON.stringify({
+          from_user_id: myId,
+          to_user_id: peerId,
+          from_user_name: user?.name || 'مستخدم',
+          message: text,
+        }),
+      });
+      if (res.ok) {
+        if (!overrideText) setNewMessage('');
+        loadMessages(false);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 120);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        Alert.alert('خطأ', err.detail || 'تعذّر الإرسال');
+      }
+    } catch {
+      Alert.alert('خطأ', 'حدث خطأ في الاتصال');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleReport = (message) => {
+    Alert.alert('الإبلاغ عن الرسالة', 'هل تريد الإبلاغ؟', [
+      { text: 'إلغاء', style: 'cancel' },
+      {
+        text: 'إبلاغ',
+        style: 'destructive',
+        onPress: () => onReport && onReport(message, friend),
+      },
+    ]);
+  };
+
+  const myId = user?.user_id || user?.id;
+
+  return (
+    <View style={styles.conversationContainer}>
+      {/* Header with Tair emerald identity */}
+      <View style={[styles.chatHeader, { backgroundColor: TAIR.emerald }]}>
+        <TouchableOpacity onPress={onBack} style={styles.chatBackBtn}>
+          <Ionicons name="chevron-forward" size={22} color={TAIR.gold} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.chatPeer}
+          activeOpacity={0.7}
+          onPress={() => peerId && onOpenUserProfile && onOpenUserProfile(peerId)}
+        >
+          <Avatar uri={peerAvatar} name={peerName} size={40} color={TAIR.gold + '33'} verified={peerVerified} />
+          <View style={{ flex: 1, marginRight: 10 }}>
+            <Text style={[styles.chatPeerName, { color: TAIR.gold }]} numberOfLines={1}>{peerName}</Text>
+            <Text style={[styles.chatPeerHint, { color: '#E0C580' }]}>اضغط لعرض الملف الشخصي</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.chatMoreBtn}
+          onPress={() => Alert.alert('إبلاغ', 'اضغط مطولاً على أي رسالة للإبلاغ عنها')}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color={TAIR.gold} />
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.messagesArea}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={80}
+      >
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={peerColor} />
+          </View>
+        ) : messages.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <View style={[styles.emptyIconBubble, { backgroundColor: peerColor + '18' }]}>
+              <Ionicons name="chatbubbles-outline" size={44} color={peerColor} />
+            </View>
+            <Text style={styles.emptyChatTitle}>ابدأ المحادثة</Text>
+            <Text style={styles.emptyChatSub}>ألقِ التحية على {peerName}</Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => {
+              const isOwn = item.from_user_id === myId;
+              const prev = messages[index - 1];
+              const showAvatar = !isOwn && (!prev || prev.from_user_id !== item.from_user_id);
+              return (
+                <MessageItem
+                  message={item}
+                  isOwn={isOwn}
+                  showAvatar={showAvatar}
+                  peerAvatar={peerAvatar}
+                  peerName={peerName}
+                  peerColor={peerColor}
+                  onReport={handleReport}
+                />
+              );
+            }}
+            contentContainerStyle={styles.messagesList}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          />
+        )}
+
+        {/* Quick reactions */}
+        <View style={styles.stickerBar}>
+          {['❤️', '🔥', '👍', '😂', '🎉', '🙏', '👏', '⚡'].map((e) => (
+            <TouchableOpacity
+              key={e}
+              style={styles.stickerBtn}
+              activeOpacity={0.7}
+              onPress={() => sendMessage(e)}
+            >
+              <Text style={styles.stickerEmoji}>{e}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Input */}
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="اكتب رسالتك…"
+            placeholderTextColor="#94a3b8"
+            value={newMessage}
+            onChangeText={setNewMessage}
+            multiline
+            maxLength={500}
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendBtn,
+              { backgroundColor: peerColor },
+              (!newMessage.trim() || sending) && styles.sendBtnDisabled,
+            ]}
+            onPress={() => sendMessage()}
+            disabled={!newMessage.trim() || sending}
+          >
+            {sending ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="paper-plane" size={18} color="#fff" />
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
+  );
+};
+
+// ---------- Screen root ----------
+const PrivateMessagesScreen = ({ user, onClose, initialFriend, onOpenUserProfile, onOpenNotifications, onOpenAskExperts }) => {
+  const [inbox, setInbox] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedConversation, setSelectedConversation] = useState(initialFriend || null);
+  const [totalUnread, setTotalUnread] = useState(0);
+
+  useEffect(() => {
+    if (!initialFriend) loadInbox();
+  }, []);
+
+  const loadInbox = async () => {
+    setLoading(true);
+    try {
+      const myId = user?.user_id || user?.id;
+      if (!myId) { setLoading(false); return; }
+      const res = await api.fetch(`/api/social/messages/inbox/${myId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setInbox(data.inbox || []);
+        setTotalUnread(data.total_unread || 0);
+      }
+    } catch (e) {
+      console.error('Error loading inbox:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReport = async (message, friend) => {
+    try {
+      const res = await api.fetch('/api/social/report', {
+        method: 'POST',
+        body: JSON.stringify({
+          reporter_id: user?.id,
+          reported_user_id: friend.id || friend.from_user_id,
+          report_type: 'inappropriate',
+          content_type: 'private_message',
+          content_id: message.id,
+          reason: 'رسالة مخالفة',
+        }),
+      });
+      if (res.ok) Alert.alert('تم', 'تم تقديم البلاغ');
+    } catch {
+      Alert.alert('خطأ', 'حدث خطأ');
+    }
+  };
+
+  if (selectedConversation) {
+    return (
+      <ConversationView
+        user={user}
+        friend={selectedConversation}
+        onBack={() => { setSelectedConversation(null); loadInbox(); }}
+        onReport={handleReport}
+        onOpenUserProfile={onOpenUserProfile}
+      />
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Tair Inbox header */}
+      <TairHeader variant="messages" onBellPress={onOpenNotifications} />
+      <View style={styles.inboxHeaderBar}>
+        <TouchableOpacity onPress={onClose} style={{ padding: 6 }}>
+          <Ionicons name="chevron-forward" size={22} color={TAIR.emerald} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: "flex-end" }}>
+          <Text style={styles.inboxTitle}>الرسائل</Text>
+          <Text style={styles.inboxSub}>
+            {totalUnread > 0 ? `${totalUnread} رسالة غير مقروءة` : 'لا رسائل جديدة'}
+          </Text>
+        </View>
+        {totalUnread > 0 && (
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeText}>{totalUnread > 99 ? '99+' : totalUnread}</Text>
+          </View>
+        )}
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={TAIR.emerald} />
+        </View>
+      ) : inbox.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconBubble}>
+            <Ionicons name="mail-outline" size={44} color={TAIR.emerald} />
+          </View>
+          <Text style={styles.emptyText}>لا توجد رسائل بعد</Text>
+          <Text style={styles.emptySubtext}>ابدأ محادثة من أي متجر أو إعلان</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={inbox}
+          keyExtractor={(item) => item.from_user_id}
+          renderItem={({ item }) => (
+            <InboxItem item={item} onPress={setSelectedConversation} />
+          )}
+          contentContainerStyle={styles.inboxList}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: TAIR.bg },
+
+  // Tair inbox bar
+  inboxHeaderBar: {
+    flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 14, paddingVertical: 10, backgroundColor: TAIR.card,
+    borderBottomWidth: 1, borderBottomColor: TAIR.divider,
+  },
+  inboxTitle: { color: TAIR.emerald, fontSize: 18, fontWeight: "900" },
+  inboxSub: { color: TAIR.textSoft, fontSize: 12, marginTop: 2 },
+
+  // ---------- Inbox header ----------
+  header: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingTop: 52,
+    paddingBottom: 18,
+    gap: 12,
+  },
+  headerBackBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900', textAlign: 'right' },
+  headerSubtitle: { color: 'rgba(255,255,255,0.82)', fontSize: 12, fontWeight: '700', marginTop: 3, textAlign: 'right' },
+  headerBadge: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 999,
+    minWidth: 30, alignItems: 'center',
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
+  },
+  headerBadgeText: { color: '#fff', fontSize: 12, fontWeight: '900' },
+
+  // ---------- Avatar ----------
+  avatarWrap: { position: 'relative', overflow: 'visible' },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#fff', fontWeight: '900' },
+  verifiedDot: {
+    position: 'absolute',
+    backgroundColor: '#0ea5e9',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#fff',
+  },
+
+  // ---------- Inbox list ----------
+  inboxList: { paddingBottom: 140 },
+  separator: { height: 1, backgroundColor: '#E6DCC8', marginHorizontal: 16 },
+  inboxItem: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    backgroundColor: '#FFFDF8',
+    padding: 14,
+    gap: 12,
+  },
+  inboxInfo: { flex: 1, gap: 4 },
+  inboxTopRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  inboxBottomRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  inboxName: {
+    color: '#0f172a', fontSize: 14, fontWeight: '800',
+    flex: 1, textAlign: 'right',
+  },
+  inboxTime: { color: '#94a3b8', fontSize: 11, fontWeight: '700' },
+  inboxPreview: {
+    color: '#64748b', fontSize: 12.5, fontWeight: '600',
+    flex: 1, textAlign: 'right',
+  },
+  unreadPill: {
+    minWidth: 22, height: 22, borderRadius: 11,
+    paddingHorizontal: 6,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  unreadPillText: { color: '#fff', fontSize: 11, fontWeight: '900' },
+
+  // ---------- Empty ----------
+  emptyContainer: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30,
+  },
+  emptyIconBubble: {
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: 'rgba(15,118,110,0.12)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+  },
+  emptyText: { color: '#334155', fontSize: 16, fontWeight: '900', marginBottom: 6 },
+  emptySubtext: { color: '#94a3b8', fontSize: 13, textAlign: 'center' },
+
+  // ---------- Conversation ----------
+  conversationContainer: { flex: 1, backgroundColor: TAIR.bg, paddingBottom: Platform.OS === 'ios' ? 50 : 46 },
+  chatHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 52, paddingBottom: 14,
+    gap: 10,
+  },
+  chatBackBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.20)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  chatMoreBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.20)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  chatPeer: {
+    flex: 1,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+  },
+  chatPeerName: {
+    color: '#fff', fontSize: 15, fontWeight: '900',
+    textShadowColor: 'rgba(0,0,0,0.2)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2,
+    textAlign: 'right',
+  },
+  chatPeerHint: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '700', textAlign: 'right' },
+
+  messagesArea: { flex: 1 },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  messagesList: { padding: 12, paddingBottom: 20 },
+  msgRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    alignItems: 'flex-end',
+  },
+  msgRowOwn: { justifyContent: 'flex-end' },
+  bubble: {
+    maxWidth: width * 0.72,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  bubbleOwn: {
+    backgroundColor: TAIR.emerald,
+    borderBottomRightRadius: 6,
+  },
+  bubblePeer: {
+    backgroundColor: TAIR.card,
+    borderBottomLeftRadius: 6,
+    shadowColor: '#0f172a', shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: TAIR.divider,
+  },
+  bubbleText: { color: TAIR.text, fontSize: 14, lineHeight: 20, textAlign: 'right' },
+  bubbleTextOwn: { color: TAIR.gold },
+  bubbleFooter: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginTop: 4,
+    gap: 4,
+  },
+  bubbleTime: { color: '#94a3b8', fontSize: 10, fontWeight: '700' },
+  bubbleTimeOwn: { color: 'rgba(255,255,255,0.75)' },
+
+  emptyChatTitle: { color: '#0f172a', fontSize: 16, fontWeight: '900', marginBottom: 4 },
+  emptyChatSub: { color: '#64748b', fontSize: 12, textAlign: 'center' },
+
+  // ---------- Sticker bar ----------
+  stickerBar: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    backgroundColor: TAIR.card,
+    borderTopWidth: 1,
+    borderTopColor: TAIR.divider,
+  },
+  stickerBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  stickerEmoji: { fontSize: 20 },
+
+  // ---------- Input ----------
+  inputRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'flex-end',
+    padding: 10,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+    gap: 8,
+    backgroundColor: TAIR.card,
+    borderTopWidth: 1,
+    borderTopColor: TAIR.divider,
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: TAIR.bg,
+    borderRadius: 22,
+    paddingHorizontal: 16, paddingVertical: 10,
+    color: TAIR.text, fontSize: 14,
+    maxHeight: 100,
+    textAlign: 'right',
+    borderWidth: 1,
+    borderColor: TAIR.divider,
+  },
+  sendBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#0ea5e9', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  sendBtnDisabled: { opacity: 0.5, shadowOpacity: 0 },
+});
+
+export default PrivateMessagesScreen;
