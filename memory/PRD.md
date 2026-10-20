@@ -4,6 +4,11 @@
 "طير (Tair)" — سوق متخصص وملتقى طيور/حيوانات في السعودية مع لوجستيات.
 الأدوار: مشتري، بائع، ناقل، مشرف/إدمن.
 
+## سحب من GitHub (20 Oct 2026)
+- سُحب فرع Cursor `cursor/trips-contact-upgrade-23d0` (17 تعديل، يشمل `premium-rtl-design`) من github.com/toop9472-lang/Tair (عام) بدمج fast-forward بدون تعارض. HEAD=e79cebc.
+- نسخ احتياطية: فرع `pre-pull-backup` (قبل السحب) و `pre-export-backup` (التاريخ القديم 277 تعديل).
+- أضيفت expo-location (yarn install). اختبارات 62/62 نجاح، والتجميع المحلي لتطبيق الجوال (expo export) نجح.
+
 ## تصدير الكود (20 Oct 2026)
 - Save to Github يفشل (did not receive expected object fcc782…) حتى مع مستودع فاضي → مشكلة من المنصة (shallow repo). تم توجيه المستخدم للدعم.
 - ZIP كامل في /tmp/tair_export/Tair_full_source.zip (مؤقت، يضيع عند إعادة تشغيل الحاوية) عبر GET /api/admin/source-download?key=SOURCE_DOWNLOAD_KEY.
