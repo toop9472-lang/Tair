@@ -553,7 +553,7 @@ export const api = {
         messages: normalizedMessages,
         system_message:
           systemMessage ||
-          "أنت مساعد صقر الذكي لتطبيق منصة صقر العربية (إعلانات AdMob + ريلز 15 ثانية + دردشة عامة). كل إعلان AdMob مكتمل = 5 جواهر، و 500 جوهرة = 3 ريال. كن احترافياً وواضحاً، وقدّم ردوداً قصيرة بالعربية الفصحى. تعامل مع التحية والشكر بأسلوب طبيعي ثم اقترح المساعدة المناسبة.",
+          "أنت مساعد طير. تساعد في سوق الطيور والحيوانات الأليفة وشبكة التوصيل والمجتمع. كن واضحاً ومختصراً بالعربية، وتعامل مع التحية والشكر بأسلوب طبيعي ثم اقترح المساعدة المناسبة.",
       }),
     });
 
@@ -566,7 +566,7 @@ export const api = {
           message: lastUserMessage,
           system_message:
             systemMessage ||
-            "أنت مساعد صقر الذكي لتطبيق منصة صقر العربية (إعلانات AdMob + ريلز 15 ثانية + دردشة عامة). كل إعلان AdMob مكتمل = 5 جواهر، و 500 جوهرة = 3 ريال. كن احترافياً وواضحاً، وقدّم ردوداً قصيرة بالعربية الفصحى. تعامل مع التحية والشكر بأسلوب طبيعي ثم اقترح المساعدة المناسبة.",
+            "أنت مساعد طير. تساعد في سوق الطيور والحيوانات الأليفة وشبكة التوصيل والمجتمع. كن واضحاً ومختصراً بالعربية، وتعامل مع التحية والشكر بأسلوب طبيعي ثم اقترح المساعدة المناسبة.",
         }),
       });
     }
@@ -1142,7 +1142,7 @@ export const api = {
     });
   },
 
-  // Add Saqr Gems (for ad rewards - exchangeable for cash)
+  // Add Tair gems (for ad rewards - exchangeable for cash)
   async addSaqrGems(userId, amount, source = "ad_reward") {
     return this.fetch(`/api/economy/add-saqr-gems`, {
       method: "POST",
@@ -1152,7 +1152,7 @@ export const api = {
 
   // ==================== Ad Watch Rewards ====================
 
-  // Claim ad watch reward (fixed 5 Saqr gems)
+  // Claim ad watch reward (fixed 5 Tair gems)
   async claimAdWatchReward(userId, watchDurationSeconds, adType = "video") {
     return this.fetch("/api/economy/ad-watch-reward", {
       method: "POST",

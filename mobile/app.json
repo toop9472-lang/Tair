@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#c8fce6"
+      "backgroundColor": "#F7F1E8"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -225,7 +225,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/logo_saqr.png"
+      "favicon": "./assets/tair_logo_v1_0.png"
     },
     "owner": "ziyad333",
     "extra": {

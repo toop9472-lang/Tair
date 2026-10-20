@@ -478,7 +478,7 @@ function DetailCard({ icon, label, value, color = "#1B3D2F", highlight }) {
         <Ionicons name={icon} size={18} color={color} />
       </View>
       <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={[styles.detailValue, { color: highlight ? "#065f46" : "#0F241C" }]}>{value}</Text>
+      <Text style={[styles.detailValue, { color: highlight ? "#1B3D2F" : "#0F241C" }]}>{value}</Text>
     </View>
   );
 }
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 999,
   },
-  waypointText: { color: "#065f46", fontSize: 12, fontWeight: "800" },
+  waypointText: { color: "#1B3D2F", fontSize: 12, fontWeight: "800" },
 
   notesCard: {
     backgroundColor: "#fff",

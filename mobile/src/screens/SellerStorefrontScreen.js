@@ -1281,7 +1281,7 @@ const s = StyleSheet.create({
     backgroundColor: "#f0fdf4", borderWidth: 1, borderColor: "#a7f3d0",
     padding: 10, borderRadius: 10, marginTop: 10,
   },
-  pickupLabel: { fontSize: 12, color: "#065f46", fontWeight: "800", textAlign: "right" },
+  pickupLabel: { fontSize: 12, color: "#1B3D2F", fontWeight: "800", textAlign: "right" },
   pickupNote: { fontSize: 11, color: "#059669", marginTop: 3, textAlign: "right" },
 
   portfolioImg: { width: 130, height: 90, borderRadius: 10, backgroundColor: "#f1f5f9" },
@@ -1341,7 +1341,7 @@ const s = StyleSheet.create({
     backgroundColor: "#f0fdfa", borderWidth: 1, borderColor: "#a7f3d0",
     borderRadius: 12,
   },
-  safetyText: { flex: 1, color: "#065f46", fontSize: 11.5, lineHeight: 19, textAlign: "right" },
+  safetyText: { flex: 1, color: "#1B3D2F", fontSize: 11.5, lineHeight: 19, textAlign: "right" },
 
   tabs: {
     flexDirection: "row-reverse",

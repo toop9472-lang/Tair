@@ -20,7 +20,7 @@ const statusMeta = {
   accepted_by_carrier: { color: "#eab308", label: "قبله الموصل", icon: "checkmark-circle-outline" },
   in_transit: { color: "#f59e0b", label: "في الطريق", icon: "car" },
   delivered: { color: "#2F6B45", label: "تم التسليم", icon: "checkmark-done-outline" },
-  completed: { color: "#065f46", label: "مكتمل", icon: "trophy-outline" },
+  completed: { color: "#1B3D2F", label: "مكتمل", icon: "trophy-outline" },
   disputed: { color: "#8B3A2F", label: "نزاع", icon: "alert-circle" },
   cancelled: { color: "#8A7B66", label: "ملغى", icon: "close-circle-outline" },
 };
@@ -178,7 +178,7 @@ export default function OrdersScreen({ user, onOpenOrder }) {
   const renderHeader = (
     <View>
       <LinearGradient
-        colors={["#c8fce6", "#a7f3d0"]}
+        colors={["#1B3D2F", "#0F241C"]}
         style={styles.hero}
       >
         <Text style={styles.heroTitle}>طلباتي</Text>
@@ -242,8 +242,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 16,
   },
-  heroTitle: { fontSize: 24, fontWeight: "800", color: "#065f46", textAlign: "right" },
-  heroSubtitle: { fontSize: 13, color: "#1B3D2F", marginTop: 2, textAlign: "right" },
+  heroTitle: { fontSize: 24, fontWeight: "800", color: "#C6A15B", textAlign: "right" },
+  heroSubtitle: { fontSize: 13, color: "#F7F1E8", marginTop: 2, textAlign: "right" },
 
   rolesBar: {
     flexDirection: "row-reverse",
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
     alignItems: "center",
   },
-  roleChipActive: { backgroundColor: "#065f46" },
+  roleChipActive: { backgroundColor: "#1B3D2F" },
   roleText: { color: "#475569", fontSize: 12, fontWeight: "700" },
   roleTextActive: { color: "#fff" },
 
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   orderId: { fontSize: 12, color: "#8A7B66", fontWeight: "700" },
 
   priceRow: { marginTop: 10 },
-  price: { fontSize: 22, fontWeight: "800", color: "#065f46", textAlign: "right" },
+  price: { fontSize: 22, fontWeight: "800", color: "#1B3D2F", textAlign: "right" },
   deliveryHint: { fontSize: 11, color: "#6B5E4A", textAlign: "right", marginTop: 2 },
 
   partiesRow: {

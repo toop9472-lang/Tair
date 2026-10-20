@@ -6,7 +6,7 @@
 This app requires an internet connection to:
 - Load and run in-app games
 - Match online players and sync leaderboards
-- Sync account balances (Saqr Gems and Diamonds)
+- Sync account balances (Tair Gems and Diamonds)
 
 Please ensure Wi-Fi or Cellular Data is enabled during testing.
 
@@ -53,7 +53,7 @@ Notes:
 يتطلب التطبيق اتصال بالإنترنت لـ:
 - تشغيل الألعاب داخل التطبيق
 - المطابقة في الألعاب الأونلاين وتحديث المتصدرين
-- مزامنة أرصدة جواهر صقر والألماس
+- مزامنة أرصدة جواهر طير والألماس
 
 يرجى التأكد من تفعيل Wi-Fi أو بيانات الجوال أثناء الاختبار.
 

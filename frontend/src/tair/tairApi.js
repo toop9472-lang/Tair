@@ -537,7 +537,7 @@ export const ORDER_STATUS_COLOR = {
   accepted_by_carrier: "#0891b2",
   in_transit: "#3b82f6",
   delivered: "#10b981",
-  completed: "#065f46",
+  completed: "#1B3D2F",
   disputed: "#dc2626",
   cancelled: "#64748b",
 };
