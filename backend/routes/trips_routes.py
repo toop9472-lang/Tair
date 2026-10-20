@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from models.trip import (
@@ -79,6 +79,26 @@ async def _notify_bookers(doc: dict, title: str, body: str, notif_type: str = "t
             print(f"[trip bookers] {exc}")
 
 
+async def _viewer_ids(request: Request) -> set:
+    auth = request.headers.get("authorization") or ""
+    if not auth.lower().startswith("bearer "):
+        return set()
+    from auth.jwt_handler import get_user_id_from_token
+    from auth.actor import _resolve_aliases
+    uid = get_user_id_from_token(auth[7:].strip())
+    if not uid:
+        return set()
+    return {uid} | await _resolve_aliases(uid)
+
+
+def _hide_live(doc: dict, viewer: set) -> None:
+    """Carrier's live point is shown only to the carrier and booked riders."""
+    allowed = {doc.get("carrier_id")} | {(b or {}).get("user_id") for b in doc.get("bookings") or []}
+    if not (viewer & {a for a in allowed if a}):
+        for k in ("live_lat", "live_lng", "live_at"):
+            doc.pop(k, None)
+
+
 def _serialize(doc: dict) -> dict:
     if not doc:
         return doc
@@ -136,6 +156,7 @@ async def create_trip(payload: TripCreate, user_id: str = Query(...), actor: str
 
 @router.get("/list")
 async def list_trips(
+    request: Request,
     from_city: Optional[str] = None,
     to_city: Optional[str] = None,
     status: Optional[str] = "scheduled",
@@ -159,7 +180,11 @@ async def list_trips(
     cursor = (
         db.trips.find(query).sort("depart_at", 1).skip(skip).limit(min(limit, 100))
     )
-    items = [_serialize(d) async for d in cursor]
+    viewer = await _viewer_ids(request)
+    items = []
+    async for d in cursor:
+        _hide_live(d, viewer)
+        items.append(_serialize(d))
     # Enrich with carrier public info (name, avatar, phone, whatsapp, rating)
     carrier_ids = list({i.get("carrier_id") for i in items if i.get("carrier_id")})
     if carrier_ids:
@@ -358,10 +383,11 @@ async def update_trip_request_status(
 
 
 @router.get("/{trip_id}")
-async def get_trip(trip_id: str):
+async def get_trip(trip_id: str, request: Request):
     doc = await db.trips.find_one({"trip_id": trip_id})
     if not doc:
         raise HTTPException(404, "Trip not found")
+    _hide_live(doc, await _viewer_ids(request))
     serialized = _serialize(doc)
     # Enrich with carrier public info so mobile shows avatar / WhatsApp / rating
     cid = serialized.get("carrier_id")
@@ -415,7 +441,7 @@ async def trips_by_carrier(carrier_id: str, include_completed: bool = False):
 
 @router.patch("/{trip_id}/status")
 async def update_trip_status(
-    trip_id: str, payload: TripStatusUpdate, user_id: str = Query(...)
+    trip_id: str, payload: TripStatusUpdate, user_id: str = Query(...), actor: str = Depends(require_actor)
 ):
     doc = await db.trips.find_one({"trip_id": trip_id})
     if not doc:

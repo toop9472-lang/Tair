@@ -294,7 +294,7 @@ async def register_user(data: RegisterRequest, request: Request, response: Respo
         return {"success": True, "user": {"user_id": "hp", "email": data.email, "name": data.name}}
 
     # IP rate limit — max 5 registrations per hour per IP
-    client_ip = request.client.host if request.client else None
+    client_ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() or (request.client.host if request.client else None)
     if client_ip:
         from datetime import timedelta
         now = datetime.utcnow()

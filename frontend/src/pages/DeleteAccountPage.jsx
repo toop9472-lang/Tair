@@ -65,13 +65,13 @@ const DeleteAccountPage = () => {
         {/* Header */}
         <div style={styles.header}>
           <img 
-            src="/logo192.png" 
-            alt="صقر" 
+            src="/tair_logo.png" 
+            alt="طير" 
             style={styles.logo}
             onError={(e) => e.target.style.display = 'none'}
           />
           <h1 style={styles.title}>طلب حذف الحساب</h1>
-          <p style={styles.appName}>تطبيق صقر - Saqr App</p>
+          <p style={styles.appName}>تطبيق طير - Tair App</p>
         </div>
 
         {/* Warning Box */}
@@ -87,11 +87,11 @@ const DeleteAccountPage = () => {
           <h2 style={styles.sectionTitle}>البيانات التي سيتم حذفها:</h2>
           <ul style={styles.list}>
             <li>معلومات الحساب (الاسم، البريد الإلكتروني، رقم الهاتف)</li>
-            <li>نقاط صقر وجواهر صقر والألماسات</li>
-            <li>سجل الألعاب والإنجازات</li>
+            <li>الإعلانات والمتجر والمزادات</li>
+            <li>الرحلات وطلبات النقل والحجوزات</li>
             <li>الرسائل والمحادثات</li>
-            <li>قائمة الأصدقاء</li>
-            <li>سجل المشتريات</li>
+            <li>القصص ومشاركات المجتمع ومواضيع العيادة</li>
+            <li>التقييمات والمفضلة</li>
             <li>جميع البيانات المرتبطة بحسابك</li>
           </ul>
         </div>

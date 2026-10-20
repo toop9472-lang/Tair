@@ -9,6 +9,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 
 from services.moderation import moderator_scopes
+from auth.actor import require_actor
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -129,7 +130,7 @@ async def bot_status():
 
 
 @router.post("/bot/toggle")
-async def bot_toggle(enabled: bool = Query(...), user_id: str = Query(...)):
+async def bot_toggle(enabled: bool = Query(...), user_id: str = Query(...), actor: str = Depends(require_actor)):
     if not await _is_admin_or_mod(user_id):
         raise HTTPException(403, "غير مصرح")
     await db.tair_app_settings.update_one(
@@ -305,7 +306,7 @@ async def create_topic(payload: Topic, user_id: str = Query(...)):
 
 
 @router.delete("/topics/{topic_id}")
-async def delete_topic(topic_id: str, user_id: str = Query(...)):
+async def delete_topic(topic_id: str, user_id: str = Query(...), actor: str = Depends(require_actor)):
     t = await db.tair_clinic_topics.find_one({"topic_id": topic_id})
     if not t:
         raise HTTPException(404, "الموضوع غير موجود")
@@ -349,7 +350,7 @@ async def list_replies(topic_id: str, limit: int = Query(100, le=200)):
 
 
 @router.post("/topics/{topic_id}/replies")
-async def create_reply(topic_id: str, payload: Reply, user_id: str = Query(...)):
+async def create_reply(topic_id: str, payload: Reply, user_id: str = Query(...), actor: str = Depends(require_actor)):
     ban = await db.tair_scope_bans.find_one({"user_id": user_id, "scope": "clinic"})
     if ban:
         raise HTTPException(403, "أنت محظور من التفاعل مع صفحة العيادة")
@@ -401,7 +402,7 @@ async def create_reply(topic_id: str, payload: Reply, user_id: str = Query(...))
 
 
 @router.delete("/replies/{reply_id}")
-async def delete_reply(reply_id: str, user_id: str = Query(...)):
+async def delete_reply(reply_id: str, user_id: str = Query(...), actor: str = Depends(require_actor)):
     r = await db.tair_clinic_replies.find_one({"reply_id": reply_id})
     if not r:
         raise HTTPException(404, "الرد غير موجود")
@@ -454,7 +455,7 @@ async def add_library(payload: LibraryItem, user_id: str = Query(...)):
 
 
 @router.delete("/library/{library_id}")
-async def delete_library(library_id: str, user_id: str = Query(...)):
+async def delete_library(library_id: str, user_id: str = Query(...), actor: str = Depends(require_actor)):
     if not await _is_admin_or_mod(user_id):
         raise HTTPException(403, "غير مصرح")
     await db.tair_clinic_library.delete_one({"library_id": library_id})

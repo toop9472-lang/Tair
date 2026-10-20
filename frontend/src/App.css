@@ -35,6 +35,13 @@
     }
 }
 
+@media (min-width: 480px) {
+    .App.App--wide {
+        max-width: none;
+        box-shadow: none;
+    }
+}
+
 /* Disable pull-to-refresh on mobile */
 body {
     overscroll-behavior-y: contain;

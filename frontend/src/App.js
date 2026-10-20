@@ -234,15 +234,22 @@ const loaderStyles = {
   },
 };
 
+function AppFrame() {
+  const { pathname } = useLocation();
+  return (
+    <div className={pathname.startsWith("/admin") ? "App App--wide" : "App"}>
+      <AppRouter />
+      <Toaster />
+    </div>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
         <BrowserRouter>
-          <div className="App">
-            <AppRouter />
-            <Toaster />
-          </div>
+          <AppFrame />
         </BrowserRouter>
       </LanguageProvider>
     </ThemeProvider>

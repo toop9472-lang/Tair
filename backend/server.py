@@ -630,6 +630,7 @@ async def ensure_tair_indexes():
         await db.tair_ratings.create_index([("target_id", 1), ("created_at", -1)])
         await db.tair_ratings.create_index([("rater_id", 1), ("target_id", 1)], unique=True)
         logger.info("Tair MongoDB indexes ensured")
+        await db.admins.update_many({"name": "مدير صقر"}, {"$set": {"name": "مدير طير"}})
     except Exception as e:
         logger.warning(f"ensure_tair_indexes failed (non-fatal): {e}")
 

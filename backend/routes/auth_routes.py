@@ -156,7 +156,7 @@ async def signin(credentials: EmailLogin, request: Request):
     db = get_db()
     
     # الحصول على معلومات الطلب
-    client_ip = request.client.host if request.client else None
+    client_ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() or (request.client.host if request.client else None)
     user_agent = request.headers.get('user-agent', '')
     
     # التحقق من حد المحاولات
@@ -364,7 +364,7 @@ async def register_email(data: EmailRegister, request: Request):
         return {"success": True, "user": {"user_id": "hp", "email": data.email, "name": data.name}}
 
     # IP rate limit — max 5 registrations per hour per IP
-    client_ip = request.client.host if request.client else None
+    client_ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() or (request.client.host if request.client else None)
     if client_ip:
         now = datetime.utcnow()
         window_start = now - timedelta(hours=1)
@@ -409,7 +409,7 @@ async def register_email(data: EmailRegister, request: Request):
     user_id = str(uuid.uuid4())
     
     # الحصول على معلومات الطلب
-    client_ip = request.client.host if request.client else None
+    client_ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() or (request.client.host if request.client else None)
     
     user_doc = {
         'id': user_id,

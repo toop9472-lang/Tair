@@ -253,7 +253,11 @@ async def update_my_supplier(body: SupplierRegister, actor: str = Depends(requir
     if not doc:
         raise HTTPException(status_code=404, detail="لا توجد شركة مسجّلة بهذا الحساب")
     data = _apply_contact(body.model_dump())
-    data["is_active"] = bool(data.get("is_active", True))
+    data["is_active"] = False if doc.get("hidden_by_admin") else bool(data.get("is_active", True))
+    if doc.get("is_verified") and any(
+        data.get(k) != doc.get(k) for k in ("name", "whatsapp", "phone")
+    ):
+        data["is_verified"] = False
     data["updated_at"] = _now()
     await db.wholesale_suppliers.update_one({"owner_id": actor}, {"$set": data})
     fresh = await db.wholesale_suppliers.find_one({"owner_id": actor}, {"_id": 0})
@@ -302,6 +306,8 @@ async def admin_panel_update_supplier(
     update = {k: v for k, v in body.model_dump().items() if v is not None}
     if not update:
         raise HTTPException(status_code=400, detail="لا يوجد تعديل")
+    if "is_active" in update:
+        update["hidden_by_admin"] = not update["is_active"]
     update["updated_at"] = _now()
     result = await db.wholesale_suppliers.update_one(
         {"supplier_id": supplier_id},

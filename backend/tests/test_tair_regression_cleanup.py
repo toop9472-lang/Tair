@@ -203,48 +203,49 @@ def _topic(s, uid, title):
 
 
 class TestClinic:
-    def test_bot_toggle_flow(self, s, normal_user):
+    def test_bot_toggle_flow(self, s, ah, normal_user):
         uid = normal_user["id"]
         try:
-            r = s.post(f"{API}/clinic/bot/toggle", params={"enabled": "false", "user_id": ADMIN_EMAIL})
+            r = s.post(f"{API}/clinic/bot/toggle", params={"enabled": "false", "user_id": ADMIN_EMAIL}, headers=ah)
             assert r.status_code == 200 and r.json()["enabled"] is False
             assert s.get(f"{API}/clinic/bot/status").json()["enabled"] is False
             t1 = _topic(s, uid, "TEST_topic_nobot")
             reps = s.get(f"{API}/clinic/topics/{t1}/replies").json()["items"]
             assert not any(x["user_id"] == "clinic_bot" for x in reps)
-            r = s.post(f"{API}/clinic/bot/toggle", params={"enabled": "true", "user_id": ADMIN_EMAIL})
+            r = s.post(f"{API}/clinic/bot/toggle", params={"enabled": "true", "user_id": ADMIN_EMAIL}, headers=ah)
             assert r.status_code == 200 and r.json()["enabled"] is True
             t2 = _topic(s, uid, "TEST_topic_bot")
             reps = s.get(f"{API}/clinic/topics/{t2}/replies").json()["items"]
             assert any(x["user_id"] == "clinic_bot" for x in reps)
             assert s.get(f"{API}/clinic/topics/{t2}").json()["replies_count"] >= 1
         finally:
-            s.post(f"{API}/clinic/bot/toggle", params={"enabled": "true", "user_id": ADMIN_EMAIL})
+            s.post(f"{API}/clinic/bot/toggle", params={"enabled": "true", "user_id": ADMIN_EMAIL}, headers=ah)
             for t in locals().get("t1"), locals().get("t2"):
                 if t:
-                    s.delete(f"{API}/clinic/topics/{t}", params={"user_id": ADMIN_EMAIL})
+                    s.delete(f"{API}/clinic/topics/{t}", params={"user_id": ADMIN_EMAIL}, headers=ah)
 
     def test_bot_toggle_non_mod(self, s, normal_user):
-        r = s.post(f"{API}/clinic/bot/toggle", params={"enabled": "false", "user_id": normal_user["id"]})
+        nh = {"Authorization": f"Bearer {normal_user['token']}"}
+        r = s.post(f"{API}/clinic/bot/toggle", params={"enabled": "false", "user_id": normal_user["id"]}, headers=nh)
         assert r.status_code == 403
         assert s.get(f"{API}/clinic/bot/status").json()["enabled"] is True
 
-    def test_delete_reply(self, s, normal_user):
+    def test_delete_reply(self, s, ah, normal_user):
         tid = _topic(s, normal_user["id"], "TEST_topic_del")
         try:
-            r = s.post(f"{API}/clinic/topics/{tid}/replies", params={"user_id": ADMIN_EMAIL}, json={"text": "TEST reply"})
+            r = s.post(f"{API}/clinic/topics/{tid}/replies", params={"user_id": ADMIN_EMAIL}, headers=ah, json={"text": "TEST reply"})
             assert r.status_code == 200, r.text
             rid = r.json()["reply_id"]
             before = s.get(f"{API}/clinic/topics/{tid}").json()["replies_count"]
             # random user forbidden
-            f = s.delete(f"{API}/clinic/replies/{rid}", params={"user_id": f"rand_{uuid.uuid4().hex[:6]}"})
+            f = s.delete(f"{API}/clinic/replies/{rid}", params={"user_id": f"rand_{uuid.uuid4().hex[:6]}"}, headers={"Authorization": f"Bearer {normal_user['token']}"})
             assert f.status_code == 403
-            d = s.delete(f"{API}/clinic/replies/{rid}", params={"user_id": ADMIN_ID})
+            d = s.delete(f"{API}/clinic/replies/{rid}", params={"user_id": ADMIN_ID}, headers=ah)
             assert d.status_code == 200
             after = s.get(f"{API}/clinic/topics/{tid}").json()["replies_count"]
             assert after == before - 1
             reps = s.get(f"{API}/clinic/topics/{tid}/replies").json()["items"]
             assert not any(x["reply_id"] == rid for x in reps)
-            assert s.delete(f"{API}/clinic/replies/{rid}", params={"user_id": ADMIN_ID}).status_code == 404
+            assert s.delete(f"{API}/clinic/replies/{rid}", params={"user_id": ADMIN_ID}, headers=ah).status_code == 404
         finally:
-            s.delete(f"{API}/clinic/topics/{tid}", params={"user_id": ADMIN_EMAIL})
+            s.delete(f"{API}/clinic/topics/{tid}", params={"user_id": ADMIN_EMAIL}, headers=ah)
