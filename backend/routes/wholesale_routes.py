@@ -9,10 +9,12 @@ from datetime import datetime, timezone
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 
 from auth.actor import require_actor
+from auth.jwt_handler import get_user_id_from_token
 from models.places import city_match_values
 
 router = APIRouter(prefix="/wholesale", tags=["wholesale"])
@@ -139,6 +141,57 @@ def _serialize(doc: dict) -> dict:
     return doc
 
 
+def _category_labels(ids) -> List[str]:
+    names = {c["id"]: c["name_ar"] for c in WHOLESALE_CATEGORIES}
+    return [names.get(i, i) for i in (ids or [])]
+
+
+def _with_labels(doc: dict) -> dict:
+    row = _serialize(doc)
+    if row:
+        row["category_labels"] = _category_labels(row.get("categories"))
+    return row
+
+
+_panel_bearer = HTTPBearer()
+
+
+async def _panel_user_id(
+    credentials: HTTPAuthorizationCredentials = Depends(_panel_bearer),
+) -> str:
+    user_id = get_user_id_from_token(credentials.credentials)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="انتهت الجلسة — سجّل الدخول مرة أخرى")
+    return user_id
+
+
+async def _require_panel_admin(user_id: str) -> dict:
+    """نفس فحص لوحة المدير: حساب في admins، أو بريد مطابق، أو is_admin."""
+    admin = await db.admins.find_one(
+        {"$or": [{"id": user_id}, {"email": user_id}]},
+        {"_id": 0},
+    )
+    if admin:
+        return admin
+    user = await db.users.find_one(
+        {"$or": [{"id": user_id}, {"user_id": user_id}, {"email": user_id}]},
+        {"_id": 0},
+    )
+    if user:
+        email = user.get("email")
+        if email:
+            admin = await db.admins.find_one({"email": email}, {"_id": 0})
+            if admin:
+                return admin
+        if user.get("is_admin"):
+            return {
+                "id": user.get("id") or user.get("user_id"),
+                "email": email,
+                "role": "admin",
+            }
+    raise HTTPException(status_code=403, detail="غير مصرح")
+
+
 # ---------------------------------------------------------------- public
 
 
@@ -215,7 +268,52 @@ async def get_supplier(supplier_id: str):
     return _serialize(doc)
 
 
-# ---------------------------------------------------------------- admin
+# ---------------------------------------------------------------- admin panel (JWT)
+
+
+class PanelSupplierUpdate(BaseModel):
+    is_verified: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+
+@router.get("/admin/panel")
+async def admin_panel_suppliers(user_id: str = Depends(_panel_user_id)):
+    """كل الشركات، بما فيها المخفية وغير الموثّقة. للمدير فقط."""
+    await _require_panel_admin(user_id)
+    cursor = db.wholesale_suppliers.find({}).sort([("is_verified", 1), ("created_at", -1)])
+    items = []
+    pending = 0
+    async for doc in cursor:
+        row = _with_labels(doc)
+        if row.get("is_active", True) and not row.get("is_verified"):
+            pending += 1
+        items.append(row)
+    return {"items": items, "count": len(items), "pending": pending}
+
+
+@router.patch("/admin/panel/{supplier_id}")
+async def admin_panel_update_supplier(
+    supplier_id: str,
+    body: PanelSupplierUpdate,
+    user_id: str = Depends(_panel_user_id),
+):
+    """توثيق الشركة أو إخفاؤها من الدليل. الشركة لا تقدر تنفّذ هذا على نفسها."""
+    await _require_panel_admin(user_id)
+    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not update:
+        raise HTTPException(status_code=400, detail="لا يوجد تعديل")
+    update["updated_at"] = _now()
+    result = await db.wholesale_suppliers.update_one(
+        {"supplier_id": supplier_id},
+        {"$set": update},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="الشركة غير موجودة")
+    fresh = await db.wholesale_suppliers.find_one({"supplier_id": supplier_id})
+    return _with_labels(fresh)
+
+
+# ---------------------------------------------------------------- admin key (scripts)
 
 
 class AdminCreateSupplier(SupplierIn):

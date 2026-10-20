@@ -1,5 +1,5 @@
 // طير — Admin Panel v2 (لوحة المدير الشاملة)
-// Tabs: إحصائيات • إعلانات • رحلات • مستخدمون • بلاغات • قصص • مزادات
+// Tabs: إحصائيات • إعلانات • رحلات • موردون • مستخدمون • بلاغات • قصص • مزادات
 import React, { useCallback, useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Alert,
@@ -17,6 +17,7 @@ const TABS = [
   { id: "broadcast", label: "رسالة عامة", icon: "megaphone-outline" },
   { id: "clinic_bot", label: "بوت العيادة", icon: "hardware-chip-outline" },
   { id: "verify",    label: "طلبات التوثيق", icon: "ribbon-outline" },
+  { id: "suppliers", label: "الموردون",    icon: "business-outline" },
   { id: "mods",      label: "المشرفون",   icon: "shield-half-outline" },
   { id: "listings",  label: "الإعلانات",   icon: "megaphone" },
   { id: "trips",     label: "الرحلات",     icon: "airplane" },
@@ -60,7 +61,7 @@ export default function AdminPanelScreen({ user, onBack }) {
   const [activeOnly, setActiveOnly] = useState(false);
   const [stats, setStats] = useState({
     listings: 0, trips: 0, users: 0, reports: 0, stories: 0, auctions: 0,
-    banned: 0, sellers: 0, carriers: 0, admins: 0,
+    banned: 0, sellers: 0, carriers: 0, admins: 0, suppliers: 0,
   });
 
   const load = useCallback(async () => {
@@ -68,13 +69,14 @@ export default function AdminPanelScreen({ user, onBack }) {
       setLoading(true);
       if (tab === "stats") {
         // aggregate stats from multiple endpoints
-        const [l, t, u, r, s, a] = await Promise.all([
+        const [l, t, u, r, s, a, sup] = await Promise.all([
           listingsApi.feed({ limit: 1, include_all: true }).catch(() => ({ total: 0 })),
           tripsApi.list({ limit: 1 }).catch(() => ({ total: 0 })),
           jsonReq("/api/admin/users/stats/overview").catch(() => null),
           jsonReq("/api/tair-reports/list?status=open&limit=1").catch(() => null),
           jsonReq("/api/community/stories/list?limit=1").catch(() => null),
           jsonReq("/api/auctions/list?limit=1").catch(() => null),
+          jsonReq("/api/wholesale/admin/panel").catch(() => null),
         ]);
         setStats({
           listings: l.total || l.count || 0,
@@ -87,6 +89,7 @@ export default function AdminPanelScreen({ user, onBack }) {
           reports: r?.total || (r?.items?.length || 0),
           stories: s?.total || (s?.items?.length || 0),
           auctions: a?.total || (a?.items?.length || 0),
+          suppliers: sup?.count || 0,
         });
         setItems([]);
       } else if (tab === "listings") {
@@ -122,6 +125,14 @@ export default function AdminPanelScreen({ user, onBack }) {
           const data = await adminExtApi.verificationList(uid, "pending");
           setItems(data?.items || []);
         } catch { setItems([]); }
+      } else if (tab === "suppliers") {
+        const data = await jsonReq("/api/wholesale/admin/panel");
+        if (data?.detail && !data?.items) {
+          Alert.alert("غير مصرح", String(data.detail));
+          setItems([]);
+        } else {
+          setItems(data?.items || []);
+        }
       } else if (tab === "mods") {
         try {
           const data = await adminExtApi.moderatorsList(uid);
@@ -340,6 +351,54 @@ export default function AdminPanelScreen({ user, onBack }) {
       load();
     } catch (e) { Alert.alert("خطأ", e?.message || "تعذّر التنفيذ"); }
   };
+  const patchSupplier = async (supplierId, body, okText) => {
+    try {
+      const r = await authedFetch(`/api/wholesale/admin/panel/${encodeURIComponent(supplierId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!r || !r.ok) {
+        let msg = "تعذّر التحديث";
+        try {
+          const j = await r.json();
+          if (j?.detail) msg = String(j.detail);
+        } catch {}
+        if (r?.status === 401) msg = "انتهت الجلسة — سجّل الدخول مرة أخرى";
+        if (r?.status === 403) msg = "غير مصرح — تأكد أنك مسجّل كمدير";
+        Alert.alert("خطأ", msg);
+        return;
+      }
+      if (okText) Alert.alert("✔", okText);
+      load();
+    } catch (e) {
+      Alert.alert("خطأ", e?.message || "تعذّر التحديث");
+    }
+  };
+  const toggleSupplierVerified = (item) => {
+    const next = !item.is_verified;
+    patchSupplier(
+      item.supplier_id,
+      { is_verified: next },
+      next ? "تم توثيق الشركة" : "أُلغي التوثيق",
+    );
+  };
+  const toggleSupplierActive = (item) => {
+    const next = item.is_active === false;
+    Alert.alert(
+      next ? "إظهار الشركة" : "إخفاء الشركة",
+      next ? "ستظهر الشركة في دليل الموردين." : "ستختفي الشركة من الدليل حتى تُظهرها.",
+      [
+        { text: "إلغاء", style: "cancel" },
+        {
+          text: next ? "إظهار" : "إخفاء",
+          style: next ? "default" : "destructive",
+          onPress: () => patchSupplier(item.supplier_id, { is_active: next }),
+        },
+      ],
+    );
+  };
+
   const revokeMod = (targetUid) => {
     Alert.alert("سحب الصلاحيات", "متأكد؟", [
       { text: "إلغاء", style: "cancel" },
@@ -366,6 +425,7 @@ export default function AdminPanelScreen({ user, onBack }) {
         <StatCard icon="storefront-outline" label="بائعون" value={stats.sellers} color={TAIR.emerald} />
         <StatCard icon="car-sport-outline" label="ناقلون" value={stats.carriers} color={TAIR.goldDark} />
         <StatCard icon="shield-checkmark-outline" label="مديرون" value={stats.admins} color={TAIR.emerald} />
+        <StatCard icon="business-outline" label="موردون" value={stats.suppliers} color={TAIR.gold} />
       </View>
       <View style={styles.quickActionsCard}>
         <Text style={styles.quickActionsTitle}>إجراءات سريعة</Text>
@@ -411,7 +471,7 @@ export default function AdminPanelScreen({ user, onBack }) {
     return (
       <FlatList
         data={filtered}
-        keyExtractor={(it, i) => String(it.listing_id || it.trip_id || it.user_id || it.report_id || it.story_id || it.auction_id || it.id || i)}
+        keyExtractor={(it, i) => String(it.listing_id || it.trip_id || it.user_id || it.report_id || it.story_id || it.auction_id || it.supplier_id || it.id || i)}
         renderItem={({ item }) => renderRow(item)}
         ItemSeparatorComponent={() => <View style={styles.divider} />}
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -435,6 +495,13 @@ export default function AdminPanelScreen({ user, onBack }) {
               <Text style={{ color: TAIR.textSoft, fontSize: 11, flex: 1, textAlign: "left" }}>
                 {activeOnly ? `${items.length} نشط` : `صفحة ${userPage} / ${userPages}`}
               </Text>
+            </View>
+          ) : tab === "suppliers" ? (
+            <View style={styles.supplierHint}>
+              <Text style={styles.supplierHintText}>
+                {`${items.filter((s) => s.is_active !== false && !s.is_verified).length} بانتظار التوثيق • ${items.length} شركة`}
+              </Text>
+              <Text style={styles.supplierHintSub}>التوثيق من هنا فقط. الشركة لا توثّق نفسها.</Text>
             </View>
           ) : null
         }
@@ -467,7 +534,7 @@ export default function AdminPanelScreen({ user, onBack }) {
           !loading ? (
             <View style={styles.empty}>
               <Ionicons name="inbox-outline" size={40} color={TAIR.textSoft} />
-              <Text style={styles.emptyText}>لا توجد بيانات</Text>
+              <Text style={styles.emptyText}>{tab === "suppliers" ? "لا توجد شركات مسجّلة بعد" : "لا توجد بيانات"}</Text>
             </View>
           ) : null
         }
@@ -484,6 +551,13 @@ export default function AdminPanelScreen({ user, onBack }) {
     if (tab === "auctions") return <AuctionRow item={item} onDelete={() => confirmDelete("حذف هذا المزاد؟", `/api/auctions/${item.auction_id || item.id}?user_id=${encodeURIComponent(uid)}`)} />;
     if (tab === "pending") return <PendingAuctionRow item={item} onApprove={() => approveAuction(item.auction_id)} onReject={() => rejectAuction(item.auction_id)} />;
     if (tab === "verify") return <VerificationRow item={item} onApprove={() => approveVerification(item.request_id || item.id)} onReject={() => rejectVerification(item.request_id || item.id)} />;
+    if (tab === "suppliers") return (
+      <SupplierRow
+        item={item}
+        onVerify={() => toggleSupplierVerified(item)}
+        onToggle={() => toggleSupplierActive(item)}
+      />
+    );
     if (tab === "mods") return <ModeratorRow item={item} onRevoke={() => revokeMod(item.user_id || item.id)} onAssign={() => assignMod(item.user_id || item.id)} />;
     return null;
   };
@@ -857,6 +931,59 @@ const VerificationRow = ({ item, onApprove, onReject }) => (
   </View>
 );
 
+const SupplierRow = ({ item, onVerify, onToggle }) => {
+  const verified = !!item.is_verified;
+  const active = item.is_active !== false;
+  const cats = (item.category_labels || item.categories || []).join("، ");
+  return (
+    <View style={[styles.row, { alignItems: "flex-start" }]}>
+      <View style={styles.rowIconBox}>
+        <Ionicons name="business" size={20} color={verified ? TAIR.gold : TAIR.emerald} />
+      </View>
+      <View style={{ flex: 1, gap: 4 }}>
+        <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <Text style={styles.rowTitle} numberOfLines={1}>{item.name || "شركة"}</Text>
+          <View style={verified ? styles.trustBadge : styles.pendingBadge}>
+            <Text style={verified ? styles.trustBadgeText : styles.pendingBadgeText}>
+              {verified ? "موثّق" : "بانتظار التوثيق"}
+            </Text>
+          </View>
+          {!active ? (
+            <View style={styles.resolvedBadge}>
+              <Text style={styles.resolvedText}>مخفي</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text style={styles.rowMeta} numberOfLines={2}>
+          {[item.city, cats, item.whatsapp || item.phone].filter(Boolean).join(" • ")}
+        </Text>
+        <View style={{ flexDirection: "row-reverse", gap: 6, marginTop: 4 }}>
+          <TouchableOpacity
+            onPress={onVerify}
+            style={[styles.resolveBtn, verified && styles.supplierGhostBtn]}
+            testID={`supplier-verify-${item.supplier_id}`}
+          >
+            <Ionicons name={verified ? "close-circle-outline" : "shield-checkmark"} size={14} color={verified ? TAIR.emerald : TAIR.gold} />
+            <Text style={[styles.resolveBtnText, verified && { color: TAIR.emerald }]}>
+              {verified ? "إلغاء التوثيق" : "وثّق"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onToggle}
+            style={[styles.resolveBtn, active ? styles.supplierHideBtn : null]}
+            testID={`supplier-active-${item.supplier_id}`}
+          >
+            <Ionicons name={active ? "eye-off-outline" : "eye-outline"} size={14} color={active ? "#8B3A2F" : TAIR.gold} />
+            <Text style={[styles.resolveBtnText, active && { color: "#8B3A2F" }]}>
+              {active ? "إخفاء" : "إظهار"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 const ModeratorRow = ({ item, onRevoke, onAssign }) => (
   <View style={styles.row}>
     <View style={[styles.rowIconBox, { backgroundColor: "#E4EEE7" }]}>
@@ -963,6 +1090,16 @@ const styles = StyleSheet.create({
     backgroundColor: TAIR.emerald, paddingVertical: 2, paddingHorizontal: 6, borderRadius: 999,
   },
   trustBadgeText: { color: TAIR.gold, fontSize: 9, fontWeight: "800" },
+  pendingBadge: {
+    backgroundColor: "#F5EED9", paddingVertical: 2, paddingHorizontal: 6, borderRadius: 999,
+    borderWidth: 1, borderColor: TAIR.gold,
+  },
+  pendingBadgeText: { color: TAIR.emerald, fontSize: 9, fontWeight: "800" },
+  supplierHint: { paddingHorizontal: 14, paddingVertical: 10, backgroundColor: TAIR.bg, gap: 2 },
+  supplierHintText: { color: TAIR.emerald, fontSize: 12, fontWeight: "800", textAlign: "right" },
+  supplierHintSub: { color: TAIR.textSoft, fontSize: 11, textAlign: "right" },
+  supplierGhostBtn: { backgroundColor: TAIR.card, borderWidth: 1, borderColor: TAIR.emerald },
+  supplierHideBtn: { backgroundColor: "#FDECEA" },
   uidChip: {
     flexDirection: "row-reverse", alignItems: "center", gap: 4,
     backgroundColor: "#F0EAD8", paddingHorizontal: 8, paddingVertical: 3,
