@@ -232,15 +232,6 @@ async def publish_app_update(payload: AppUpdatePayload, background: BackgroundTa
     return {"success": True, "update_id": update_id, "recipients": len(docs), "push_devices": pushed}
 
 
-@router.get("/admin/source-download")
-async def source_download(key: str = Query(...)):
-    from fastapi.responses import FileResponse
-    path = "/tmp/tair_export/Tair_full_source.zip"
-    if key != os.environ.get("SOURCE_DOWNLOAD_KEY") or not os.path.exists(path):
-        raise HTTPException(404, "غير موجود")
-    return FileResponse(path, filename="Tair_full_source.zip", media_type="application/zip")
-
-
 @router.get("/app/latest-update")
 async def latest_app_update():
     d = await db.tair_app_settings.find_one({"key": "app_update"}, {"_id": 0})
