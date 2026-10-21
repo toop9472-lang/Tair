@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { TAIR, TAIR_ELEVATION, TAIR_RADIUS } from "../constants/tairTheme";
 
@@ -149,13 +150,17 @@ export function TairImage({
   return (
     <View style={[styles.imgWrap, style]}>
       {uri && phase !== "error" ? (
-        <Animated.Image
-          source={{ uri, cache: "force-cache" }}
-          style={[StyleSheet.absoluteFill, { opacity: fade }]}
-          resizeMode={resizeMode}
-          onLoad={onLoad}
-          onError={() => setPhase("error")}
-        />
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
+          <ExpoImage
+            source={{ uri }}
+            style={StyleSheet.absoluteFill}
+            contentFit={resizeMode === "contain" ? "contain" : "cover"}
+            cachePolicy="memory-disk"
+            recyclingKey={uri}
+            onLoad={onLoad}
+            onError={() => setPhase("error")}
+          />
+        </Animated.View>
       ) : null}
       {phase !== "ready" ? (
         <View style={styles.imgPh} pointerEvents="none">

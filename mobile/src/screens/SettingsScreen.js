@@ -1,11 +1,14 @@
 // طير — الإعدادات
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, Alert, Linking } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, ScrollView, Alert, Linking, Modal, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
+import api from "../services/api";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import Constants from "expo-constants";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { PressableScale } from "../components/TairUI";
+
+const SITE = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 function Row({ icon, label, onPress, danger = false }) {
   const color = danger ? TAIR.error : TAIR.emerald;
@@ -31,8 +34,11 @@ export default function SettingsScreen({ user, onBack, onLogout }) {
     ]);
   };
 
+  const [delOpen, setDelOpen] = useState(false);
+
   return (
     <View style={styles.container}>
+      <DeleteAccountModal visible={delOpen} onClose={() => setDelOpen(false)} onDeleted={onLogout} />
       <ScreenHeader title="الإعدادات" subtitle="حسابك وتفضيلات طير" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
@@ -46,20 +52,69 @@ export default function SettingsScreen({ user, onBack, onLogout }) {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>حول التطبيق</Text>
-          <Row icon="document-text-outline" label="الشروط والأحكام" onPress={() => Linking.openURL("https://saqr-ui-sync.preview.emergentagent.com/terms")} />
-          <Row icon="shield-checkmark-outline" label="سياسة الخصوصية" onPress={() => Linking.openURL("https://saqr-ui-sync.preview.emergentagent.com/privacy")} />
+          <Row icon="document-text-outline" label="الشروط والأحكام" onPress={() => Linking.openURL(`${SITE}/terms`)} />
+          <Row icon="shield-checkmark-outline" label="سياسة الخصوصية" onPress={() => Linking.openURL(`${SITE}/privacy`)} />
           <Row icon="information-circle-outline" label={`الإصدار ${version}`} onPress={() => {}} />
         </View>
 
         {onLogout ? (
           <View style={styles.card}>
             <Row icon="log-out-outline" label="تسجيل الخروج" onPress={confirmLogout} danger />
+            <View style={styles.divider} />
+            <Row icon="trash-outline" label="حذف حسابي نهائياً" onPress={() => setDelOpen(true)} danger />
           </View>
         ) : null}
 
         <Text style={styles.foot}>طير · سوق الطيور والحيوانات</Text>
       </ScrollView>
     </View>
+  );
+}
+
+function DeleteAccountModal({ visible, onClose, onDeleted }) {
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    setBusy(true);
+    try {
+      await api.deleteAccount("حذف", password || null);
+      onClose();
+      Alert.alert("تم حذف الحساب", "حُذف حسابك وبياناتك من طير نهائياً.");
+      onDeleted?.();
+    } catch (e) {
+      Alert.alert("تعذّر الحذف", e?.data?.detail || e?.message || "حاول مرة أخرى");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalBack}>
+        <View style={styles.modalCard} testID="delete-account-modal">
+          <Ionicons name="warning" size={30} color={TAIR.error} style={{ alignSelf: "center" }} />
+          <Text style={styles.modalTitle}>حذف الحساب نهائياً</Text>
+          <Text style={styles.modalText}>
+            ستُحذف بياناتك الشخصية ورسائلك وقصصك ومفضلتك، وتُخفى إعلاناتك ورحلاتك. لا يمكن التراجع عن هذا.
+          </Text>
+          <TextInput
+            style={styles.modalInput}
+            placeholder="كلمة المرور (إذا سجلت بالبريد)"
+            placeholderTextColor={TAIR.faint}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            textAlign="right"
+            testID="delete-account-password"
+          />
+          <TouchableOpacity style={styles.modalDanger} onPress={submit} disabled={busy} testID="delete-account-confirm">
+            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalDangerT}>حذف حسابي</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.modalCancel} onPress={onClose} disabled={busy} testID="delete-account-cancel">
+            <Text style={styles.modalCancelT}>إلغاء</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -73,6 +128,15 @@ function Info({ label, value, mono }) {
 }
 
 const styles = StyleSheet.create({
+  modalBack: { flex: 1, backgroundColor: "rgba(15,36,28,0.6)", justifyContent: "center", padding: 24 },
+  modalCard: { backgroundColor: TAIR.bg, borderRadius: 20, padding: 20, gap: 12 },
+  modalTitle: { color: TAIR.error, fontSize: 18, fontWeight: "900", textAlign: "center" },
+  modalText: { color: TAIR.emerald, fontSize: 13, lineHeight: 21, textAlign: "right" },
+  modalInput: { backgroundColor: TAIR.card, borderRadius: 12, borderWidth: 1, borderColor: TAIR.divider, height: 46, paddingHorizontal: 12, color: TAIR.emerald },
+  modalDanger: { backgroundColor: TAIR.error, borderRadius: 12, paddingVertical: 13, alignItems: "center" },
+  modalDangerT: { color: "#fff", fontWeight: "900", fontSize: 15 },
+  modalCancel: { paddingVertical: 8, alignItems: "center" },
+  modalCancelT: { color: TAIR.emerald, fontWeight: "800" },
   container: { flex: 1, backgroundColor: TAIR.bg },
   content: { padding: 16, paddingBottom: 48 },
   card: {

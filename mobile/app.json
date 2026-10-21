@@ -2,7 +2,7 @@
   "expo": {
     "name": "طير",
     "slug": "saqr-app",
-    "version": "8.7.0",
+    "version": "8.7.1",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -71,7 +71,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.saqr.rewards",
-      "buildNumber": "217",
+      "buildNumber": "218",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -167,7 +167,7 @@
         "monochromeImage": "./assets/adaptive-icon.png"
       },
       "package": "com.saqr.rewards",
-      "versionCode": 217,
+      "versionCode": 218,
       "softwareKeyboardLayoutMode": "resize",
       "intentFilters": [
         {

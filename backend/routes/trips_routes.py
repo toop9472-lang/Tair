@@ -387,8 +387,11 @@ async def get_trip(trip_id: str, request: Request):
     doc = await db.trips.find_one({"trip_id": trip_id})
     if not doc:
         raise HTTPException(404, "Trip not found")
-    _hide_live(doc, await _viewer_ids(request))
+    viewer = await _viewer_ids(request)
+    _hide_live(doc, viewer)
+    my_bookings = sum(1 for b in doc.get("bookings") or [] if (b or {}).get("user_id") in viewer)
     serialized = _serialize(doc)
+    serialized["my_bookings"] = my_bookings
     # Enrich with carrier public info so mobile shows avatar / WhatsApp / rating
     cid = serialized.get("carrier_id")
     if cid:
@@ -585,6 +588,45 @@ async def book_cage(trip_id: str, user_id: str = Query(...), actor: str = Depend
     out = _serialize(fresh)
     out["booking_id"] = booking_id
     return out
+
+
+@router.post("/{trip_id}/book/cancel")
+async def cancel_booking(trip_id: str, user_id: str = Query(...), actor: str = Depends(require_actor)):
+    """Rider cancels one of their cage bookings; the cage returns to the trip."""
+    doc = await db.trips.find_one({"trip_id": trip_id})
+    if not doc:
+        raise HTTPException(404, "الرحلة غير موجودة")
+    if doc.get("status") in ("arrived", "completed"):
+        raise HTTPException(400, "لا يمكن إلغاء الحجز بعد وصول الرحلة")
+    mine = [b for b in doc.get("bookings") or [] if (b or {}).get("user_id") == user_id]
+    if not mine:
+        raise HTTPException(404, "ليس لديك حجز على هذه الرحلة")
+    booking = mine[-1]
+    bid = booking.get("booking_id")
+    res = await db.trips.update_one(
+        {"trip_id": trip_id, "bookings.booking_id": bid},
+        {
+            "$pull": {"bookings": {"booking_id": bid}, "bookings_ids": bid},
+            "$inc": {"available_cages": 1, "bookings_count": -1},
+            "$set": {"updated_at": _now()},
+        },
+    )
+    if res.modified_count != 1:
+        raise HTTPException(409, "تعذّر إلغاء الحجز")
+    carrier_id = doc.get("carrier_id")
+    if carrier_id:
+        try:
+            from routes.tair_notifications_routes import create_tair_notification
+            await create_tair_notification(
+                user_id=carrier_id,
+                title="إلغاء حجز قفص",
+                body=f"{booking.get('name') or 'مربي'} ألغى حجز قفص على رحلتك من {doc.get('from_city')} إلى {doc.get('to_city')}",
+                notif_type="trip_booking_cancel",
+                data={"trip_id": trip_id, "booking_id": bid},
+            )
+        except Exception as exc:  # pragma: no cover
+            print(f"[trip cancel notify] failed: {exc}")
+    return {"success": True, "booking_id": bid}
 
 
 @router.delete("/{trip_id}")

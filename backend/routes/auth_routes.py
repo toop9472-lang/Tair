@@ -826,9 +826,23 @@ async def delete_account(data: DeleteAccountRequest, user_id: str = Depends(get_
     aliases = list({canonical_user_id, user.get('id'), user.get('user_id')} - {None})
     user_email = user.get('email')
 
-    # Remove core account and session data
-    await db.users.delete_many({'$or': [{'id': {'$in': aliases}}, {'user_id': {'$in': aliases}}]})
+    # Remove core account and session data (delete_one: delete_many on users is guarded)
+    for q in ({'id': {'$in': aliases}}, {'user_id': {'$in': aliases}}) + (({'email': user_email},) if user_email else ()):
+        while (await db.users.delete_one(q)).deleted_count:
+            pass
     await db.user_sessions.delete_many({'user_id': {'$in': aliases}})
+
+    # Tair content: hide protected docs, delete personal data
+    now = datetime.utcnow()
+    try:
+        await db.listings.update_many({'seller_id': {'$in': aliases}}, {'$set': {'status': 'removed', 'updated_at': now}})
+        await db.trips.update_many(
+            {'carrier_id': {'$in': aliases}, 'status': {'$nin': ['completed', 'cancelled']}},
+            {'$set': {'status': 'cancelled', 'updated_at': now}},
+        )
+        await db.wholesale_suppliers.update_many({'owner_id': {'$in': aliases}}, {'$set': {'is_active': False, 'hidden_by_admin': True}})
+    except Exception:
+        pass
 
     # Best-effort cleanup for user-linked data
     cleanup_targets = [
@@ -854,6 +868,21 @@ async def delete_account(data: DeleteAccountRequest, user_id: str = Depends(get_
         ('likes', [{'user_id': {'$in': aliases}}]),
         ('referrals', [{'user_id': {'$in': aliases}}, {'referred_user_id': {'$in': aliases}}]),
         ('oauth_temp_sessions', [{'payload.user_id': {'$in': aliases}}]),
+        ('tair_stories', [{'user_id': {'$in': aliases}}]),
+        ('stories', [{'user_id': {'$in': aliases}}]),
+        ('tair_story_likes', [{'user_id': {'$in': aliases}}]),
+        ('tair_story_comments', [{'user_id': {'$in': aliases}}]),
+        ('tair_community_chat', [{'user_id': {'$in': aliases}}]),
+        ('tair_favorites', [{'user_id': {'$in': aliases}}]),
+        ('tair_follows', [{'follower_id': {'$in': aliases}}, {'followee_id': {'$in': aliases}}]),
+        ('tair_notifications', [{'user_id': {'$in': aliases}}]),
+        ('tair_clinic_topics', [{'user_id': {'$in': aliases}}]),
+        ('tair_clinic_replies', [{'user_id': {'$in': aliases}}]),
+        ('chat_messages', [{'sender_id': {'$in': aliases}}]),
+        ('chat_threads', [{'participants': {'$in': aliases}}]),
+        ('mobile_push_tokens', [{'user_id': {'$in': aliases}}]),
+        ('push_tokens', [{'user_id': {'$in': aliases}}]),
+        ('web_push_subscriptions', [{'user_id': {'$in': aliases}}]),
     ]
     if user_email:
         cleanup_targets.extend([

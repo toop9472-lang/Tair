@@ -170,6 +170,26 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
     );
   };
 
+  const cancelMyBooking = () => {
+    const uid = user?.user_id || user?.id;
+    Alert.alert("إلغاء الحجز", "يرجع القفص للرحلة ويوصل تنبيه للموصل. متأكد؟", [
+      { text: "لا", style: "cancel" },
+      {
+        text: "إلغاء الحجز",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await tripsApi.cancelBooking(trip.trip_id, uid);
+            setTrip(await tripsApi.get(trip.trip_id));
+            Alert.alert("تم", "ألغي حجزك ورجع القفص للرحلة.");
+          } catch (e) {
+            Alert.alert("تعذّر الإلغاء", e?.message || "حاول مرة أخرى");
+          }
+        },
+      },
+    ]);
+  };
+
   const shareLiveLocation = async () => {
     const uid = user?.user_id || user?.id;
     if (!uid) return;
@@ -384,6 +404,20 @@ export default function TripDetailsScreen({ user, tripId, onBack, onContactCarri
           >
             <Ionicons name="cube" size={20} color="#C6A15B" />
             <Text style={styles.endTripText}>أحجز قفصاً · متبقٍ {trip.available_cages}</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {!isOwner && (trip.my_bookings || 0) > 0 && !["completed", "cancelled", "arrived"].includes(trip.status) ? (
+          <TouchableOpacity
+            style={[styles.endTripBtn, { backgroundColor: TAIR.card, borderWidth: 1, borderColor: TAIR.error }]}
+            onPress={cancelMyBooking}
+            activeOpacity={0.85}
+            testID="cancel-booking-btn"
+          >
+            <Ionicons name="close-circle" size={20} color={TAIR.error} />
+            <Text style={[styles.endTripText, { color: TAIR.error }]}>
+              إلغاء حجزي{trip.my_bookings > 1 ? ` (${trip.my_bookings} أقفاص)` : ""}
+            </Text>
           </TouchableOpacity>
         ) : null}
 
