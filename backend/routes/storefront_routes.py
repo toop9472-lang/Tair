@@ -119,8 +119,17 @@ class PriceAlertIn(BaseModel):
 
 
 # --------------------------- Helpers ---------------------------
+async def _user_q(db, uid: str) -> dict:
+    """users query for uid; admin ids (admins collection) resolve through their email."""
+    ors = [{"user_id": uid}, {"id": uid}, {"email": uid}]
+    adm = await db.admins.find_one({"$or": [{"id": uid}, {"user_id": uid}]}, {"_id": 0, "email": 1})
+    if adm and adm.get("email"):
+        ors.append({"email": adm["email"]})
+    return {"$or": ors}
+
+
 async def _get_user_settings(db, uid: str) -> dict:
-    user = await db.users.find_one({"$or": [{"user_id": uid}, {"id": uid}, {"email": uid}]})
+    user = await db.users.find_one(await _user_q(db, uid))
     if not user:
         return DEFAULT_SETTINGS.copy()
     existing = user.get("storefront_settings") or {}
@@ -154,10 +163,7 @@ async def _update_settings(db, uid: str, patch: dict):
         if isinstance(banners, list) and banners:
             update_doc["profile_bg_url"] = banners[0]
 
-    await db.users.update_one(
-        {"$or": [{"user_id": uid}, {"id": uid}, {"email": uid}]},
-        {"$set": update_doc},
-    )
+    await db.users.update_one(await _user_q(db, uid), {"$set": update_doc})
 
 
 # =========================== ROUTES ===========================

@@ -4,6 +4,15 @@
 "طير (Tair)" — سوق متخصص وملتقى طيور/حيوانات في السعودية مع لوجستيات.
 الأدوار: مشتري، بائع، ناقل، مشرف/إدمن.
 
+## إصدار 9.2.3 (build 221) — 21 Oct 2026
+- رفض Apple 2.1(a): كراش عند التشغيل على iOS 27 (_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption) لأن EAS image=latest صار Xcode 27 (يتطلب UIScene). الحل: تثبيت ios.image = macos-tahoe-26.5-xcode-26.6 في كل profiles. لا تستخدم latest حتى الترقية لـ Expo SDK 57.0.23+ مع enableSceneSupport.
+- الانعكاس: forceRTL(true) مع تصميم row-reverse يعكس التطبيق → allowRTL(false)/forceRTL(false) + direction:"ltr" على الجذر.
+- الهيدر مقصوص أسفل الجرس (CROP 0.76) مع تدرّج.
+- شريط الملصقات أصغر (40).
+- إلغاء وضع الضيف + "تذكرني" (حفظ البريد + دخول تلقائي)؛ جلسات الضيف القديمة تُمسح.
+- معاينة المتجر: صورة البانر cover وخلفيته لون هوية المتجر؛ إصلاح حسابات المدير (admins id) في sellers و storefront settings.
+- رقم النسخة 9.2.3 ليطابق App Store Connect.
+
 ## إصدار 8.7.3 (build 220) — 21 Oct 2026
 - ملصقات جديدة مرسومة (صقر زمردي بمنقار ذهبي) 16 ملصق PNG شفاف في mobile/assets/stickers (نفس المعرّفات القديمة فتعرض الرسائل القديمة بالشكل الجديد). خلفية شفافة بلا فقاعة. الحجم 112 بالخاص و104 بالدردشة.
 - بناء: iOS c7ac1deb (تقديم 5fd8e657)، Android 3114eb5b.

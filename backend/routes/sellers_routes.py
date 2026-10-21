@@ -50,6 +50,11 @@ async def get_seller_profile(user_id: str, viewer_id: Optional[str] = None):
     """Public seller profile — safe fields only."""
     u = await db.users.find_one({"$or": [{"id": user_id}, {"user_id": user_id}, {"email": user_id}]}, {"_id": 0})
     if not u:
+        # Admin accounts sign in with an admins-collection id; resolve via email
+        adm = await db.admins.find_one({"$or": [{"id": user_id}, {"user_id": user_id}]}, {"_id": 0, "email": 1})
+        if adm and adm.get("email"):
+            u = await db.users.find_one({"email": adm["email"]}, {"_id": 0})
+    if not u:
         raise HTTPException(404, "Seller not found")
 
     # Track a page-view visit (dedup by viewer_id per hour if provided, else raw increment)

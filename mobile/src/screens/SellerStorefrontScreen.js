@@ -802,8 +802,8 @@ function BannerCarousel({ slides, identity, height = 260, hasBg, children }) {
           renderItem={({ item }) => (
             <ImageBackground
               source={{ uri: item }}
-              style={{ width: screenW, height, backgroundColor: "#0F241C" }}
-              resizeMode="contain"
+              style={{ width: screenW, height, backgroundColor: identity || "#1B3D2F" }}
+              resizeMode="cover"
             >
               <LinearGradient
                 colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.25)", "rgba(0,0,0,0.55)"]}
@@ -817,8 +817,8 @@ function BannerCarousel({ slides, identity, height = 260, hasBg, children }) {
         // Full-page bg image exists → keep hero fully transparent so image shows through
         <View style={{ width: "100%", height }} />
       ) : (
-        // Neutral hero — no identity color tint per user preference
-        <View style={{ width: "100%", height, backgroundColor: "#e2e8f0" }} />
+        // No banner image → the store's chosen identity color
+        <View style={{ width: "100%", height, backgroundColor: identity || "#1B3D2F" }} />
       )}
 
       {/* Foreground content */}

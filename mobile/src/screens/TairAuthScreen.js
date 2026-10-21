@@ -1,7 +1,7 @@
 // طير — Clean, Tair-branded auth screen for mobile.
-// Mirrors the web AuthScreen (email + password, guest fallback).
+// Email + password sign-in / register (no guest mode) with "remember me".
 // Uses fetch directly to /api/auth/signin and /api/auth/register.
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -50,6 +50,11 @@ export default function TairAuthScreen({ onAuthenticated }) {
   const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [remember, setRemember] = useState(true);
+
+  useEffect(() => {
+    AsyncStorage.getItem("tair_saved_email").then((v) => { if (v) setEmail(v); }).catch(() => {});
+  }, []);
 
   const validate = () => {
     if (!EMAIL_RE.test(email.trim())) return "البريد الإلكتروني غير صحيح";
@@ -59,10 +64,15 @@ export default function TairAuthScreen({ onAuthenticated }) {
   };
 
   const finish = async (data) => {
-    if (data.token) await AsyncStorage.setItem("saqr_token", data.token);
-    if (data.refresh_token) await AsyncStorage.setItem("saqr_refresh", data.refresh_token);
-    if (data.user) await AsyncStorage.setItem("saqr_user", JSON.stringify(data.user));
-    onAuthenticated?.(data.user, data.token);
+    if (remember) {
+      if (data.token) await AsyncStorage.setItem("saqr_token", data.token);
+      if (data.refresh_token) await AsyncStorage.setItem("saqr_refresh", data.refresh_token);
+      if (data.user) await AsyncStorage.setItem("saqr_user", JSON.stringify(data.user));
+      await AsyncStorage.setItem("tair_saved_email", email.trim().toLowerCase());
+    } else {
+      await AsyncStorage.multiRemove(["saqr_token", "saqr_refresh", "tair_saved_email"]);
+    }
+    onAuthenticated?.(data.user, data.token, remember, data.refresh_token);
   };
 
   const submit = async () => {
@@ -87,36 +97,7 @@ export default function TairAuthScreen({ onAuthenticated }) {
     }
   };
 
-  const guest = async () => {
-    setBusy(true);
-    setError("");
-    try {
-      // Reuse previous guest id if available so uploads/settings persist
-      let priorId = null;
-      try {
-        const savedUser = await AsyncStorage.getItem("saqr_user");
-        if (savedUser) {
-          const parsed = JSON.parse(savedUser);
-          if (parsed?.is_guest && (parsed?.user_id || parsed?.id)) {
-            priorId = parsed.user_id || parsed.id;
-          }
-        }
-        const priorGuest = await AsyncStorage.getItem("tair_guest_id");
-        if (!priorId && priorGuest) priorId = priorGuest;
-      } catch {}
-      const data = await api("/api/auth/guest", {
-        method: "POST",
-        body: priorId ? JSON.stringify({ guest_id: priorId }) : undefined,
-      });
-      const uid = data?.user?.user_id || data?.user?.id;
-      if (uid) await AsyncStorage.setItem("tair_guest_id", uid);
-      await finish(data);
-    } catch (e) {
-      setError(e.message || "تعذّر متابعة كضيف");
-    } finally {
-      setBusy(false);
-    }
-  };
+
 
   const forgot = () => {
     Alert.alert(
@@ -252,14 +233,15 @@ export default function TairAuthScreen({ onAuthenticated }) {
               )}
             </TouchableOpacity>
 
-            {/* Guest */}
+            {/* Remember me */}
             <TouchableOpacity
-              onPress={guest}
-              disabled={busy}
-              style={s.guestBtn}
-              testID="auth-guest"
+              onPress={() => setRemember((v) => !v)}
+              style={s.rememberRow}
+              activeOpacity={0.7}
+              testID="auth-remember"
             >
-              <Text style={s.guestText}>متابعة كضيف</Text>
+              <Ionicons name={remember ? "checkbox" : "square-outline"} size={22} color="#1B3D2F" />
+              <Text style={s.rememberText}>تذكرني — دخول تلقائي في المرات القادمة</Text>
             </TouchableOpacity>
 
             {/* Terms note */}
@@ -375,6 +357,8 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   submitText: { color: "#C6A15B", fontSize: 16, fontWeight: "800" },
+  rememberRow: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, paddingVertical: 6 },
+  rememberText: { color: "#1B3D2F", fontSize: 13, fontWeight: "700" },
   guestBtn: {
     marginTop: 12,
     paddingVertical: 12,

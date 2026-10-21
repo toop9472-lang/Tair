@@ -83,10 +83,12 @@ try {
   installErrorReporter(API_URL);
 } catch {}
 
-// Force RTL for the whole app.
+// التصميم مبني يدوياً من اليمين لليسار (row-reverse + textAlign right)،
+// فنثبّت اتجاه النظام على LTR حتى لا ينعكس التطبيق بعد إعادة التشغيل.
 try {
-  I18nManager.allowRTL(true);
-  I18nManager.forceRTL(true);
+  I18nManager.allowRTL(false);
+  I18nManager.forceRTL(false);
+  I18nManager.swapLeftAndRightInRTL(false);
 } catch {}
 
 const TABS = ["listings", "trips", "messages", "forum", "account"];
@@ -130,8 +132,12 @@ function TairApp() {
         if (token) {
           try { api.setTokens(token, refreshTok || null); } catch {}
         }
-        if (savedUser && token) {
-          const parsed = JSON.parse(savedUser);
+        const parsedSaved = savedUser ? JSON.parse(savedUser) : null;
+        if (parsedSaved?.is_guest || String(parsedSaved?.user_id || "").startsWith("guest_")) {
+          await AsyncStorage.multiRemove(["saqr_user", "saqr_token", "saqr_refresh"]);
+          try { api.clearTokens(); } catch {}
+        } else if (savedUser && token) {
+          const parsed = parsedSaved;
           setUser(parsed);
           try { setReporterUser(parsed?.user_id || parsed?.id); } catch {}
           // Register for native push (guest users are supported too)
@@ -253,11 +259,15 @@ function TairApp() {
     setSeenOnboarding(true);
   }, []);
 
-  const onAuthed = useCallback(async (u, token) => {
-    await AsyncStorage.setItem("saqr_user", JSON.stringify(u));
-    if (token) await AsyncStorage.setItem("saqr_token", token);
+  const onAuthed = useCallback(async (u, token, remember = true, refresh = null) => {
+    if (remember) {
+      await AsyncStorage.setItem("saqr_user", JSON.stringify(u));
+      if (token) await AsyncStorage.setItem("saqr_token", token);
+    } else {
+      await AsyncStorage.multiRemove(["saqr_token", "saqr_refresh"]);
+    }
     // Hydrate api tokens immediately so subsequent calls carry Authorization header
-    if (token) { try { api.setTokens(token); } catch {} }
+    if (token) { try { api.setTokens(token, refresh); } catch {} }
     setUser(u);
     try { setReporterUser(u?.user_id || u?.id); } catch {}
     try { bindPushToUser(u?.user_id || u?.id); } catch {}
@@ -732,12 +742,14 @@ function TairApp() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <LegalDisclaimerGate>
-        <TairApp />
-        <TairShareSheet />
-      </LegalDisclaimerGate>
-    </LanguageProvider>
+    <View style={{ flex: 1, direction: "ltr" }}>
+      <LanguageProvider>
+        <LegalDisclaimerGate>
+          <TairApp />
+          <TairShareSheet />
+        </LegalDisclaimerGate>
+      </LanguageProvider>
+    </View>
   );
 }
 

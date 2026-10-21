@@ -8,7 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "image": "latest"
+        "image": "macos-tahoe-26.5-xcode-26.6"
       },
       "android": {
         "image": "latest"
@@ -23,7 +23,7 @@
       },
       "ios": {
         "simulator": true,
-        "image": "latest"
+        "image": "macos-tahoe-26.5-xcode-26.6"
       }
     },
     "production": {
@@ -36,7 +36,7 @@
       "ios": {
         "distribution": "store",
         "credentialsSource": "remote",
-        "image": "latest"
+        "image": "macos-tahoe-26.5-xcode-26.6"
       },
       "env": {
         "EAS_BUILD_NO_EXPO_GO_WARNING": "1",

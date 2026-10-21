@@ -455,6 +455,7 @@ export function StickerTray({ onPick, disabled }) {
   return (
     <ScrollView
       horizontal
+      style={{ flexGrow: 0 }}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={tray.row}
       keyboardShouldPersistTaps="handled"
@@ -468,7 +469,7 @@ export function StickerTray({ onPick, disabled }) {
           onPress={() => onPick(stickerToken(s.id))}
           accessibilityLabel={`ملصق ${s.label}`}
         >
-          <TairSticker id={s.id} size={60} />
+          <TairSticker id={s.id} size={40} />
           <Text style={tray.caption}>{s.label}</Text>
         </TouchableOpacity>
       ))}
@@ -480,14 +481,14 @@ const tray = {
   row: {
     flexDirection: "row-reverse",
     alignItems: "flex-start",
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  item: { width: 58, alignItems: "center" },
+  item: { width: 44, alignItems: "center" },
   caption: {
-    marginTop: 3,
-    fontSize: 10,
+    marginTop: 1,
+    fontSize: 9,
     fontWeight: "800",
     color: TAIR.muted,
     textAlign: "center",

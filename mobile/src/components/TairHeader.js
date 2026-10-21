@@ -68,10 +68,15 @@ export default function TairHeader({
   );
 }
 
+// الهيدر يُقص أسفل زر الجرس مباشرة (76% من ارتفاع الصورة) مع تدرّج للحد
+const IMG_RATIO = 1.486;
+const CROP = 0.76;
+const pct = (v) => `${((v / CROP) * 100).toFixed(1)}%`;
+
 const styles = StyleSheet.create({
   wrap: {
     width: "100%",
-    aspectRatio: 1.486,
+    aspectRatio: IMG_RATIO / CROP,
     backgroundColor: TAIR.bg,
     position: "relative",
     overflow: "hidden",
@@ -79,18 +84,18 @@ const styles = StyleSheet.create({
   },
   img: {
     position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0, left: 0, right: 0,
     width: "100%",
-    height: "100%",
+    height: pct(1),
   },
   fade: {
     position: "absolute",
     left: 0, right: 0, bottom: 0,
-    height: "22%",
+    height: "18%",
   },
   titleOverlay: {
     position: "absolute",
-    top: "8%",
+    top: pct(0.08),
     left: 0, right: 0,
     alignItems: "center",
     zIndex: 4,
@@ -116,7 +121,7 @@ const styles = StyleSheet.create({
   },
   askBtn: {
     position: "absolute",
-    top: "38%",
+    top: pct(0.38),
     right: "5%",
     width: "16%",
     aspectRatio: 1,
@@ -132,7 +137,7 @@ const styles = StyleSheet.create({
   /* زر الرسائل — يُغطي الجرس المرسوم بالكامل على اليمين */
   msgBtn: {
     position: "absolute",
-    top: "48%",
+    top: pct(0.48),
     right: "4.5%",
     width: "18%",
     aspectRatio: 1,
@@ -158,7 +163,7 @@ const styles = StyleSheet.create({
   /* دائرة معتمة تغطي الجرس المرسوم في يمين الهيدر بالكامل */
   bellHit: {
     position: "absolute",
-    top: "45%",
+    top: pct(0.45),
     left: "4%",
     width: "18%",
     aspectRatio: 1,
