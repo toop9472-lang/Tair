@@ -116,7 +116,9 @@ export default function TairShell({ user, onLogout }) {
     return (
       <>
         <InjectAnimations />
-        <OnboardingScreen onComplete={completeOnboarding} />
+        <div className="tair-arrive" style={{ minHeight: "100%" }}>
+          <OnboardingScreen onComplete={completeOnboarding} />
+        </div>
       </>
     );
   }
@@ -134,8 +136,12 @@ export default function TairShell({ user, onLogout }) {
   const openThread = (threadId) =>
     setOverlay({ name: "chat-thread", payload: { threadId } });
 
+  const frame = (stamp, node) => (
+    <div key={stamp} className="tair-arrive" style={{ minHeight: "100%" }}>{node}</div>
+  );
+
   if (overlay?.name === "create-listing") {
-    return (
+    return frame("create-listing", (
       <CreateListingScreen
         user={user}
         onBack={() => setOverlay(null)}
@@ -144,10 +150,10 @@ export default function TairShell({ user, onLogout }) {
           setTab("home");
         }}
       />
-    );
+    ));
   }
   if (overlay?.name === "listing-details") {
-    return (
+    return frame("listing-details", (
       <ListingDetailsScreen
         user={user}
         listingId={overlay.payload.listingId}
@@ -155,83 +161,83 @@ export default function TairShell({ user, onLogout }) {
         onOpenThread={(threadId) => setOverlay({ name: "chat-thread", payload: { threadId } })}
         onOpenSeller={(sellerId) => setOverlay({ name: "seller_profile", userId: sellerId })}
       />
-    );
+    ));
   }
   if (overlay?.name === "post-details") {
-    return <AskExpertsScreen user={user} onBack={() => { setOverlay(null); setTab("forum"); }} />;
+    return frame("post-details", <AskExpertsScreen user={user} onBack={() => { setOverlay(null); setTab("forum"); }} />);
   }
   if (overlay?.name === "forum-category") {
-    return <AskExpertsScreen user={user} onBack={() => { setOverlay(null); setTab("forum"); }} />;
+    return frame("forum-category", <AskExpertsScreen user={user} onBack={() => { setOverlay(null); setTab("forum"); }} />);
   }
   if (overlay?.name === "chat-thread") {
-    return (
+    return frame("chat-thread", (
       <ChatThreadScreen
         user={user}
         threadId={overlay.payload.threadId}
         onBack={() => { setOverlay(null); setTab("messages"); }}
       />
-    );
+    ));
   }
   if (overlay?.name === "kyc") {
-    return (
+    return frame("kyc", (
       <KycScreen
         user={user}
         onBack={() => setOverlay(null)}
       />
-    );
+    ));
   }
   if (overlay?.name === "orders") {
-    return (
+    return frame("orders", (
       <OrdersScreen
         user={user}
         onBack={() => setOverlay(null)}
         onOpenThread={(threadId) => setOverlay({ name: "chat-thread", payload: { threadId } })}
       />
-    );
+    ));
   }
   if (overlay?.name === "notifications") {
-    return (
+    return frame("notifications", (
       <NotificationsScreen
         user={user}
         onBack={() => setOverlay(null)}
         onOpenThread={(threadId) => setOverlay({ name: "chat-thread", payload: { threadId } })}
         onOpenListing={openListing}
       />
-    );
+    ));
   }
   if (overlay?.name === "stories") {
-    return <SuccessStoriesScreen onBack={() => setOverlay(null)} />;
+    return frame("stories", <SuccessStoriesScreen onBack={() => setOverlay(null)} />);
   }
   if (overlay?.name === "add_story") {
-    return (
+    return frame("add_story", (
       <AddStoryModal
         user={user}
         onClose={() => setOverlay(null)}
         onCreated={() => setOverlay(null)}
       />
-    );
+    ));
   }
   if (overlay?.name === "pride") {
-    return (
+    return frame("pride", (
       <PrideScreen
         onBack={() => setOverlay(null)}
         onOpenListing={openListing}
       />
-    );
+    ));
   }
   if (overlay?.name === "ask_experts") {
-    return (
+    return frame("ask_experts", (
       <AskExpertsScreen
         user={user}
         onBack={() => setOverlay(null)}
       />
-    );
+    ));
   }
   if (overlay?.name === "wholesale") {
-    return <WholesaleScreen user={user} onBack={() => setOverlay(null)} />;
+    return frame("wholesale", <WholesaleScreen user={user} onBack={() => setOverlay(null)} />);
   }
   if (overlay?.name === "seller_profile") {
-    return (
+    return frame("seller_profile", (
       <SellerStorefrontScreen
         userId={overlay.userId}
         viewerId={user?.user_id || user?.id}
@@ -245,25 +251,25 @@ export default function TairShell({ user, onLogout }) {
             .catch(() => setTab("messages"));
         }}
       />
-    );
+    ));
   }
   if (overlay?.name === "storefront_manager") {
-    return (
+    return frame("storefront_manager", (
       <StorefrontManagerScreen
         user={user}
         onBack={() => setOverlay(null)}
         onPreview={() => setOverlay({ name: "seller_profile", userId: uid, fromManager: true })}
       />
-    );
+    ));
   }
   if (overlay?.name === "seller_analytics") {
-    return (
+    return frame("seller_analytics", (
       <SellerAnalyticsScreen
         user={user}
         onBack={() => setOverlay(null)}
         onOpenListing={(id) => setOverlay({ name: "listing-details", payload: { listingId: id } })}
       />
-    );
+    ));
   }
 
   // Map internal screen name → bottom bar tab key
@@ -275,6 +281,7 @@ export default function TairShell({ user, onLogout }) {
   return (
     <>
       <InjectAnimations />
+      <div key={tab} className="tair-arrive" style={{ minHeight: "100%" }}>
       {tab === "home" && (
         <TairMarket
           activeTab="market"
@@ -327,6 +334,7 @@ export default function TairShell({ user, onLogout }) {
           unreadCount={unreadNotifs}
         />
       )}
+      </div>
       {tab !== "home" && tab !== "auction" && (
         <TairAppBottomBar active={tabToKey[tab] || "market"} onChange={handleBottomBar} messagesBadge={unread} />
       )}

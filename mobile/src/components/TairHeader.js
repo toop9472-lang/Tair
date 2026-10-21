@@ -11,6 +11,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { TAIR, TAIR_ELEVATION, TAIR_HEADERS } from "../constants/tairTheme";
 import { subscribeUnread } from "../services/unreadNotifications";
+import { HeaderSheen } from "./TairPolish";
 
 export default function TairHeader({
   variant = "market",
@@ -28,6 +29,7 @@ export default function TairHeader({
   return (
     <View style={styles.wrap} testID={testID || `tair-header-${variant}`}>
       <Image source={source} style={styles.img} resizeMode="contain" />
+      <HeaderSheen />
 
       {/* تدرّج تلاشي إلى الخلفية الكريمية */}
       <LinearGradient
@@ -126,6 +128,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(198,161,91,0.55)",
+    zIndex: 12,
     ...TAIR_ELEVATION.card,
   },
   /* زر الرسائل — يُغطي الجرس المرسوم بالكامل على اليمين */

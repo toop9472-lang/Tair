@@ -87,6 +87,7 @@ export function TairAppHeader({ image, onBell, hasNotif = false, unreadCount = 0
           display: "block",
         }}
       />
+      <div className="tair-sheen" aria-hidden="true" />
       {/* تدرّج تلاشي إلى الخلفية الكريمية */}
       <div style={{
         position: "absolute",
@@ -190,7 +191,8 @@ export function TairAppBottomBar({ active = "market", onChange, messagesBadge = 
               height: 48,
               borderRadius: 24,
               background: isActive ? TAIR.emerald : "transparent",
-              border: "none",
+              border: isActive ? `1px solid ${TAIR.gold}` : "none",
+              boxShadow: isActive ? "0 0 0 3px rgba(198,161,91,0.18)" : "none",
               display: "flex",
               flexDirection: "row-reverse",
               gap: 6,

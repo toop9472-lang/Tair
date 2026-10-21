@@ -58,6 +58,7 @@ import UpdateNoticeModal from "./src/components/UpdateNoticeModal";
 import TairShareSheet from "./src/components/TairShareSheet";
 import NameGate, { needsDisplayName } from "./src/components/NameGate";
 import { parseIncomingLink } from "./src/services/shareContent";
+import { ScreenArrive } from "./src/components/TairPolish";
 import { watchUnread } from "./src/services/unreadNotifications";
 import api from "./src/services/api";
 import {
@@ -684,14 +685,18 @@ function TairApp() {
           if (!mountedTabs[tab]) return null;
           return (
             <View key={tab} style={currentPage === tab ? { flex: 1 } : hiddenTab}>
-              {renderTab(tab)}
+              <ScreenArrive active={currentPage === tab}>
+                {renderTab(tab)}
+              </ScreenArrive>
             </View>
           );
         })}
       </View>
       {modalNode ? (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#F7F1E8", zIndex: 20 }}>
-          {modalNode}
+          <ScreenArrive key={modal?.name || "modal"} active>
+            {modalNode}
+          </ScreenArrive>
         </View>
       ) : null}
       {!modal ? <UpdateNoticeModal /> : null}
