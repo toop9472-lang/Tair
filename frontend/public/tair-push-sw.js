@@ -20,15 +20,21 @@ self.addEventListener("push", (event) => {
   }
 
   const title = payload.title || "طير";
+  const label = (payload.data && payload.data.label) || payload.label || "";
+  const rawBody = payload.body || "";
+  const body = label && rawBody && rawBody.indexOf(label) !== 0
+    ? `${label}\n${rawBody}`
+    : (rawBody || label);
   const options = {
-    body: payload.body || "",
+    body,
     icon: "/tair_logo.png",
     badge: "/tair_logo.png",
     dir: "rtl",
     lang: "ar",
     vibrate: [80, 40, 80],
+    timestamp: Date.now(),
     data: { url: payload.url || "/", ...payload.data },
-    tag: (payload.data && payload.data.tag) || undefined,
+    tag: (payload.data && (payload.data.tag || payload.data.notif_id)) || undefined,
     renotify: !!(payload.data && payload.data.renotify),
   };
 

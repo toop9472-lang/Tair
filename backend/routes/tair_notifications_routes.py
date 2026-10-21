@@ -23,7 +23,8 @@ def _serialize(doc: dict) -> dict:
         val = doc.get(key)
         if isinstance(val, datetime):
             doc[key] = val.isoformat()
-    return doc
+    from services.notification_face import apply_face
+    return apply_face(doc)
 
 
 def _now():
@@ -55,12 +56,22 @@ async def create_tair_notification(
 ) -> dict:
     """Utility called from other routes (chat, listings) to create a notif.
     Also fires a Web Push (works even when app/browser is closed) — silent on failure."""
+    from services.notification_face import notification_face
+    face = notification_face(notif_type)
+    push_data = {
+        "type": notif_type,
+        **(data or {}),
+        "label": face["label"],
+        "channel": face["channel"],
+    }
     notif = {
         "notif_id": f"n_{uuid.uuid4().hex[:12]}",
         "user_id": user_id,
         "title": title,
         "body": body,
         "type": notif_type,
+        "label": face["label"],
+        "channel": face["channel"],
         "data": data or {},
         "is_read": False,
         "created_at": _now(),
@@ -74,7 +85,7 @@ async def create_tair_notification(
             user_id=user_id,
             title=title,
             body=body,
-            data={"type": notif_type, **(data or {})},
+            data=push_data,
             url=notification_url(notif_type, data),
         )
     except Exception as exc:
@@ -87,7 +98,7 @@ async def create_tair_notification(
             user_id=user_id,
             title=title,
             body=body,
-            data={"type": notif_type, **(data or {})},
+            data=push_data,
         )
     except Exception as exc:
         print(f"[tair_notification] native push failed: {exc}")

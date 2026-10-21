@@ -91,19 +91,23 @@ async def send_expo_push(
     """Send a push notification to one or more Expo tokens. Silent on failure."""
     if not tokens:
         return {"skipped": "no tokens"}
+    from services.notification_face import notification_face
     safe_data = {}
     for key, value in (data or {}).items():
         if value is None:
             continue
         safe_data[str(key)] = value if isinstance(value, str) else str(value)
+    face = notification_face(safe_data.get("type") or "")
     messages = [
         {
             "to": t,
             "title": title,
+            "subtitle": face["label"],
             "body": body,
             "sound": "default",
             "priority": "high",
-            "channelId": "default",
+            "channelId": face["channel"],
+            "categoryId": face["channel"],
             "data": safe_data,
         }
         for t in tokens

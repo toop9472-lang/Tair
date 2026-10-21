@@ -34,20 +34,28 @@ Notifications.setNotificationHandler({
   }),
 });
 
+const CHANNELS = [
+  ["messages", "الرسائل"],
+  ["clinic", "العيادة"],
+  ["trips", "الرحلات"],
+  ["orders", "الطلبات"],
+  ["general", "طير"],
+  ["default", "الإشعارات"],
+];
+
 async function ensureAndroidChannel() {
   if (Platform.OS !== "android") return;
-  try {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "الإشعارات",
+  const visibility = Notifications.AndroidNotificationVisibility?.PUBLIC ?? 1;
+  await Promise.all(CHANNELS.map(([id, name]) => (
+    Notifications.setNotificationChannelAsync(id, {
+      name,
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#1B3D2F",
+      lightColor: "#C6A15B",
       sound: "default",
-      lockscreenVisibility: Notifications.AndroidNotificationVisibility?.PUBLIC ?? 1,
-    });
-  } catch (e) {
-    // ignore
-  }
+      lockscreenVisibility: visibility,
+    }).catch(() => null)
+  )));
 }
 
 async function requestPermission() {
