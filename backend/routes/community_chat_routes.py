@@ -7,9 +7,12 @@ import os
 import re
 import uuid
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
+
+from services.moderation import moderator_scopes, notify_staff
+from services.tair_stickers import sticker_preview
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -52,17 +55,11 @@ async def _is_mod(user_id: str) -> bool:
     )
     if u and (u.get("is_admin") or u.get("role") in ("admin", "super_admin")):
         return True
-    m = await db.tair_moderators.find_one(
-        {"$or": [{"user_id": user_id}, {"email": user_id}]},
-        {"_id": 0, "scopes": 1},
-    )
-    if not m:
-        return False
-    scopes = m.get("scopes") or []
+    scopes = await moderator_scopes(db, user_id)
     return (
         "community" in scopes
         or "general" in scopes
-        or "clinic_admin" in scopes  # clinic admins get badge in community too
+        or "clinic_admin" in scopes
     )
 
 
@@ -140,6 +137,28 @@ async def send_chat(payload: ChatMessage, user_id: str = Query(...)):
         "created_at": _now(),
     }
     await db.tair_community_chat.insert_one(doc)
+    try:
+        since = _now() - timedelta(minutes=15)
+        recent = await db.tair_notifications.find_one({
+            "type": "community_chat",
+            "data.sender_id": user_id,
+            "created_at": {"$gte": since},
+        })
+        if not recent:
+            preview = sticker_preview(text)
+            preview = preview if len(preview) <= 80 else preview[:77] + "…"
+            sender = doc["user_name"]
+            await notify_staff(
+                db,
+                ["community"],
+                [user_id],
+                "رسالة في الدردشة العامة",
+                f"{sender}: {preview}",
+                "community_chat",
+                {"sender_id": user_id},
+            )
+    except Exception as exc:
+        logger.warning("community chat notify: %s", exc)
     return {"success": True, "msg_id": msg_id, "is_moderator": is_mod}
 
 

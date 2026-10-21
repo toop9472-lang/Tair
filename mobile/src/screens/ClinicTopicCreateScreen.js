@@ -1,8 +1,7 @@
 /**
- * ClinicTopicCreateScreen — إنشاء موضوع في العيادة
- * - أسئلة تشخيصية (نعم/لا مع حقل تفاصيل عند الحاجة) + نص قصير
- * - عرض شبكي: مربعات متجاورة (3 أعمدة) بدل القائمة الطويلة
- * - صور + فيديو (حد أقصى 60 ثانية)
+ * ClinicTopicCreateScreen — تشخيص حالة
+ * سطور رفيعة بأيقونات، لا شبكة مربعات.
+ * الصور والفيديو مع إجابات المشرف في صفحة واحدة.
  */
 import React, { useState } from "react";
 import {
@@ -20,29 +19,29 @@ import api from "../services/api";
  *  - "yesno": نعم/لا، لو "نعم" يفتح حقل تفاصيل اختياري
  *  - "text":  حقل نص قصير
  */
-const QUESTIONS = [
-  { key: "q_lethargy",         label: "خمول؟",             type: "yesno", detailLabel: "فصّل الخمول" },
-  { key: "q_appetite",         label: "قلة شهية؟",         type: "yesno", detailLabel: "درجة الشهية" },
-  { key: "q_vomits",           label: "استفراغ؟",          type: "yesno", detailLabel: "عدد المرات / الشكل" },
-  { key: "q_mouth_droppings",  label: "نقاط فم/براز غريب؟", type: "yesno", detailLabel: "اللون/الرائحة" },
-  { key: "q_breeding",         label: "حضن/تزاوج؟",        type: "yesno", detailLabel: "منذ متى؟" },
-  { key: "q_seen_vet",         label: "زار دكتور؟",         type: "yesno", detailLabel: "التشخيص السابق" },
-  { key: "q_tame",             label: "أليف؟",              type: "yesno" },
-  { key: "q_onset",            label: "متى بدأ؟",           type: "text", placeholder: "منذ متى؟" },
-  { key: "q_age",              label: "العمر",             type: "text", placeholder: "مثال: ٨ شهور" },
-  { key: "q_time_with_owner",  label: "عمر تواجده عندك",   type: "text", placeholder: "مثال: سنتين" },
-  { key: "q_gender",           label: "النوع",              type: "text", placeholder: "ذكر/أنثى" },
-  { key: "q_diet",             label: "التغذية",            type: "text", placeholder: "ماذا يأكل؟" },
-  { key: "q_medications",      label: "أدوية حديثة",       type: "text", placeholder: "اسم الدواء/الجرعة" },
+const CASE_QUESTIONS = [
+  { key: "q_lethargy", icon: "moon-outline", label: "هل يوجد خمول؟", kind: "yesno" },
+  { key: "q_appetite", icon: "restaurant-outline", label: "الشهية", kind: "choice", options: ["طبيعية", "قليلة", "معدومة"] },
+  { key: "q_onset", icon: "time-outline", label: "متى بدأت الأعراض؟", kind: "text", placeholder: "مثال: من يومين" },
+  { key: "q_diet", icon: "nutrition-outline", label: "تغذية الطير بالتفصيل", kind: "text", placeholder: "بذور، فواكه، خضار…", multiline: true },
+  { key: "q_gender", icon: "male-female-outline", label: "ذكر أم أنثى؟", kind: "choice", options: ["ذكر", "أنثى", "لا أعرف"] },
+  { key: "q_breeding", icon: "egg-outline", label: "في حضن بيض أو تزاوج؟", kind: "yesno" },
+  { key: "q_medications", icon: "medkit-outline", label: "أدوية أخذها مؤخراً؟", kind: "text", placeholder: "لا، أو اسم ما أُعطي" },
+  { key: "q_seen_vet", icon: "person-outline", label: "عُرضت الحالة على أحد من قبل؟", kind: "yesno", detail: "دكتور أو غيره، وماذا قال؟" },
+  { key: "q_age", icon: "hourglass-outline", label: "كم عمر الطير؟", kind: "text", placeholder: "مثال: ٨ أشهر" },
+  { key: "q_time_with_owner", icon: "home-outline", label: "كم له عايش عندك؟", kind: "text", placeholder: "مثال: سنة" },
+  { key: "q_tame", icon: "heart-outline", label: "أليف أم لا؟", kind: "yesno" },
+  { key: "q_vomits", icon: "water-outline", label: "هل يستفرغ؟", kind: "yesno" },
+  { key: "q_mouth_droppings", icon: "alert-circle-outline", label: "نقاط صفراء أو بيضاء بالفم، أو رائحة في البراز؟", kind: "yesno", detail: "صف اللون أو الرائحة" },
 ];
 
 const CHICK_QUESTIONS = [
-  { key: "chick_serelac_brand",    label: "شركة السريلاك",    type: "text" },
-  { key: "chick_exact_age",        label: "عمر الفرخ بالضبط",   type: "text" },
-  { key: "chick_serelac_temp",     label: "درجة حرارة السريلاك", type: "text" },
-  { key: "chick_feeding_count",    label: "عدد مرات الغر",      type: "text" },
-  { key: "chick_feeding_method",   label: "طريقة التأكيل",       type: "text" },
-  { key: "chick_serelac_leftover", label: "بواقي سريلاك؟",      type: "yesno", detailLabel: "الكمية المتبقية" },
+  { key: "chick_serelac_brand", icon: "flask-outline", label: "شركة السريلاك", kind: "text", placeholder: "اسم الشركة" },
+  { key: "chick_exact_age", icon: "hourglass-outline", label: "عمر الطائر بالضبط", kind: "text", placeholder: "بالأيام أو الأسابيع" },
+  { key: "chick_serelac_temp", icon: "thermometer-outline", label: "درجة حرارة السريلاك", kind: "text", placeholder: "عند التقديم" },
+  { key: "chick_feeding_count", icon: "repeat-outline", label: "عدد مرات الغر والكمية", kind: "text", placeholder: "كم مرة، وكم في كل مرة" },
+  { key: "chick_feeding_method", icon: "hand-left-outline", label: "طريقة التأكيل اليدوي", kind: "text", placeholder: "سرنجة، ملعقة…" },
+  { key: "chick_serelac_leftover", icon: "alert-circle-outline", label: "هل يوجد بواقي سريلاك؟", kind: "yesno", detail: "من متى والكمية" },
 ];
 
 export default function ClinicTopicCreateScreen({ user, onBack, onCreated }) {
@@ -121,7 +120,19 @@ export default function ClinicTopicCreateScreen({ user, onBack, onCreated }) {
 
   const submit = async () => {
     if (title.trim().length < 3) return Alert.alert("تنبيه", "اكتب عنواناً مختصراً للحالة");
-    if (desc.trim().length < 10) return Alert.alert("تنبيه", "اكتب شرحاً مختصراً (10 أحرف على الأقل)");
+    if (desc.trim().length < 10) return Alert.alert("تنبيه", "اكتب الأعراض التي تراها في شرح قصير");
+    const pending = CASE_QUESTIONS.filter((q) => !String(answers[q.key] || "").trim());
+    const chickPending = isChick ? CHICK_QUESTIONS.filter((q) => !String(answers[q.key] || "").trim()) : [];
+    if (pending.length || chickPending.length) {
+      const first = (pending[0] || chickPending[0]).label;
+      return Alert.alert(
+        "أكمل تشخيص الحالة",
+        `بقيت ${pending.length + chickPending.length} إجابات. أولها: ${first}. المشرف يرد أسرع عندما تكتمل القائمة.`,
+      );
+    }
+    if (!images.length && !videos.length) {
+      return Alert.alert("صورة أو فيديو", "أرفق صورة للبراز أو فيديو للطير حتى تُفهم الحالة.");
+    }
     setBusy(true);
     try {
       const payload = {
@@ -139,69 +150,66 @@ export default function ClinicTopicCreateScreen({ user, onBack, onCreated }) {
     } finally { setBusy(false); }
   };
 
-  // بطاقات الأسئلة — نرسمها inline داخل map لتجنّب إعادة بناء TextInput في كل render (وفقدان الكيبورد)
-  const renderGrid = (list) => (
-    <View style={s.grid}>
-      {list.map((q) => {
-        const v = answers[q.key];
-        if (q.type === "yesno") {
-          const isYes = v && v !== "لا";
-          const isNo = v === "لا";
-          return (
-            <View key={q.key} style={s.gridItem}>
-              <View style={s.qCard}>
-                <Text style={s.qCardLabel} numberOfLines={2}>{q.label}</Text>
-                <View style={s.ynRow}>
-                  <TouchableOpacity
-                    onPress={() => set(q.key, isYes ? "" : "نعم")}
-                    style={[s.ynBtn, isYes && s.ynBtnActive]}
-                    testID={`q-${q.key}-yes`}
-                  >
-                    <Text style={[s.ynText, isYes && s.ynTextActive]}>نعم</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => set(q.key, isNo ? "" : "لا")}
-                    style={[s.ynBtn, isNo && s.ynBtnNo]}
-                    testID={`q-${q.key}-no`}
-                  >
-                    <Text style={[s.ynText, isNo && s.ynTextActive]}>لا</Text>
-                  </TouchableOpacity>
-                </View>
-                {isYes && q.detailLabel ? (
-                  <TextInput
-                    value={typeof v === "string" && v !== "نعم" ? v : ""}
-                    onChangeText={(t) => set(q.key, t || "نعم")}
-                    placeholder={q.detailLabel}
-                    placeholderTextColor={TAIR.textSoft}
-                    textAlign="right"
-                    style={s.qCardDetail}
-                    testID={`q-${q.key}-detail`}
-                  />
-                ) : null}
-              </View>
-            </View>
-          );
-        }
-        // type === "text"
-        return (
-          <View key={q.key} style={s.gridItem}>
-            <View style={s.qCard}>
-              <Text style={s.qCardLabel} numberOfLines={2}>{q.label}</Text>
-              <TextInput
-                value={answers[q.key] || ""}
-                onChangeText={(val) => set(q.key, val)}
-                placeholder={q.placeholder || "إجابتك..."}
-                placeholderTextColor={TAIR.textSoft}
-                textAlign="right"
-                style={s.qCardInput}
-                testID={`q-${q.key}-text`}
-              />
-            </View>
+  const filled = CASE_QUESTIONS.filter((q) => String(answers[q.key] || "").trim()).length;
+
+  const renderQuestion = (q) => {
+    const v = answers[q.key] || "";
+    const isYes = v && v !== "لا";
+    const isNo = v === "لا";
+    return (
+      <View key={q.key} style={s.qRow} testID={`q-${q.key}`}>
+        <View style={s.qHead}>
+          <Ionicons name={q.icon} size={16} color={TAIR.goldDark} />
+          <Text style={s.qLabel}>{q.label}</Text>
+        </View>
+        {q.kind === "yesno" ? (
+          <View style={s.ynRow}>
+            <TouchableOpacity onPress={() => set(q.key, isYes ? "" : "نعم")} style={[s.ynBtn, isYes && s.ynOn]} testID={`q-${q.key}-yes`}>
+              <Text style={[s.ynText, isYes && s.ynTextOn]}>نعم</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => set(q.key, isNo ? "" : "لا")} style={[s.ynBtn, isNo && s.ynOff]} testID={`q-${q.key}-no`}>
+              <Text style={[s.ynText, isNo && s.ynTextOn]}>لا</Text>
+            </TouchableOpacity>
           </View>
-        );
-      })}
-    </View>
-  );
+        ) : null}
+        {q.kind === "choice" ? (
+          <View style={s.choiceRow}>
+            {q.options.map((opt) => {
+              const on = v === opt;
+              return (
+                <TouchableOpacity key={opt} onPress={() => set(q.key, on ? "" : opt)} style={[s.choice, on && s.choiceOn]} testID={`q-${q.key}-${opt}`}>
+                  <Text style={[s.choiceText, on && s.ynTextOn]}>{opt}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : null}
+        {q.kind === "text" ? (
+          <TextInput
+            value={v}
+            onChangeText={(val) => set(q.key, val)}
+            placeholder={q.placeholder || "إجابتك"}
+            placeholderTextColor={TAIR.textSoft}
+            textAlign="right"
+            multiline={!!q.multiline}
+            style={[s.qInput, q.multiline && s.qInputTall]}
+            testID={`q-${q.key}-text`}
+          />
+        ) : null}
+        {q.kind === "yesno" && isYes && q.detail ? (
+          <TextInput
+            value={v !== "نعم" ? v : ""}
+            onChangeText={(t) => set(q.key, t || "نعم")}
+            placeholder={q.detail}
+            placeholderTextColor={TAIR.textSoft}
+            textAlign="right"
+            style={s.qInput}
+            testID={`q-${q.key}-detail`}
+          />
+        ) : null}
+      </View>
+    );
+  };
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
@@ -209,26 +217,34 @@ export default function ClinicTopicCreateScreen({ user, onBack, onCreated }) {
         <TouchableOpacity onPress={onBack} hitSlop={12} style={s.hBtn}>
           <Ionicons name="chevron-forward" size={22} color={TAIR.gold} />
         </TouchableOpacity>
-        <Text style={s.hTitle}>إضافة موضوع</Text>
+        <Text style={s.hTitle}>تشخيص حالة</Text>
         <View style={s.hBtn} />
       </View>
 
       <ScrollView style={s.page} contentContainerStyle={{ padding: 14, paddingBottom: 40 }}>
-        <Text style={s.sectH}>العنوان والشرح</Text>
+        <View style={s.intro}>
+          <Ionicons name="medkit-outline" size={16} color={TAIR.goldDark} />
+          <Text style={s.introText}>
+            اجمع الأعراض وأجب في هذه الصفحة. المشرف يرد أسرع عندما تكتمل الإجابات، ويتأخر الرد إذا بقيت فارغة.
+          </Text>
+        </View>
+        <Text style={s.progress}>{filled} من {CASE_QUESTIONS.length}</Text>
+
+        <Text style={s.sectH}>الحالة</Text>
         <TextInput
           value={title} onChangeText={setTitle}
-          placeholder="مثال: ببغاء ما يأكل من يومين"
+          placeholder="عنوان قصير: ببغاء ما يأكل من يومين"
           placeholderTextColor={TAIR.textSoft} textAlign="right"
           style={s.input} testID="topic-title"
         />
         <TextInput
           value={desc} onChangeText={setDesc}
-          placeholder="اشرح الحالة بالتفصيل..."
+          placeholder="الأعراض التي تراها، في رسالة واحدة"
           placeholderTextColor={TAIR.textSoft} textAlign="right"
           multiline style={[s.input, s.textarea]} testID="topic-desc"
         />
 
-        <Text style={s.sectH}>الصور ({images.length}/10)</Text>
+        <Text style={s.sectH}>صورة البراز والفيديو ({images.length} صورة · {videos.length} فيديو)</Text>
         <View style={s.mediaRow}>
           {images.map((u, i) => (
             <View key={i} style={s.mediaThumb}>
@@ -240,11 +256,10 @@ export default function ClinicTopicCreateScreen({ user, onBack, onCreated }) {
           ))}
           <TouchableOpacity onPress={pickImage} style={s.mediaAdd} testID="topic-add-image">
             <Ionicons name="camera-outline" size={22} color={TAIR.gold} />
-            <Text style={s.mediaAddText}>صورة</Text>
+            <Text style={s.mediaAddText}>براز</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={s.sectH}>الفيديو ({videos.length}/3 — حد أقصى ٦٠ ثانية)</Text>
         <View style={s.mediaRow}>
           {videos.map((u, i) => (
             <View key={i} style={s.mediaThumb}>
@@ -258,20 +273,18 @@ export default function ClinicTopicCreateScreen({ user, onBack, onCreated }) {
           ))}
           <TouchableOpacity onPress={pickVideo} style={s.mediaAdd} testID="topic-add-video">
             <Ionicons name="videocam-outline" size={22} color={TAIR.gold} />
-            <Text style={s.mediaAddText}>فيديو</Text>
+            <Text style={s.mediaAddText}>الطير</Text>
           </TouchableOpacity>
         </View>
+        <Text style={s.mediaHint}>صورة البراز، وفيديو للطير لا يتجاوز دقيقة.</Text>
 
-        <View style={s.diagBox}>
-          <Text style={s.sectH}>📋 أسئلة تشخيص الحالة</Text>
-          <Text style={s.diagHint}>كل الأسئلة اختيارية — جاوب على ما يهمك فقط</Text>
-          {renderGrid(QUESTIONS)}
-        </View>
+        <Text style={s.sectH}>تشخيص الحالة</Text>
+        <View style={s.list}>{CASE_QUESTIONS.map(renderQuestion)}</View>
 
         <View style={s.chickToggle}>
           <View style={{ flex: 1 }}>
-            <Text style={s.chickTitle}>🐣 هل الطير فرخ؟</Text>
-            <Text style={s.chickHint}>فعّل هذا الخيار إن كان الطير فرخ وأضف تفاصيل الغر</Text>
+            <Text style={s.chickTitle}>إذا كان الطائر فرخاً</Text>
+            <Text style={s.chickHint}>أكمل أسئلة السريلاك. الطير البالغ لا يحتاجها.</Text>
           </View>
           <Switch
             value={isChick} onValueChange={setIsChick}
@@ -280,16 +293,11 @@ export default function ClinicTopicCreateScreen({ user, onBack, onCreated }) {
           />
         </View>
 
-        {isChick ? (
-          <View style={[s.diagBox, { borderColor: TAIR.gold }]}>
-            <Text style={[s.sectH, { color: TAIR.goldDark }]}>تفاصيل الفرخ</Text>
-            {renderGrid(CHICK_QUESTIONS)}
-          </View>
-        ) : null}
+        {isChick ? <View style={s.list}>{CHICK_QUESTIONS.map(renderQuestion)}</View> : null}
 
         <TouchableOpacity onPress={submit} disabled={busy} style={[s.submit, busy && { opacity: 0.7 }]} testID="topic-submit">
           {busy ? <ActivityIndicator color={TAIR.gold} size="small" /> : <Ionicons name="send" size={16} color={TAIR.gold} />}
-          <Text style={s.submitText}>{busy ? "جاري النشر..." : "نشر الموضوع"}</Text>
+          <Text style={s.submitText}>{busy ? "جاري النشر..." : "نشر تشخيص الحالة"}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -322,43 +330,41 @@ const s = StyleSheet.create({
   mediaAddText: { color: TAIR.gold, fontSize: 11, fontWeight: "900" },
   rm: { position: "absolute", top: 3, right: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center" },
 
-  diagBox: {
-    marginTop: 10, padding: 10,
-    backgroundColor: TAIR.card, borderRadius: 14,
-    borderWidth: 1, borderColor: TAIR.divider,
+  intro: {
+    flexDirection: "row-reverse", alignItems: "flex-start", gap: 8,
+    backgroundColor: "#FFF8EC", borderRadius: 12, padding: 10, marginTop: 4,
   },
-  diagHint: { color: TAIR.textSoft, fontSize: 11, textAlign: "right", marginBottom: 10, lineHeight: 18 },
-
-  // ---- Grid 3 أعمدة ----
-  grid: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8 },
-  gridItem: { width: "32%" }, // 3 أعمدة (~ ثلث العرض مع gap)
-  qCard: {
-    backgroundColor: TAIR.bg, borderRadius: 10,
-    borderWidth: 1, borderColor: TAIR.divider,
-    padding: 8, minHeight: 94,
+  introText: { flex: 1, color: "#6B5E4A", fontSize: 12, lineHeight: 18, textAlign: "right" },
+  progress: { color: TAIR.goldDark, fontSize: 11, fontWeight: "800", textAlign: "left", marginTop: 8 },
+  mediaHint: { color: TAIR.textSoft, fontSize: 11, textAlign: "right", marginTop: 6 },
+  list: {
+    backgroundColor: TAIR.card, borderRadius: 14, borderWidth: 1, borderColor: TAIR.divider,
+    overflow: "hidden",
   },
-  qCardLabel: { color: TAIR.emerald, fontSize: 11, fontWeight: "900", textAlign: "right", marginBottom: 6, lineHeight: 16 },
-  qCardInput: {
-    backgroundColor: "#fff", borderRadius: 6, borderWidth: 1, borderColor: TAIR.divider,
-    paddingHorizontal: 8, paddingVertical: 6, color: TAIR.emerald, textAlign: "right",
-    fontSize: 12, minHeight: 36,
+  qRow: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: TAIR.divider, gap: 8 },
+  qHead: { flexDirection: "row-reverse", alignItems: "center", gap: 8 },
+  qLabel: { flex: 1, color: TAIR.emerald, fontSize: 13, fontWeight: "800", textAlign: "right", lineHeight: 18 },
+  qInput: {
+    backgroundColor: TAIR.bg, borderRadius: 8, borderWidth: 1, borderColor: TAIR.divider,
+    paddingHorizontal: 10, paddingVertical: 8, color: TAIR.emerald, fontSize: 13, textAlign: "right",
   },
-  qCardDetail: {
-    marginTop: 6,
-    backgroundColor: "#fff", borderRadius: 6, borderWidth: 1, borderColor: TAIR.gold,
-    paddingHorizontal: 8, paddingVertical: 6, color: TAIR.emerald, textAlign: "right",
-    fontSize: 11, minHeight: 32,
-  },
+  qInputTall: { minHeight: 64, textAlignVertical: "top" },
   ynRow: { flexDirection: "row-reverse", gap: 6 },
   ynBtn: {
-    flex: 1, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: "#fff", borderWidth: 1, borderColor: TAIR.divider,
-    alignItems: "center",
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: TAIR.bg, borderWidth: 1, borderColor: TAIR.divider,
   },
-  ynBtnActive: { backgroundColor: TAIR.emerald, borderColor: TAIR.gold },
-  ynBtnNo:     { backgroundColor: "#8B3A2F", borderColor: TAIR.gold },
-  ynText: { color: TAIR.emerald, fontSize: 12, fontWeight: "900" },
-  ynTextActive: { color: TAIR.gold },
+  ynOn: { backgroundColor: TAIR.emerald, borderColor: TAIR.emerald },
+  ynOff: { backgroundColor: "#8B3A2F", borderColor: "#8B3A2F" },
+  ynText: { color: TAIR.emerald, fontSize: 12, fontWeight: "800" },
+  ynTextOn: { color: "#fff" },
+  choiceRow: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 6 },
+  choice: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: TAIR.bg, borderWidth: 1, borderColor: TAIR.divider,
+  },
+  choiceOn: { backgroundColor: TAIR.emerald, borderColor: TAIR.emerald },
+  choiceText: { color: TAIR.emerald, fontSize: 12, fontWeight: "800" },
 
   chickToggle: {
     flexDirection: "row-reverse", alignItems: "center",

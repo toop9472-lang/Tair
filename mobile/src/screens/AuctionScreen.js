@@ -81,6 +81,7 @@ function shareAuction(a) {
     kind: "auction",
     id: a.auction_id,
     title: a.title || "مزاد طير",
+    image: typeof a.images?.[0] === "string" ? a.images[0] : "",
     lines: [
       a.sequence_number ? `مزاد رقم ${a.sequence_number}` : null,
       `${price} ر.س`,

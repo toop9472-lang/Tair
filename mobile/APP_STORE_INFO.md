@@ -4,12 +4,12 @@
 
 ### Arabic
 ```
-تطبيق صقر هو مركز ألعاب موبايل متكامل: ألعاب فردية وأونلاين، لوائح متصدرين، تحديات يومية، واقتصاد موحّد للجواهر والألماس داخل تجربة لعب احترافية.
+تطبيق طير هو مركز ألعاب موبايل متكامل: ألعاب فردية وأونلاين، لوائح متصدرين، تحديات يومية، واقتصاد موحّد للجواهر والألماس داخل تجربة لعب احترافية.
 ```
 
 ### English
 ```
-Saqr is a mobile gaming hub with solo and online games, daily challenges, real leaderboards, and a unified in-game economy for a polished game-first experience.
+Tair is a mobile gaming hub with solo and online games, daily challenges, real leaderboards, and a unified in-game economy for a polished game-first experience.
 ```
 
 ---
@@ -18,33 +18,33 @@ Saqr is a mobile gaming hub with solo and online games, daily challenges, real l
 
 ### Arabic
 ```
-صقر هو تطبيق ألعاب موبايل شامل يضع تجربة اللعب أولاً.
+طير هو تطبيق ألعاب موبايل شامل يضع تجربة اللعب أولاً.
 
 استمتع بمجموعة ألعاب فردية وأونلاين داخل التطبيق، مع تحديات يومية، لوائح متصدرين حقيقية، ونظام اقتصادي موحّد:
-- جواهر صقر: رصيد الإنجاز داخل النظام.
+- جواهر طير: رصيد الإنجاز داخل النظام.
 - الألماس: عملة الاستخدام داخل الميزات والأنماط.
 
-ماذا ستجد في صقر؟
+ماذا ستجد في طير؟
 - ألعاب متنوعة تعمل داخل التطبيق بسلاسة.
 - تنافس مستمر عبر الترتيب اليومي ولوحات الشرف.
 - واجهة احترافية متوافقة مع الهاتف والآيباد.
 - نظام حساب آمن (بريد، Apple، Google).
 - دعم فني مباشر من صفحة الدعم الرسمية.
 
-ميزة الإعلانات داخل صقر هي ميزة ثانوية اختيارية لتحسين التقدم داخل الألعاب، وليست الغرض الأساسي من التطبيق.
+ميزة الإعلانات داخل طير هي ميزة ثانوية اختيارية لتحسين التقدم داخل الألعاب، وليست الغرض الأساسي من التطبيق.
 
-ابدأ اللعب الآن وطور مستواك في مجتمع صقر.
+ابدأ اللعب الآن وطور مستواك في مجتمع طير.
 ```
 
 ### English
 ```
-Saqr is a full mobile gaming app built around a game-first experience.
+Tair is a full mobile gaming app built around a game-first experience.
 
 Play a curated set of solo and online games directly inside the app, with daily challenges, real leaderboards, and a unified in-game economy:
-- Saqr Gems: progression rewards.
+- Tair Gems: progression rewards.
 - Diamonds: in-app gameplay currency.
 
-What you get in Saqr:
+What you get in Tair:
 - Mobile-friendly games that run smoothly in-app.
 - Competitive progression with rankings and challenge loops.
 - Professional UI for iPhone and iPad.
@@ -62,7 +62,7 @@ Ads are a secondary optional feature to support progression, not the app's prima
 ```
 1) أنشئ حسابك أو سجّل الدخول.
 2) اختر لعبة وابدأ اللعب مباشرة داخل التطبيق.
-3) اربح جواهر صقر عبر اللعب والإنجازات.
+3) اربح جواهر طير عبر اللعب والإنجازات.
 4) استخدم الألماس داخل أنماط اللعب والميزات.
 5) تابع ترتيبك في لوحة المتصدرين اليومية.
 ```
@@ -71,7 +71,7 @@ Ads are a secondary optional feature to support progression, not the app's prima
 ```
 1) Sign up or sign in.
 2) Select a game and play in-app.
-3) Earn Saqr Gems through gameplay and achievements.
+3) Earn Tair Gems through gameplay and achievements.
 4) Use Diamonds for gameplay features.
 5) Track your rank on the leaderboard.
 ```
@@ -82,7 +82,7 @@ Ads are a secondary optional feature to support progression, not the app's prima
 
 ### Arabic (copy as comma-separated)
 ```
-العاب,العاب اونلاين,تحديات,متصدرين,جواهر,الماس,موبايل,تنافس,صقر
+العاب,العاب اونلاين,تحديات,متصدرين,جواهر,الماس,موبايل,تنافس,طير
 ```
 
 ### English
@@ -109,7 +109,7 @@ https://saqr-ui-sync.emergent.host
 
 ## 8) Copyright
 ```
-© 2026 Saqr Games. All rights reserved.
+© 2026 Tair Games. All rights reserved.
 ```
 
 ## 9) Routing App Coverage File

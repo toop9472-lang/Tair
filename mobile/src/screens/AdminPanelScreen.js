@@ -1,6 +1,6 @@
 // طير — Admin Panel v2 (لوحة المدير الشاملة)
-// Tabs: إحصائيات • إعلانات • رحلات • مستخدمون • بلاغات • قصص • مزادات
-import React, { useCallback, useEffect, useState } from "react";
+// Tabs: إحصائيات • إعلانات • رحلات • موردون • مستخدمون • بلاغات • قصص • مزادات
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Alert,
   ActivityIndicator, RefreshControl, TextInput, Image, ScrollView, Platform,
@@ -17,6 +17,7 @@ const TABS = [
   { id: "broadcast", label: "رسالة عامة", icon: "megaphone-outline" },
   { id: "clinic_bot", label: "بوت العيادة", icon: "hardware-chip-outline" },
   { id: "verify",    label: "طلبات التوثيق", icon: "ribbon-outline" },
+  { id: "suppliers", label: "الموردون",    icon: "business-outline" },
   { id: "mods",      label: "المشرفون",   icon: "shield-half-outline" },
   { id: "listings",  label: "الإعلانات",   icon: "megaphone" },
   { id: "trips",     label: "الرحلات",     icon: "airplane" },
@@ -26,8 +27,31 @@ const TABS = [
   { id: "auctions",  label: "المزادات",    icon: "hammer" },
 ];
 
-// تبويبات محدودة لمشرف العيادة فقط (ليس أدمن عام)
-const CLINIC_ONLY_TABS = ["stats", "reports", "users", "clinic_bot"];
+// كل نطاق يشوف أدواته فقط. الحظر والبث والموردون والمزادات تبقى للمدير.
+const TAB_BY_SCOPE = {
+  clinic: ["stats", "reports", "clinic_bot"],
+  clinic_admin: ["stats", "reports", "clinic_bot", "mods"],
+  market: ["stats", "reports", "listings", "trips"],
+  community: ["stats", "reports", "stories"],
+  general: ["stats", "reports", "listings", "trips", "stories", "clinic_bot"],
+};
+
+const SCOPE_AR = {
+  clinic: "عيادة",
+  clinic_admin: "مدير العيادة",
+  market: "سوق",
+  community: "مجتمع",
+  general: "عام",
+};
+
+function tabsForScopes(scopes, fullAdmin) {
+  if (fullAdmin) return TABS;
+  const ids = new Set();
+  (scopes || []).forEach((scope) => {
+    (TAB_BY_SCOPE[scope] || []).forEach((id) => ids.add(id));
+  });
+  return TABS.filter((t) => ids.has(t.id));
+}
 
 async function authedFetch(pathAndQs, opts = {}) {
   const token = await AsyncStorage.getItem("saqr_token");
@@ -46,9 +70,20 @@ export default function AdminPanelScreen({ user, onBack }) {
   const uid = user?.email || user?.user_id || user?.id;
   const isAdmin = !!(user?.is_admin || user?.role === "admin" || user?.role === "super_admin");
   const [serverAdmin, setServerAdmin] = useState(null); // null = unknown, true/false
+  const [accessReady, setAccessReady] = useState(false);
   const [myScopes, setMyScopes] = useState([]);
-  const isClinicOnlyMod = !isAdmin && (myScopes.includes("clinic") || myScopes.includes("clinic_admin"));
-  const visibleTabs = isClinicOnlyMod ? TABS.filter((t) => CLINIC_ONLY_TABS.includes(t.id)) : TABS;
+  const [modUserId, setModUserId] = useState("");
+  const fullAdmin = isAdmin || serverAdmin === true;
+  const visibleTabs = useMemo(() => tabsForScopes(myScopes, fullAdmin), [myScopes, fullAdmin]);
+  const panelTitle = fullAdmin
+    ? "لوحة المدير"
+    : myScopes.includes("clinic_admin") || (myScopes.includes("clinic") && !myScopes.some((s) => s === "market" || s === "community" || s === "general"))
+      ? "لوحة إدارة العيادة"
+      : myScopes.length === 1 && myScopes[0] === "market"
+        ? "لوحة مشرف السوق"
+        : myScopes.length === 1 && myScopes[0] === "community"
+          ? "لوحة مشرف المجتمع"
+          : "لوحة المشرف";
   const [tab, setTab] = useState(visibleTabs[0]?.id || "stats");
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
@@ -60,7 +95,7 @@ export default function AdminPanelScreen({ user, onBack }) {
   const [activeOnly, setActiveOnly] = useState(false);
   const [stats, setStats] = useState({
     listings: 0, trips: 0, users: 0, reports: 0, stories: 0, auctions: 0,
-    banned: 0, sellers: 0, carriers: 0, admins: 0,
+    banned: 0, sellers: 0, carriers: 0, admins: 0, suppliers: 0,
   });
 
   const load = useCallback(async () => {
@@ -68,13 +103,14 @@ export default function AdminPanelScreen({ user, onBack }) {
       setLoading(true);
       if (tab === "stats") {
         // aggregate stats from multiple endpoints
-        const [l, t, u, r, s, a] = await Promise.all([
+        const [l, t, u, r, s, a, sup] = await Promise.all([
           listingsApi.feed({ limit: 1, include_all: true }).catch(() => ({ total: 0 })),
           tripsApi.list({ limit: 1 }).catch(() => ({ total: 0 })),
           jsonReq("/api/admin/users/stats/overview").catch(() => null),
           jsonReq("/api/tair-reports/list?status=open&limit=1").catch(() => null),
           jsonReq("/api/community/stories/list?limit=1").catch(() => null),
           jsonReq("/api/auctions/list?limit=1").catch(() => null),
+          jsonReq("/api/wholesale/admin/panel").catch(() => null),
         ]);
         setStats({
           listings: l.total || l.count || 0,
@@ -87,6 +123,7 @@ export default function AdminPanelScreen({ user, onBack }) {
           reports: r?.total || (r?.items?.length || 0),
           stories: s?.total || (s?.items?.length || 0),
           auctions: a?.total || (a?.items?.length || 0),
+          suppliers: sup?.count || 0,
         });
         setItems([]);
       } else if (tab === "listings") {
@@ -122,6 +159,14 @@ export default function AdminPanelScreen({ user, onBack }) {
           const data = await adminExtApi.verificationList(uid, "pending");
           setItems(data?.items || []);
         } catch { setItems([]); }
+      } else if (tab === "suppliers") {
+        const data = await jsonReq("/api/wholesale/admin/panel");
+        if (data?.detail && !data?.items) {
+          Alert.alert("غير مصرح", String(data.detail));
+          setItems([]);
+        } else {
+          setItems(data?.items || []);
+        }
       } else if (tab === "mods") {
         try {
           const data = await adminExtApi.moderatorsList(uid);
@@ -145,6 +190,12 @@ export default function AdminPanelScreen({ user, onBack }) {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (visibleTabs.length && !visibleTabs.some((t) => t.id === tab)) {
+      setTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs, tab]);
+
   // تحقّق من صلاحيات السيرفر — عشان نعرف إذا الحساب فعلاً مدير أم لا + جلب scopes
   useEffect(() => {
     (async () => {
@@ -154,6 +205,9 @@ export default function AdminPanelScreen({ user, onBack }) {
         setMyScopes(r?.scopes || []);
       } catch {
         setServerAdmin(false);
+        setMyScopes([]);
+      } finally {
+        setAccessReady(true);
       }
     })();
   }, [uid]);
@@ -340,6 +394,54 @@ export default function AdminPanelScreen({ user, onBack }) {
       load();
     } catch (e) { Alert.alert("خطأ", e?.message || "تعذّر التنفيذ"); }
   };
+  const patchSupplier = async (supplierId, body, okText) => {
+    try {
+      const r = await authedFetch(`/api/wholesale/admin/panel/${encodeURIComponent(supplierId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!r || !r.ok) {
+        let msg = "تعذّر التحديث";
+        try {
+          const j = await r.json();
+          if (j?.detail) msg = String(j.detail);
+        } catch {}
+        if (r?.status === 401) msg = "انتهت الجلسة — سجّل الدخول مرة أخرى";
+        if (r?.status === 403) msg = "غير مصرح — تأكد أنك مسجّل كمدير";
+        Alert.alert("خطأ", msg);
+        return;
+      }
+      if (okText) Alert.alert("✔", okText);
+      load();
+    } catch (e) {
+      Alert.alert("خطأ", e?.message || "تعذّر التحديث");
+    }
+  };
+  const toggleSupplierVerified = (item) => {
+    const next = !item.is_verified;
+    patchSupplier(
+      item.supplier_id,
+      { is_verified: next },
+      next ? "تم توثيق الشركة" : "أُلغي التوثيق",
+    );
+  };
+  const toggleSupplierActive = (item) => {
+    const next = item.is_active === false;
+    Alert.alert(
+      next ? "إظهار الشركة" : "إخفاء الشركة",
+      next ? "ستظهر الشركة في دليل الموردين." : "ستختفي الشركة من الدليل حتى تُظهرها.",
+      [
+        { text: "إلغاء", style: "cancel" },
+        {
+          text: next ? "إظهار" : "إخفاء",
+          style: next ? "default" : "destructive",
+          onPress: () => patchSupplier(item.supplier_id, { is_active: next }),
+        },
+      ],
+    );
+  };
+
   const revokeMod = (targetUid) => {
     Alert.alert("سحب الصلاحيات", "متأكد؟", [
       { text: "إلغاء", style: "cancel" },
@@ -366,8 +468,9 @@ export default function AdminPanelScreen({ user, onBack }) {
         <StatCard icon="storefront-outline" label="بائعون" value={stats.sellers} color={TAIR.emerald} />
         <StatCard icon="car-sport-outline" label="ناقلون" value={stats.carriers} color={TAIR.goldDark} />
         <StatCard icon="shield-checkmark-outline" label="مديرون" value={stats.admins} color={TAIR.emerald} />
+        <StatCard icon="business-outline" label="موردون" value={stats.suppliers} color={TAIR.gold} />
       </View>
-      <View style={styles.quickActionsCard}>
+      {fullAdmin ? <View style={styles.quickActionsCard}>
         <Text style={styles.quickActionsTitle}>إجراءات سريعة</Text>
         <QuickAction icon="medkit-outline" label="تفعيل/إيقاف صفحة العيادة" onPress={async () => {
           try {
@@ -398,7 +501,7 @@ export default function AdminPanelScreen({ user, onBack }) {
         <QuickAction icon="trash-bin-outline" label="حذف جميع الرحلات" onPress={() => Alert.alert("خطر", "احذف كل الرحلات؟", [{ text: "إلغاء" }, { text: "احذف", style: "destructive", onPress: () => authedFetch("/api/admin/users/purge-all-trips", { method: "POST" }).then(load) }])} />
         <QuickAction icon="trash-outline" label="حذف جميع الإعلانات" onPress={() => Alert.alert("خطر", "احذف كل الإعلانات؟", [{ text: "إلغاء" }, { text: "احذف", style: "destructive", onPress: () => authedFetch("/api/admin/users/purge-all-listings", { method: "POST" }).then(load) }])} />
         <QuickAction icon="broom-outline" label="تنظيف البيانات المهجورة" onPress={() => authedFetch("/api/admin/users/cleanup/orphans", { method: "POST" }).then(load)} />
-      </View>
+      </View> : null}
     </ScrollView>
   );
 
@@ -411,7 +514,7 @@ export default function AdminPanelScreen({ user, onBack }) {
     return (
       <FlatList
         data={filtered}
-        keyExtractor={(it, i) => String(it.listing_id || it.trip_id || it.user_id || it.report_id || it.story_id || it.auction_id || it.id || i)}
+        keyExtractor={(it, i) => String(it.listing_id || it.trip_id || it.user_id || it.report_id || it.story_id || it.auction_id || it.supplier_id || it.id || i)}
         renderItem={({ item }) => renderRow(item)}
         ItemSeparatorComponent={() => <View style={styles.divider} />}
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -435,6 +538,42 @@ export default function AdminPanelScreen({ user, onBack }) {
               <Text style={{ color: TAIR.textSoft, fontSize: 11, flex: 1, textAlign: "left" }}>
                 {activeOnly ? `${items.length} نشط` : `صفحة ${userPage} / ${userPages}`}
               </Text>
+            </View>
+          ) : tab === "mods" && !fullAdmin ? (
+            <View style={styles.supplierHint}>
+              <Text style={styles.supplierHintText}>تعيين مشرف عيادة</Text>
+              <Text style={styles.supplierHintSub}>الصق معرّف المستخدم. مدير العيادة يعيّن مشرف عيادة فقط.</Text>
+              <View style={{ flexDirection: "row-reverse", gap: 8, marginTop: 6 }}>
+                <TextInput
+                  style={[styles.searchInp, { backgroundColor: TAIR.card, borderWidth: 1, borderColor: TAIR.divider, borderRadius: 10, paddingHorizontal: 10, height: 40 }]}
+                  placeholder="معرّف المستخدم"
+                  placeholderTextColor={TAIR.textSoft}
+                  value={modUserId}
+                  onChangeText={setModUserId}
+                  textAlign="right"
+                  autoCapitalize="none"
+                  testID="clinic-mod-user-id"
+                />
+                <TouchableOpacity
+                  onPress={() => {
+                    const id = modUserId.trim();
+                    if (!id) return;
+                    doAssign(id, ["clinic"]);
+                    setModUserId("");
+                  }}
+                  style={styles.resolveBtn}
+                  testID="clinic-mod-assign"
+                >
+                  <Text style={styles.resolveBtnText}>تعيين</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : tab === "suppliers" ? (
+            <View style={styles.supplierHint}>
+              <Text style={styles.supplierHintText}>
+                {`${items.filter((s) => s.is_active !== false && !s.is_verified).length} بانتظار التوثيق • ${items.length} شركة`}
+              </Text>
+              <Text style={styles.supplierHintSub}>التوثيق من هنا فقط. الشركة لا توثّق نفسها.</Text>
             </View>
           ) : null
         }
@@ -467,7 +606,7 @@ export default function AdminPanelScreen({ user, onBack }) {
           !loading ? (
             <View style={styles.empty}>
               <Ionicons name="inbox-outline" size={40} color={TAIR.textSoft} />
-              <Text style={styles.emptyText}>لا توجد بيانات</Text>
+              <Text style={styles.emptyText}>{tab === "suppliers" ? "لا توجد شركات مسجّلة بعد" : "لا توجد بيانات"}</Text>
             </View>
           ) : null
         }
@@ -484,7 +623,24 @@ export default function AdminPanelScreen({ user, onBack }) {
     if (tab === "auctions") return <AuctionRow item={item} onDelete={() => confirmDelete("حذف هذا المزاد؟", `/api/auctions/${item.auction_id || item.id}?user_id=${encodeURIComponent(uid)}`)} />;
     if (tab === "pending") return <PendingAuctionRow item={item} onApprove={() => approveAuction(item.auction_id)} onReject={() => rejectAuction(item.auction_id)} />;
     if (tab === "verify") return <VerificationRow item={item} onApprove={() => approveVerification(item.request_id || item.id)} onReject={() => rejectVerification(item.request_id || item.id)} />;
-    if (tab === "mods") return <ModeratorRow item={item} onRevoke={() => revokeMod(item.user_id || item.id)} onAssign={() => assignMod(item.user_id || item.id)} />;
+    if (tab === "suppliers") return (
+      <SupplierRow
+        item={item}
+        onVerify={() => toggleSupplierVerified(item)}
+        onToggle={() => toggleSupplierActive(item)}
+      />
+    );
+    if (tab === "mods") {
+      const scopes = item.scopes || [];
+      const clinicOnly = scopes.length > 0 && scopes.every((s) => s === "clinic");
+      return (
+        <ModeratorRow
+          item={item}
+          onRevoke={fullAdmin || clinicOnly ? () => revokeMod(item.user_id || item.id) : null}
+          onAssign={fullAdmin ? () => assignMod(item.user_id || item.id) : null}
+        />
+      );
+    }
     return null;
   };
 
@@ -496,7 +652,7 @@ export default function AdminPanelScreen({ user, onBack }) {
           <Ionicons name="chevron-forward" size={24} color={TAIR.gold} />
         </TouchableOpacity>
         <View style={{ alignItems: "flex-end", flex: 1 }}>
-          <Text style={styles.adminTitle}>{isClinicOnlyMod ? "لوحة إدارة العيادة" : "لوحة المدير"}</Text>
+          <Text style={styles.adminTitle}>{panelTitle}</Text>
           <Text style={styles.adminSub}>إدارة كاملة لتطبيق طير</Text>
         </View>
         <View style={styles.adminShield}>
@@ -542,8 +698,13 @@ export default function AdminPanelScreen({ user, onBack }) {
         </View>
       )}
 
-      {loading ? (
+      {!accessReady || loading ? (
         <View style={styles.loading}><ActivityIndicator size="large" color={TAIR.emerald} /></View>
+      ) : visibleTabs.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="lock-closed-outline" size={36} color={TAIR.textSoft} />
+          <Text style={styles.emptyText}>هذه اللوحة للمدير والمشرفين فقط</Text>
+        </View>
       ) : tab === "stats" ? renderStats()
         : tab === "broadcast" ? (
           <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
@@ -857,6 +1018,59 @@ const VerificationRow = ({ item, onApprove, onReject }) => (
   </View>
 );
 
+const SupplierRow = ({ item, onVerify, onToggle }) => {
+  const verified = !!item.is_verified;
+  const active = item.is_active !== false;
+  const cats = (item.category_labels || item.categories || []).join("، ");
+  return (
+    <View style={[styles.row, { alignItems: "flex-start" }]}>
+      <View style={styles.rowIconBox}>
+        <Ionicons name="business" size={20} color={verified ? TAIR.gold : TAIR.emerald} />
+      </View>
+      <View style={{ flex: 1, gap: 4 }}>
+        <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <Text style={styles.rowTitle} numberOfLines={1}>{item.name || "شركة"}</Text>
+          <View style={verified ? styles.trustBadge : styles.pendingBadge}>
+            <Text style={verified ? styles.trustBadgeText : styles.pendingBadgeText}>
+              {verified ? "موثّق" : "بانتظار التوثيق"}
+            </Text>
+          </View>
+          {!active ? (
+            <View style={styles.resolvedBadge}>
+              <Text style={styles.resolvedText}>مخفي</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text style={styles.rowMeta} numberOfLines={2}>
+          {[item.city, cats, item.whatsapp || item.phone].filter(Boolean).join(" • ")}
+        </Text>
+        <View style={{ flexDirection: "row-reverse", gap: 6, marginTop: 4 }}>
+          <TouchableOpacity
+            onPress={onVerify}
+            style={[styles.resolveBtn, verified && styles.supplierGhostBtn]}
+            testID={`supplier-verify-${item.supplier_id}`}
+          >
+            <Ionicons name={verified ? "close-circle-outline" : "shield-checkmark"} size={14} color={verified ? TAIR.emerald : TAIR.gold} />
+            <Text style={[styles.resolveBtnText, verified && { color: TAIR.emerald }]}>
+              {verified ? "إلغاء التوثيق" : "وثّق"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onToggle}
+            style={[styles.resolveBtn, active ? styles.supplierHideBtn : null]}
+            testID={`supplier-active-${item.supplier_id}`}
+          >
+            <Ionicons name={active ? "eye-off-outline" : "eye-outline"} size={14} color={active ? "#8B3A2F" : TAIR.gold} />
+            <Text style={[styles.resolveBtnText, active && { color: "#8B3A2F" }]}>
+              {active ? "إخفاء" : "إظهار"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 const ModeratorRow = ({ item, onRevoke, onAssign }) => (
   <View style={styles.row}>
     <View style={[styles.rowIconBox, { backgroundColor: "#E4EEE7" }]}>
@@ -865,16 +1079,20 @@ const ModeratorRow = ({ item, onRevoke, onAssign }) => (
     <View style={{ flex: 1 }}>
       <Text style={styles.rowTitle} numberOfLines={1}>{item.name || item.user_name || "مشرف"}</Text>
       <Text style={styles.rowMeta} numberOfLines={1}>
-        النطاقات: {(item.scopes || []).join("، ") || "-"}
+        النطاقات: {(item.scopes || []).map((s) => SCOPE_AR[s] || s).join("، ") || "-"}
       </Text>
     </View>
-    <TouchableOpacity onPress={onAssign} style={[styles.resolveBtn, { backgroundColor: TAIR.card, borderWidth: 1, borderColor: TAIR.emerald }]}>
-      <Ionicons name="add-circle-outline" size={14} color={TAIR.emerald} />
-      <Text style={[styles.resolveBtnText, { color: TAIR.emerald }]}>تعديل</Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={onRevoke} style={styles.deleteBtn}>
-      <Ionicons name="close-circle-outline" size={18} color="#8B3A2F" />
-    </TouchableOpacity>
+    {onAssign ? (
+      <TouchableOpacity onPress={onAssign} style={[styles.resolveBtn, { backgroundColor: TAIR.card, borderWidth: 1, borderColor: TAIR.emerald }]}>
+        <Ionicons name="add-circle-outline" size={14} color={TAIR.emerald} />
+        <Text style={[styles.resolveBtnText, { color: TAIR.emerald }]}>تعديل</Text>
+      </TouchableOpacity>
+    ) : null}
+    {onRevoke ? (
+      <TouchableOpacity onPress={onRevoke} style={styles.deleteBtn}>
+        <Ionicons name="close-circle-outline" size={18} color="#8B3A2F" />
+      </TouchableOpacity>
+    ) : null}
   </View>
 );
 
@@ -963,6 +1181,16 @@ const styles = StyleSheet.create({
     backgroundColor: TAIR.emerald, paddingVertical: 2, paddingHorizontal: 6, borderRadius: 999,
   },
   trustBadgeText: { color: TAIR.gold, fontSize: 9, fontWeight: "800" },
+  pendingBadge: {
+    backgroundColor: "#F5EED9", paddingVertical: 2, paddingHorizontal: 6, borderRadius: 999,
+    borderWidth: 1, borderColor: TAIR.gold,
+  },
+  pendingBadgeText: { color: TAIR.emerald, fontSize: 9, fontWeight: "800" },
+  supplierHint: { paddingHorizontal: 14, paddingVertical: 10, backgroundColor: TAIR.bg, gap: 2 },
+  supplierHintText: { color: TAIR.emerald, fontSize: 12, fontWeight: "800", textAlign: "right" },
+  supplierHintSub: { color: TAIR.textSoft, fontSize: 11, textAlign: "right" },
+  supplierGhostBtn: { backgroundColor: TAIR.card, borderWidth: 1, borderColor: TAIR.emerald },
+  supplierHideBtn: { backgroundColor: "#FDECEA" },
   uidChip: {
     flexDirection: "row-reverse", alignItems: "center", gap: 4,
     backgroundColor: "#F0EAD8", paddingHorizontal: 8, paddingVertical: 3,

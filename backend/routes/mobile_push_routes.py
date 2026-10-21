@@ -91,14 +91,24 @@ async def send_expo_push(
     """Send a push notification to one or more Expo tokens. Silent on failure."""
     if not tokens:
         return {"skipped": "no tokens"}
+    from services.notification_face import notification_face
+    safe_data = {}
+    for key, value in (data or {}).items():
+        if value is None:
+            continue
+        safe_data[str(key)] = value if isinstance(value, str) else str(value)
+    face = notification_face(safe_data.get("type") or "")
     messages = [
         {
             "to": t,
             "title": title,
+            "subtitle": face["label"],
             "body": body,
             "sound": "default",
             "priority": "high",
-            "data": data or {},
+            "channelId": face["channel"],
+            "categoryId": face["channel"],
+            "data": safe_data,
         }
         for t in tokens
     ]
@@ -120,7 +130,7 @@ async def send_expo_push(
                 for i, item in enumerate(data_arr):
                     if isinstance(item, dict) and item.get("status") == "error":
                         err = (item.get("details") or {}).get("error")
-                        if err in ("DeviceNotRegistered", "InvalidCredentials"):
+                        if err == "DeviceNotRegistered":
                             try:
                                 await db.mobile_push_tokens.delete_one({"token": tokens[i]})
                             except Exception:
@@ -130,18 +140,54 @@ async def send_expo_push(
         return {"error": str(exc)}
 
 
+async def _push_identity_ids(user_id: str) -> List[str]:
+    ids = {user_id} if user_id else set()
+    if not user_id:
+        return []
+    queries = [{"user_id": user_id}, {"id": user_id}, {"email": user_id}]
+    user = await db.users.find_one({"$or": queries}, {"_id": 0, "user_id": 1, "id": 1, "email": 1})
+    admin = await db.admins.find_one({"$or": queries}, {"_id": 0, "user_id": 1, "id": 1, "email": 1})
+    for doc in (user, admin):
+        if not doc:
+            continue
+        for key in ("user_id", "id", "email"):
+            if doc.get(key):
+                ids.add(doc[key])
+    emails = [doc.get("email") for doc in (user, admin) if doc and doc.get("email")]
+    if emails:
+        async for linked in db.users.find(
+            {"email": {"$in": emails}},
+            {"_id": 0, "user_id": 1, "id": 1, "email": 1},
+        ):
+            for key in ("user_id", "id", "email"):
+                if linked.get(key):
+                    ids.add(linked[key])
+    return list(ids)
+
+
 async def send_push_to_user(
     user_id: str,
     title: str,
     body: str,
     data: Optional[Dict[str, Any]] = None,
 ) -> None:
-    """Send a native push notification to all of a user's registered devices.
-    Fire-and-forget helper — never raises."""
+    """Send a native push to every device registered for this account.
+    Matches id, user_id, and email, and both token collections. Never raises."""
     try:
-        tokens = [d["token"] async for d in db.mobile_push_tokens.find({"user_id": user_id})]
+        ids = await _push_identity_ids(user_id)
+        if not ids:
+            return
+        tokens = set()
+        async for doc in db.mobile_push_tokens.find({"user_id": {"$in": ids}}, {"_id": 0, "token": 1}):
+            if doc.get("token"):
+                tokens.add(doc["token"])
+        async for doc in db.push_tokens.find({"user_id": {"$in": ids}}, {"_id": 0, "token": 1, "expo_push_token": 1}):
+            if doc.get("token"):
+                tokens.add(doc["token"])
+            if doc.get("expo_push_token"):
+                tokens.add(doc["expo_push_token"])
         if not tokens:
             return
-        await send_expo_push(tokens=tokens, title=title, body=body, data=data)
+        await send_expo_push(tokens=list(tokens), title=title, body=body, data=data)
     except Exception as exc:
         print(f"[mobile_push] send_push_to_user failed: {exc}")

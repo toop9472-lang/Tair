@@ -1,7 +1,7 @@
-# 📱 دليل تطبيق صقر للموبايل
+# 📱 دليل تطبيق طير للموبايل
 
 ## نظرة عامة
-تطبيق صقر للموبايل مبني باستخدام React Native و Expo SDK 51.
+تطبيق طير للموبايل مبني باستخدام React Native و Expo SDK 51.
 
 ---
 
@@ -186,13 +186,13 @@ eas submit -p android
 1. اذهب إلى [Google Cloud Console](https://console.cloud.google.com)
 2. أنشئ OAuth 2.0 Client ID
 3. أضف Bundle ID لـ iOS و Package Name لـ Android
-4. أضف Client ID في لوحة إعدادات صقر
+4. أضف Client ID في لوحة إعدادات طير
 
 ### Apple Sign In:
 1. اذهب إلى [Apple Developer Portal](https://developer.apple.com)
 2. فعّل Sign In with Apple في App ID
 3. أنشئ Service ID إذا لزم الأمر
-4. أضف الإعدادات في لوحة صقر
+4. أضف الإعدادات في لوحة طير
 
 ---
 

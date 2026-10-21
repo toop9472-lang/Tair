@@ -19,7 +19,7 @@ const APP_VERSION =
   Constants?.manifest?.version ||
   "unknown";
 
-let registered = false;
+let registeredFor = null;
 let currentToken = null;
 let apiBaseUrl = null;
 
@@ -34,19 +34,28 @@ Notifications.setNotificationHandler({
   }),
 });
 
+const CHANNELS = [
+  ["messages", "الرسائل"],
+  ["clinic", "العيادة"],
+  ["trips", "الرحلات"],
+  ["orders", "الطلبات"],
+  ["general", "طير"],
+  ["default", "الإشعارات"],
+];
+
 async function ensureAndroidChannel() {
   if (Platform.OS !== "android") return;
-  try {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "الإشعارات",
-      importance: Notifications.AndroidImportance.HIGH,
+  const visibility = Notifications.AndroidNotificationVisibility?.PUBLIC ?? 1;
+  await Promise.all(CHANNELS.map(([id, name]) => (
+    Notifications.setNotificationChannelAsync(id, {
+      name,
+      importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#1B3D2F",
+      lightColor: "#C6A15B",
       sound: "default",
-    });
-  } catch (e) {
-    // ignore
-  }
+      lockscreenVisibility: visibility,
+    }).catch(() => null)
+  )));
 }
 
 async function requestPermission() {
@@ -110,21 +119,23 @@ async function sendTokenToBackend({ token, userId }) {
  * @param {{ apiUrl: string, userId?: string }} opts
  */
 export async function initPushNotifications({ apiUrl, userId }) {
-  if (registered) return currentToken;
   apiBaseUrl = (apiUrl || "").replace(/\/+$/, "") || null;
-  if (!Device.isDevice) return null;  // Simulator/Emulator: skip
+  if (!Device.isDevice) return null;
 
   await ensureAndroidChannel();
   const granted = await requestPermission();
   if (!granted) return null;
 
-  const token = await fetchExpoToken();
-  if (!token) return null;
+  if (!currentToken) {
+    currentToken = await fetchExpoToken();
+  }
+  if (!currentToken) return null;
 
-  currentToken = token;
-  registered = true;
-  await sendTokenToBackend({ token, userId });
-  return token;
+  const owner = userId || "guest";
+  if (registeredFor === owner) return currentToken;
+  const saved = await sendTokenToBackend({ token: currentToken, userId: owner });
+  if (saved) registeredFor = owner;
+  return currentToken;
 }
 
 /** Re-register the current token under a new user id (e.g. after login). */
@@ -146,7 +157,7 @@ export async function unregisterPushToken() {
     // ignore
   }
   currentToken = null;
-  registered = false;
+  registeredFor = null;
 }
 
 /**

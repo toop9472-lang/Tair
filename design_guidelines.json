@@ -1,5 +1,5 @@
 {
-  "project_name": "Saqr (صقر) - Watch-to-Earn Platform",
+  "project_name": "Tair (طير) - Watch-to-Earn Platform",
   "design_philosophy": {
     "identity": "The Golden Falcon",
     "vibe": "Luxury Fintech meet Cyberpunk Rewards",
@@ -68,7 +68,7 @@
     "root_setup": "Ensure <html dir='rtl' lang='ar'> is set in index.html or root layout."
   },
   "components": {
-    "SaqrCard": {
+    "TairCard": {
       "style": "bg-saqr-card backdrop-blur-xl border border-saqr-border rounded-xl p-6 shadow-glow transition-all hover:shadow-glow-lg hover:border-saqr-gold/40",
       "usage": "Dashboard widgets, Stat boxes, Ad containers"
     },

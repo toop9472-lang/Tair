@@ -12,6 +12,8 @@ import { TopBar, StatusPill } from "./TairUI";
 import { toast } from "../hooks/use-toast";
 import { AnalyticsEvents } from "./analytics";
 import VerifiedTick from "./VerifiedTick";
+import { toWhatsAppPhone } from "./contactPhone";
+import { buildSharePayload, shareNow } from "./shareContent";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -60,29 +62,31 @@ export default function ListingDetailsScreen({ user, listingId, onBack, onOpenTh
     }
   };
 
+  const listingShare = () => buildSharePayload({
+    kind: "listing",
+    id: listing.listing_id,
+    title: listing.title || "إعلان طير",
+    image: listing.cover_image || listing.images?.[0] || "",
+    lines: [
+      listing.price_sar != null ? `${listing.price_sar} ر.س` : null,
+      listing.city || null,
+    ],
+  });
+
   const handleShare = async () => {
-    const url = `${window.location.origin}/?listing=${listing.listing_id}`;
-    const shareData = {
-      title: `طير — ${listing.title}`,
-      text: `شاهد هذا الإعلان على منصة طير: ${listing.title} — ${listing.price_sar} ر.س`,
-      url,
-    };
+    const payload = listingShare();
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-        AnalyticsEvents.shareListing("native");
-      } else {
-        await navigator.clipboard.writeText(url);
-        AnalyticsEvents.shareListing("copy");
-        toast({ title: "تم نسخ الرابط", description: "الصقه في أي تطبيق للمشاركة." });
+      const mode = await shareNow(payload);
+      if (mode === "copied") {
+        toast({ title: "تم نسخ المشاركة", description: "الصقها في أي تطبيق، والرابط يفتح الصفحة بالصورة." });
       }
-    } catch (e) { /* user cancelled */ }
+      if (mode === "shared" || mode === "copied") AnalyticsEvents.shareListing(mode);
+    } catch (e) { /* user cancelled or blocked */ }
   };
 
   const shareToWhatsApp = () => {
-    const url = `${window.location.origin}/?listing=${listing.listing_id}`;
-    const text = `شاهد هذا الإعلان على منصة طير: ${listing.title} — ${listing.price_sar} ر.س\n${url}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    const payload = listingShare();
+    window.open(`https://wa.me/?text=${encodeURIComponent(payload.message)}`, "_blank");
     AnalyticsEvents.shareListing("whatsapp");
   };
 
@@ -186,11 +190,11 @@ export default function ListingDetailsScreen({ user, listingId, onBack, onOpenTh
   };
 
   const openWhatsApp = () => {
-    if (!listing?.seller_phone) return;
-    const phone = String(listing.seller_phone).replace(/[^\d+]/g, "");
-    const clean = phone.startsWith("+") ? phone.slice(1) : phone;
+    const raw = listing?.seller_whatsapp || listing?.whatsapp || listing?.seller_phone;
+    const phone = toWhatsAppPhone(raw);
+    if (!phone) return;
     const text = encodeURIComponent(`السلام عليكم، بخصوص إعلانك: ${listing.title}`);
-    window.open(`https://wa.me/${clean}?text=${text}`, "_blank");
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
   };
 
   const postComment = async () => {

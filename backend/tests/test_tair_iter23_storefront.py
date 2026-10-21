@@ -154,15 +154,17 @@ FULL_PAYLOAD = {
 class TestStorefrontFullPersistence:
     def test_patch_and_get_full_roundtrip(self, guest):
         uid = guest["user_id"]
+        headers = {"Authorization": f"Bearer {guest['token']}"}
         r = requests.patch(
             f"{API}/storefront/settings",
             params={"user_id": uid},
             json=FULL_PAYLOAD,
+            headers=headers,
             timeout=30,
         )
         assert r.status_code == 200, r.text
 
-        g = requests.get(f"{API}/storefront/settings", params={"user_id": uid}, timeout=30)
+        g = requests.get(f"{API}/storefront/settings", params={"user_id": uid}, headers=headers, timeout=30)
         assert g.status_code == 200, g.text
         s = g.json()
         # Field-by-field comparison
@@ -220,6 +222,7 @@ class TestR2Uploads:
             f"{API}/storefront/upload-media",
             params={"user_id": guest["user_id"], "kind": "logo"},
             files=files,
+            headers={"Authorization": f"Bearer {guest['token']}"},
             timeout=60,
         )
         assert r.status_code == 200, r.text

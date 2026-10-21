@@ -143,7 +143,7 @@ const s = StyleSheet.create({
   },
   headerTitle: { color: TAIR.gold, fontSize: 19, fontWeight: "900" },
   mediaBox: {
-    width: "100%", aspectRatio: 9/16, borderRadius: 20, overflow: "hidden",
+    width: 168, height: 220, alignSelf: "center", borderRadius: 18, overflow: "hidden",
     backgroundColor: TAIR.card, borderWidth: 1.5, borderColor: TAIR.gold, marginBottom: 16,
     ...TAIR_ELEVATION.card,
   },

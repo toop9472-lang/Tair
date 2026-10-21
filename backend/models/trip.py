@@ -58,6 +58,11 @@ class Trip(BaseModel):
 
     bookings_count: int = 0
     bookings_ids: List[str] = []
+    bookings: List[dict] = []
+
+    live_lat: Optional[float] = None
+    live_lng: Optional[float] = None
+    live_at: Optional[datetime] = None
 
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
@@ -86,4 +91,51 @@ class TripCreate(BaseModel):
 
 class TripStatusUpdate(BaseModel):
     status: TripStatus
+    note: Optional[str] = None
+    motion: Optional[Literal["stopped", "moving", "arrived"]] = None
+    stop_index: Optional[int] = None
+
+
+class TripLocationUpdate(BaseModel):
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+
+
+RequestStatus = Literal["pending", "accepted", "in_progress", "completed", "cancelled"]
+
+
+class RequestStatusEvent(BaseModel):
+    status: RequestStatus
+    at: datetime = Field(default_factory=_now)
+    note: Optional[str] = None
+
+
+class TripRequest(BaseModel):
+    request_id: str
+    requester_id: str
+    requester_name: Optional[str] = None
+    from_city: str
+    to_city: str
+    depart_on: str
+    details: Optional[str] = None
+    contact_phone: Optional[str] = None
+    status: RequestStatus = "pending"
+    status_updates: List[RequestStatusEvent] = []
+    accepted_by: Optional[str] = None
+    accepted_name: Optional[str] = None
+    created_at: datetime = Field(default_factory=_now)
+    updated_at: datetime = Field(default_factory=_now)
+
+
+class TripRequestCreate(BaseModel):
+    from_city: str
+    to_city: str
+    depart_on: str
+    details: Optional[str] = None
+    contact_phone: Optional[str] = None
+    requester_name: Optional[str] = None
+
+
+class TripRequestStatusUpdate(BaseModel):
+    status: RequestStatus
     note: Optional[str] = None

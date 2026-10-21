@@ -10,6 +10,13 @@ from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from auth.actor import require_actor
+from services.storefront_logic import (
+    DEFAULT_HOURS,
+    active_flash_sales,
+    is_open_now,
+    normalize_coupon_code,
+    sanitize_settings_patch,
+)
 
 router = APIRouter(prefix="/storefront", tags=["storefront"])
 
@@ -31,15 +38,13 @@ DEFAULT_SETTINGS = {
     "logo_url": None,
     "about_text": "",
     "contact_prefs": {"whatsapp": True, "call": False, "chat": True},
-    "business_hours": [
-        {"day": "sat", "open": "09:00", "close": "22:00", "closed": False},
-        {"day": "sun", "open": "09:00", "close": "22:00", "closed": False},
-        {"day": "mon", "open": "09:00", "close": "22:00", "closed": False},
-        {"day": "tue", "open": "09:00", "close": "22:00", "closed": False},
-        {"day": "wed", "open": "09:00", "close": "22:00", "closed": False},
-        {"day": "thu", "open": "09:00", "close": "22:00", "closed": False},
-        {"day": "fri", "open": "16:00", "close": "22:00", "closed": False},
-    ],
+    "business_hours": DEFAULT_HOURS,
+    "announcement": "",
+    "shipping_note": "",
+    "return_note": "",
+    "delivery_cities": [],
+    "store_paused": False,
+    "response_promise": "",
     # Media (Pack 2)
     "portfolio_images": [],  # up to 6 URLs
     "highlights": [],  # [{title, cover, items:[{image,caption}]}]
@@ -74,6 +79,12 @@ class SettingsIn(BaseModel):
     auto_reply_enabled: Optional[bool] = None
     auto_reply_message: Optional[str] = None
     vip_customer_ids: Optional[List[str]] = None
+    announcement: Optional[str] = None
+    shipping_note: Optional[str] = None
+    return_note: Optional[str] = None
+    delivery_cities: Optional[List[str]] = None
+    store_paused: Optional[bool] = None
+    response_promise: Optional[str] = None
 
 
 class FlashSaleIn(BaseModel):
@@ -87,6 +98,10 @@ class CouponIn(BaseModel):
     code: str
     discount_pct: float = Field(gt=0, le=90)
     active: bool = True
+
+
+class CouponActiveIn(BaseModel):
+    active: bool
 
 
 class InventoryUpdateIn(BaseModel):
@@ -148,8 +163,8 @@ async def _update_settings(db, uid: str, patch: dict):
 # =========================== ROUTES ===========================
 
 @router.get("/settings")
-async def get_settings(user_id: str = Query(...)):
-    """Fetch all storefront customization for a seller."""
+async def get_settings(user_id: str = Query(...), actor: str = Depends(require_actor)):
+    """Owner settings, including offers and the automatic reply."""
     db = get_db()
     return await _get_user_settings(db, user_id)
 
@@ -205,7 +220,7 @@ async def export_storefront(
 async def update_settings(user_id: str, payload: SettingsIn, actor: str = Depends(require_actor)):
     """Partially update storefront settings."""
     db = get_db()
-    patch = payload.dict(exclude_none=True)
+    patch = sanitize_settings_patch(payload.dict(exclude_none=True))
     if not patch:
         raise HTTPException(400, "Nothing to update")
     await _update_settings(db, user_id, patch)
@@ -313,11 +328,20 @@ async def upload_media(
 
 # ================= Flash Sales =================
 @router.post("/flash-sales")
-async def create_flash_sale(user_id: str, payload: FlashSaleIn):
+async def create_flash_sale(user_id: str, payload: FlashSaleIn, actor: str = Depends(require_actor)):
     db = get_db()
     settings = await _get_user_settings(db, user_id)
-    sales = settings.get("flash_sales", [])
+    sales = list(settings.get("flash_sales") or [])
+    if len(active_flash_sales(sales)) >= 8:
+        raise HTTPException(400, "يمكن نشر ٨ عروض جارية كحد أقصى")
+    ends = payload.ends_at
+    try:
+        datetime.fromisoformat(str(ends).replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(400, "تاريخ انتهاء العرض غير صالح")
     entry = payload.dict()
+    entry["listing_ids"] = [i for i in (entry.get("listing_ids") or []) if isinstance(i, str)][:12]
+    entry["title"] = (entry.get("title") or "عرض").strip()[:80]
     entry["id"] = f"flash_{uuid.uuid4().hex[:10]}"
     entry["created_at"] = datetime.now(timezone.utc).isoformat()
     sales.append(entry)
@@ -326,7 +350,7 @@ async def create_flash_sale(user_id: str, payload: FlashSaleIn):
 
 
 @router.delete("/flash-sales/{sale_id}")
-async def delete_flash_sale(user_id: str, sale_id: str):
+async def delete_flash_sale(user_id: str, sale_id: str, actor: str = Depends(require_actor)):
     db = get_db()
     settings = await _get_user_settings(db, user_id)
     sales = [s for s in settings.get("flash_sales", []) if s.get("id") != sale_id]
@@ -336,24 +360,72 @@ async def delete_flash_sale(user_id: str, sale_id: str):
 
 # ================= Coupons =================
 @router.post("/coupons")
-async def create_coupon(user_id: str, payload: CouponIn):
+async def create_coupon(user_id: str, payload: CouponIn, actor: str = Depends(require_actor)):
     db = get_db()
+    try:
+        code = normalize_coupon_code(payload.code)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
     settings = await _get_user_settings(db, user_id)
-    coupons = settings.get("coupons", [])
-    if any(c.get("code", "").lower() == payload.code.lower() for c in coupons):
-        raise HTTPException(400, "Coupon code already exists")
-    coupons.append({**payload.dict(), "created_at": datetime.now(timezone.utc).isoformat()})
+    coupons = list(settings.get("coupons") or [])
+    if len(coupons) >= 12:
+        raise HTTPException(400, "الحد ١٢ كوبوناً. احذف قديماً قبل إضافة جديد")
+    if any(str(c.get("code", "")).upper() == code for c in coupons):
+        raise HTTPException(400, "هذا الكود مستخدم في متجرك")
+    entry = {
+        "code": code,
+        "discount_pct": payload.discount_pct,
+        "active": bool(payload.active),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    coupons.append(entry)
     await _update_settings(db, user_id, {"coupons": coupons})
-    return {"ok": True}
+    return {"ok": True, "coupon": entry}
+
+
+@router.patch("/coupons/{code}")
+async def set_coupon_active(code: str, user_id: str, payload: CouponActiveIn, actor: str = Depends(require_actor)):
+    db = get_db()
+    try:
+        wanted = normalize_coupon_code(code)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    settings = await _get_user_settings(db, user_id)
+    coupons = list(settings.get("coupons") or [])
+    found = False
+    for coupon in coupons:
+        if str(coupon.get("code", "")).upper() == wanted:
+            coupon["active"] = bool(payload.active)
+            found = True
+    if not found:
+        raise HTTPException(404, "الكوبون غير موجود")
+    await _update_settings(db, user_id, {"coupons": coupons})
+    return {"ok": True, "coupons": coupons}
+
+
+@router.delete("/coupons/{code}")
+async def delete_coupon(code: str, user_id: str, actor: str = Depends(require_actor)):
+    db = get_db()
+    try:
+        wanted = normalize_coupon_code(code)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    settings = await _get_user_settings(db, user_id)
+    coupons = [c for c in (settings.get("coupons") or []) if str(c.get("code", "")).upper() != wanted]
+    await _update_settings(db, user_id, {"coupons": coupons})
+    return {"ok": True, "coupons": coupons}
 
 
 # ================= Inventory =================
 @router.post("/inventory")
-async def update_inventory(user_id: str, payload: InventoryUpdateIn):
+async def update_inventory(user_id: str, payload: InventoryUpdateIn, actor: str = Depends(require_actor)):
     db = get_db()
     settings = await _get_user_settings(db, user_id)
     inv = settings.get("inventory", {}) or {}
-    inv[payload.species_id] = {"available": payload.available, "reserved": payload.reserved}
+    if payload.available == 0 and payload.reserved == 0:
+        inv.pop(payload.species_id, None)
+    else:
+        inv[payload.species_id] = {"available": payload.available, "reserved": payload.reserved}
     await _update_settings(db, user_id, {"inventory": inv})
     return {"ok": True, "inventory": inv}
 
@@ -391,27 +463,38 @@ async def delete_price_alert(alert_id: str):
 
 # ================= Analytics =================
 @router.get("/analytics")
-async def analytics(user_id: str = Query(...), days: int = 30):
+async def analytics(user_id: str = Query(...), days: int = 30, actor: str = Depends(require_actor)):
     """Aggregate analytics for a seller storefront."""
     db = get_db()
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=max(1, min(days, 365)))
+    since_iso = since.isoformat()
+    owner = await db.users.find_one(
+        {"$or": [{"user_id": user_id}, {"id": user_id}, {"email": user_id}]},
+        {"_id": 0, "user_id": 1, "id": 1, "email": 1, "storefront_settings": 1},
+    ) or {}
+    aliases = [v for v in {user_id, owner.get("user_id"), owner.get("id"), owner.get("email")} if v]
+    settings = owner.get("storefront_settings") or {}
 
-    # Visitor tracking
-    visitor_query = {"seller_id": user_id, "at": {"$gte": since.isoformat()}}
+    # Visits were stored under `at` or `created_at`, and seller_id may be any alias.
+    visitor_query = {
+        "seller_id": {"$in": aliases},
+        "$or": [{"at": {"$gte": since_iso}}, {"created_at": {"$gte": since_iso}}],
+    }
     daily_visitors = {}
     cities = {}
     cursor = db.storefront_visits.find(visitor_query)
     total_visitors = 0
     async for v in cursor:
         total_visitors += 1
-        d = str(v.get("at", ""))[:10]
-        daily_visitors[d] = daily_visitors.get(d, 0) + 1
+        d = str(v.get("at") or v.get("created_at") or "")[:10]
+        if d:
+            daily_visitors[d] = daily_visitors.get(d, 0) + 1
         c = v.get("city") or "غير معروف"
         cities[c] = cities.get(c, 0) + 1
 
     # Listings performance
     listing_perf = []
-    cursor2 = db.listings.find({"seller_id": user_id})
+    cursor2 = db.listings.find({"seller_id": {"$in": aliases}})
     total_views = 0
     async for l in cursor2:
         views = l.get("view_count", 0)
@@ -429,7 +512,7 @@ async def analytics(user_id: str = Query(...), days: int = 30):
     listing_perf.sort(key=lambda x: x["views"], reverse=True)
 
     # Revenue prediction (based on past orders)
-    order_cursor = db.orders.find({"seller_id": user_id})
+    order_cursor = db.orders.find({"seller_id": {"$in": aliases}})
     revenues_by_month = {}
     completed_count = 0
     completed_total = 0
@@ -444,6 +527,30 @@ async def analytics(user_id: str = Query(...), days: int = 30):
     avg_month = (completed_total / max(len(revenues_by_month), 1)) if revenues_by_month else 0
     predicted_next_month = round(avg_month * 1.05, 2)  # 5% growth projection
 
+    messages_received = 0
+    try:
+        thread_ids = []
+        async for thread in db.chat_threads.find(
+            {"participants": {"$in": aliases}}, {"_id": 0, "thread_id": 1}
+        ).limit(300):
+            if thread.get("thread_id"):
+                thread_ids.append(thread["thread_id"])
+        if thread_ids:
+            messages_received = await db.chat_messages.count_documents({
+                "thread_id": {"$in": thread_ids},
+                "sender_id": {"$nin": aliases},
+                "created_at": {"$gte": since},
+            })
+    except Exception:
+        messages_received = 0
+
+    low_stock = []
+    for name, row in (settings.get("inventory") or {}).items():
+        available = int((row or {}).get("available") or 0)
+        if available <= 2:
+            low_stock.append({"name": name, "available": available})
+
+    paused = bool(settings.get("store_paused"))
     return {
         "total_visitors": total_visitors,
         "daily_visitors": daily_visitors,
@@ -453,6 +560,11 @@ async def analytics(user_id: str = Query(...), days: int = 30):
         "revenue_by_month": revenues_by_month,
         "predicted_next_month_sar": predicted_next_month,
         "completed_orders_count": completed_count,
+        "messages_received": messages_received,
+        "low_stock": low_stock[:8],
+        "store_paused": paused,
+        "open_now": (not paused) and is_open_now(settings.get("business_hours") or DEFAULT_HOURS),
+        "active_offers": len(active_flash_sales(settings.get("flash_sales") or [])),
     }
 
 
@@ -475,7 +587,7 @@ async def track_visit(seller_id: str, visitor_id: str = "", city: str = ""):
 
 # ================= Push tokens =================
 @router.post("/push-token")
-async def register_push_token(user_id: str, token: str, platform: str = "ios"):
+async def register_push_token(user_id: str, token: str, platform: str = "ios", actor: str = Depends(require_actor)):
     """Register Expo push token for a user."""
     db = get_db()
     await db.push_tokens.update_one(

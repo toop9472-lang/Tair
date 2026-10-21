@@ -16,6 +16,9 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Query
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from services.moderation import moderator_scopes
+from services.storefront_logic import active_flash_sales
+
 router = APIRouter(prefix="/sellers", tags=["sellers"])
 
 mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
@@ -89,6 +92,17 @@ async def get_seller_profile(user_id: str, viewer_id: Optional[str] = None):
 
     # === Include storefront customizations (from Storefront Manager) ===
     sf = u.get("storefront_settings") or {}
+    seller_key = u.get("user_id") or u.get("id") or u.get("email") or user_id
+    scopes = await moderator_scopes(db, seller_key)
+    admin_doc = await db.admins.find_one(
+        {"$or": [
+            {"id": seller_key},
+            {"user_id": seller_key},
+            {"email": u.get("email") or seller_key},
+        ]},
+        {"_id": 0, "id": 1},
+    )
+    is_admin = bool(admin_doc or u.get("is_admin") or u.get("role") in ("admin", "super_admin"))
 
     return {
         "user_id": u.get("user_id") or u.get("id"),
@@ -103,6 +117,8 @@ async def get_seller_profile(user_id: str, viewer_id: Optional[str] = None):
         "is_verified_merchant": bool(u.get("is_verified_merchant") or u.get("is_verified_shop")),
         "is_verified_shop": bool(u.get("is_verified_shop")),
         "is_verified_carrier": bool(u.get("is_verified_carrier")),
+        "is_admin": is_admin,
+        "moderator_scopes": scopes,
         "joined_at": _iso(u.get("created_at")),
         "listings_count": listings_count,
         "sold_count": sold_count,
@@ -121,11 +137,39 @@ async def get_seller_profile(user_id: str, viewer_id: Optional[str] = None):
         "location": sf.get("location"),
         "pickup_enabled": bool(sf.get("pickup_enabled", False)),
         "pickup_note": sf.get("pickup_note", ""),
-        "flash_sales": sf.get("flash_sales", []),
+        "flash_sales": await _public_flash_sales(sf.get("flash_sales") or []),
         "coupons": [c for c in sf.get("coupons", []) if c.get("active")],
-        "auto_reply_enabled": bool(sf.get("auto_reply_enabled", False)),
-        "auto_reply_message": sf.get("auto_reply_message", ""),
+        "announcement": sf.get("announcement") or "",
+        "shipping_note": sf.get("shipping_note") or "",
+        "return_note": sf.get("return_note") or "",
+        "delivery_cities": sf.get("delivery_cities") or [],
+        "store_paused": bool(sf.get("store_paused")),
+        "response_promise": sf.get("response_promise") or "",
     }
+
+
+async def _public_flash_sales(sales) -> list:
+    fresh = active_flash_sales(sales)
+    ids = []
+    for sale in fresh:
+        ids.extend([i for i in (sale.get("listing_ids") or []) if isinstance(i, str)])
+    titles = {}
+    if ids:
+        cursor = db.listings.find(
+            {"listing_id": {"$in": list(set(ids))}},
+            {"_id": 0, "listing_id": 1, "title": 1},
+        )
+        async for row in cursor:
+            if row.get("listing_id"):
+                titles[row["listing_id"]] = row.get("title") or ""
+    public = []
+    for sale in fresh:
+        item = dict(sale)
+        item["listing_titles"] = [
+            titles[i] for i in (sale.get("listing_ids") or []) if titles.get(i)
+        ]
+        public.append(item)
+    return public
 
 
 @router.get("/{user_id}/listings")

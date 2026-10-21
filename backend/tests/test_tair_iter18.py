@@ -22,23 +22,29 @@ def user_id():
 
 # ---------------- SPECIES ----------------
 class TestSpecies:
-    def test_families_returns_17(self):
+    def test_families_returns_gulf_catalog(self):
         r = requests.get(f"{API}/species/families", timeout=15)
         assert r.status_code == 200
         data = r.json()
         items = data.get("items", data) if isinstance(data, dict) else data
-        assert len(items) == 17, f"expected 17 families, got {len(items)}"
+        assert len(items) == 21, f"expected 21 families, got {len(items)}"
         ids = {i["family_id"] for i in items}
-        for expected in ("livestock", "cats", "dogs", "insects", "feed",
-                         "bird_supplies", "animal_supplies", "reserves", "services"):
+        for expected in ("livestock", "horses", "cats", "dogs", "insects", "feed",
+                         "bird_supplies", "animal_supplies", "reserves", "services",
+                         "falcons", "hotel_services", "training", "parrots", "songbirds"):
             assert expected in ids
+        song = next(i for i in items if i["family_id"] == "songbirds")
+        assert song["name_ar"] == "طيور صغيرة"
 
     def test_species_list_family_cats(self):
         r = requests.get(f"{API}/species/list", params={"family": "cats"}, timeout=15)
         assert r.status_code == 200
         data = r.json()
         items = data.get("items", data) if isinstance(data, dict) else data
-        assert len(items) == 5
+        assert len(items) == 8
+        names = {i["name_ar"] for i in items}
+        assert "قط شيرازي" in names
+        assert "قط بلدي" in names
 
     def test_species_list_family_livestock(self):
         r = requests.get(f"{API}/species/list", params={"family": "livestock"}, timeout=15)
@@ -49,13 +55,13 @@ class TestSpecies:
         names = {i["species_id"] for i in items}
         assert {"sheep", "goat", "camel", "cattle"}.issubset(names)
 
-    def test_reseed_returns_58(self):
+    def test_reseed_returns_full_catalog(self):
         r = requests.post(f"{API}/species/reseed", timeout=30)
         assert r.status_code in (200, 201)
         data = r.json()
         count = data.get("seeded") or data.get("count") or data.get("total")
         # Accept dict shape
-        assert count == 58 or (isinstance(data, dict) and 58 in data.values()), f"reseed data: {data}"
+        assert count == 116 or (isinstance(data, dict) and 116 in data.values()), f"reseed data: {data}"
 
 
 # ---------------- FORUM ----------------

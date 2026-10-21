@@ -16,31 +16,13 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import TairHeader from "../components/TairHeader";
-import ListingCard from "../components/ListingCard";
-import { EmptyState, ErrorState, ListingSkeleton, PressableScale } from "../components/TairUI";
+import ListingCard, { resolveMediaUrl } from "../components/ListingCard";
+import { EmptyState, ErrorState, ListingSkeleton, PressableScale, warmMedia } from "../components/TairUI";
 import AuctionMark from "../components/AuctionMark";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
-import { listingsApi } from "../services/tairApi";
-
-const CATEGORIES = [
-  { key: "livestock",       label: "مواشي",                          icon: "paw-outline" },
-  { key: "songbirds",       label: "طيور مغردة",                       icon: "musical-notes-outline" },
-  { key: "poultry",         label: "دواجن",                          icon: "egg-outline" },
-  { key: "pigeons",         label: "حمام",                           icon: "airplane-outline" },
-  { key: "parrots",         label: "ببغاوات",                         icon: "flower-outline" },
-  { key: "fish",            label: "أسماك",                          icon: "fish-outline" },
-  { key: "small_mammals",   label: "ثدييات صغيرة",                     icon: "bonfire-outline" },
-  { key: "pets",            label: "حيوانات أليفة",                     icon: "heart-outline" },
-  { key: "reptiles",        label: "زواحف",                          icon: "bug-outline" },
-  { key: "insects",         label: "حشرات",                          icon: "prism-outline" },
-  { key: "cats",            label: "قطط",                            icon: "paw" },
-  { key: "dogs",            label: "كلاب",                           icon: "logo-octocat" },
-  { key: "feed",            label: "أعلاف",                          icon: "leaf-outline" },
-  { key: "bird_supplies",   label: "مستلزمات الطيور",                   icon: "basket-outline" },
-  { key: "animal_supplies", label: "مستلزمات الحيوانات",                 icon: "cube-outline" },
-  { key: "reserves",        label: "المحميات",                        icon: "earth-outline" },
-  { key: "services",        label: "خدمات تركيب الأقفاص والمحميات",       icon: "construct-outline" },
-];
+import { listingsApi, speciesApi } from "../services/tairApi";
+import { CitySelectorSheet } from "../components/CitySelectorSheet";
+import { FALLBACK_FAMILIES, familyIcon, groupFamilies } from "../constants/marketFamilies";
 
 export default function MarketScreen({
   user,
@@ -63,6 +45,19 @@ export default function MarketScreen({
   const [searchFocus, setSearchFocus] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [pickedCat, setPickedCat] = useState(null);
+  const [pickedCity, setPickedCity] = useState(null);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [families, setFamilies] = useState(FALLBACK_FAMILIES);
+
+  useEffect(() => {
+    speciesApi
+      .families()
+      .then((r) => {
+        const items = Array.isArray(r) ? r : r?.items || [];
+        if (items.length) setFamilies(items);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 320);
@@ -76,8 +71,10 @@ export default function MarketScreen({
       setError(null);
     }
     try {
-      const r = await listingsApi.feed({ limit: 40, family: pickedCat, q: debouncedQuery });
-      setItems(Array.isArray(r?.items) ? r.items : []);
+      const r = await listingsApi.feed({ limit: 40, family: pickedCat, city: pickedCity, q: debouncedQuery });
+      const next = Array.isArray(r?.items) ? r.items : [];
+      setItems(next);
+      warmMedia(next.slice(0, 12).map((it) => resolveMediaUrl(it.cover_image || it.images?.[0])));
       setError(null);
     } catch (e) {
       setError(e?.message || "تعذّر تحميل السوق");
@@ -86,20 +83,25 @@ export default function MarketScreen({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [pickedCat, debouncedQuery]);
+  }, [pickedCat, pickedCity, debouncedQuery]);
 
   useEffect(() => {
     load();
-  }, [pickedCat, debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pickedCat, pickedCity, debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const listData = useMemo(() => items, [items]);
-  const catLabel = CATEGORIES.find((c) => c.key === pickedCat)?.label;
+  const catLabel = families.find((c) => c.family_id === pickedCat)?.name_ar;
+  const familyGroups = useMemo(() => groupFamilies(families), [families]);
   const showSkeleton = loading && items.length === 0 && !error;
+  const renderListing = useCallback(({ item }) => (
+    <ListingCard item={item} onPress={() => onOpenListing?.(item.listing_id || item.id)} />
+  ), [onOpenListing]);
 
   return (
     <View style={styles.page}>
       <TairHeader
         variant="market"
+        userId={user?.user_id || user?.id}
         onBellPress={onOpenNotifications}
         onMessagesPress={onOpenMessages}
       />
@@ -114,6 +116,16 @@ export default function MarketScreen({
             testID="market-categories-btn"
           >
             <Ionicons name="grid" size={18} color={TAIR.gold} />
+          </PressableScale>
+
+          <PressableScale
+            style={[styles.catBtn, pickedCity && styles.catBtnOn]}
+            onPress={() => setCityOpen(true)}
+            haptic
+            scaleTo={0.94}
+            testID="market-city-btn"
+          >
+            <Ionicons name="location" size={18} color={TAIR.gold} />
           </PressableScale>
 
           <View style={[styles.searchBox, searchFocus && styles.searchBoxOn]}>
@@ -138,19 +150,34 @@ export default function MarketScreen({
           </View>
         </View>
 
-        {pickedCat ? (
+        {pickedCat || pickedCity ? (
           <View style={styles.filterRow}>
-            <View style={styles.filterPill}>
-              <Text style={styles.filterPillText}>{catLabel}</Text>
-              <PressableScale
-                onPress={() => setPickedCat(null)}
-                scaleTo={0.9}
-                hitSlop={8}
-                testID="clear-category"
-              >
-                <Ionicons name="close" size={14} color={TAIR.gold} />
-              </PressableScale>
-            </View>
+            {pickedCat ? (
+              <View style={styles.filterPill}>
+                <Text style={styles.filterPillText}>{catLabel}</Text>
+                <PressableScale
+                  onPress={() => setPickedCat(null)}
+                  scaleTo={0.9}
+                  hitSlop={8}
+                  testID="clear-category"
+                >
+                  <Ionicons name="close" size={14} color={TAIR.gold} />
+                </PressableScale>
+              </View>
+            ) : null}
+            {pickedCity ? (
+              <View style={styles.filterPill}>
+                <Text style={styles.filterPillText}>{pickedCity}</Text>
+                <PressableScale
+                  onPress={() => setPickedCity(null)}
+                  scaleTo={0.9}
+                  hitSlop={8}
+                  testID="clear-city"
+                >
+                  <Ionicons name="close" size={14} color={TAIR.gold} />
+                </PressableScale>
+              </View>
+            ) : null}
           </View>
         ) : null}
 
@@ -176,9 +203,11 @@ export default function MarketScreen({
         <FlatList
           data={error && listData.length === 0 ? [] : listData}
           keyExtractor={(it) => String(it.listing_id || it.id)}
-          renderItem={({ item }) => (
-            <ListingCard item={item} onPress={() => onOpenListing?.(item.listing_id || item.id)} />
-          )}
+          renderItem={renderListing}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={7}
+          updateCellsBatchingPeriod={40}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -188,27 +217,22 @@ export default function MarketScreen({
             />
           }
           ListHeaderComponent={
-            error && listData.length > 0 ? (
+            <>
+              <View style={styles.catalogHead}>
+                <Text style={styles.catalogTitle}>الإعلانات المنشورة</Text>
+                <Text style={styles.catalogCount}>
+                  {listData.length ? `${listData.length} إعلان` : "لا نتائج"}
+                </Text>
+              </View>
+              {error && listData.length > 0 ? (
               <PressableScale onPress={() => load("refresh")} style={styles.inlineError} scaleTo={0.99}>
                 <Ionicons name="cloud-offline-outline" size={16} color={TAIR.error} />
                 <Text style={styles.inlineErrorText}>تعذّر التحديث — اضغط لإعادة المحاولة</Text>
               </PressableScale>
-            ) : null
+              ) : null}
+            </>
           }
-          ListFooterComponent={
-            <View style={styles.footer}>
-              <PressableScale
-                style={styles.tripsCta}
-                onPress={onOpenTrips}
-                haptic
-                testID="market-trips-cta"
-              >
-                <Ionicons name="airplane-outline" size={16} color={TAIR.emerald} />
-                <Text style={styles.tripsCtaText}>رحلات الطيور القادمة</Text>
-                <Ionicons name="chevron-back" size={16} color={TAIR.goldDark} />
-              </PressableScale>
-            </View>
-          }
+          ListFooterComponent={<View style={{ height: 24 }} />}
           ListEmptyComponent={
             error ? (
               <ErrorState
@@ -220,10 +244,10 @@ export default function MarketScreen({
             ) : (
               <EmptyState
                 icon="storefront-outline"
-                title={pickedCat ? `لا توجد إعلانات في «${catLabel}»` : "لا توجد عروض حالياً"}
-                subtitle={pickedCat ? "جرّب فئة أخرى أو اعرض السوق كاملاً." : "كن أول من يعرض اليوم."}
-                actionLabel={pickedCat ? "عرض جميع الفئات" : undefined}
-                onAction={pickedCat ? () => setPickedCat(null) : undefined}
+                title={pickedCat || pickedCity ? "لا توجد إعلانات في هذا الاختيار" : "لا توجد عروض حالياً"}
+                subtitle={pickedCity ? `ما فيه عروض في ${pickedCity} حالياً.` : pickedCat ? "جرّب فئة أخرى أو اعرض السوق كاملاً." : "كن أول من يعرض اليوم."}
+                actionLabel={pickedCat || pickedCity ? "مسح التصفية" : undefined}
+                onAction={pickedCat || pickedCity ? () => { setPickedCat(null); setPickedCity(null); } : undefined}
                 testID="market-empty"
               />
             )
@@ -244,6 +268,15 @@ export default function MarketScreen({
         <Ionicons name="add" size={28} color={TAIR.gold} />
       </PressableScale>
 
+      <CitySelectorSheet
+        visible={cityOpen}
+        title="مدينة الإعلان"
+        selected={pickedCity}
+        allowAll
+        onSelect={setPickedCity}
+        onClose={() => setCityOpen(false)}
+      />
+
       <Modal transparent visible={catOpen} animationType="slide" onRequestClose={() => setCatOpen(false)}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setCatOpen(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
@@ -258,33 +291,38 @@ export default function MarketScreen({
               </PressableScale>
             </View>
             <ScrollView
-              style={{ maxHeight: 420 }}
+              style={{ maxHeight: 520 }}
               contentContainerStyle={{ paddingBottom: 24 }}
               showsVerticalScrollIndicator={false}
             >
-              {CATEGORIES.map((c) => {
-                const on = pickedCat === c.key;
-                return (
-                  <PressableScale
-                    key={c.key}
-                    style={[styles.sheetRow, on && styles.sheetRowOn]}
-                    onPress={() => {
-                      setPickedCat(on ? null : c.key);
-                      setCatOpen(false);
-                    }}
-                    haptic
-                    scaleTo={0.99}
-                  >
-                    <View style={styles.sheetRowMain}>
-                      <View style={[styles.sheetIconWrap, on && styles.sheetIconOn]}>
-                        <Ionicons name={c.icon} size={18} color={on ? TAIR.gold : TAIR.emerald} />
-                      </View>
-                      <Text style={[styles.sheetRowText, on && styles.sheetRowTextOn]}>{c.label}</Text>
-                    </View>
-                    {on ? <Ionicons name="checkmark-circle" size={20} color={TAIR.gold} /> : null}
-                  </PressableScale>
-                );
-              })}
+              {familyGroups.map((group) => (
+                <View key={group.id}>
+                  <Text style={styles.sheetGroup}>{group.label}</Text>
+                  {group.items.map((c) => {
+                    const on = pickedCat === c.family_id;
+                    return (
+                      <PressableScale
+                        key={c.family_id}
+                        style={[styles.sheetRow, on && styles.sheetRowOn]}
+                        onPress={() => {
+                          setPickedCat(on ? null : c.family_id);
+                          setCatOpen(false);
+                        }}
+                        haptic
+                        scaleTo={0.99}
+                      >
+                        <View style={styles.sheetRowMain}>
+                          <View style={[styles.sheetIconWrap, on && styles.sheetIconOn]}>
+                            <Ionicons name={familyIcon(c.family_id)} size={18} color={on ? TAIR.gold : TAIR.emerald} />
+                          </View>
+                          <Text style={[styles.sheetRowText, on && styles.sheetRowTextOn]}>{c.name_ar}</Text>
+                        </View>
+                        {on ? <Ionicons name="checkmark-circle" size={20} color={TAIR.gold} /> : null}
+                      </PressableScale>
+                    );
+                  })}
+                </View>
+              ))}
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -344,6 +382,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   filterRow: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: 8,
     paddingHorizontal: 16,
     paddingTop: 8,
     alignItems: "flex-end",
@@ -383,6 +424,15 @@ const styles = StyleSheet.create({
   },
   auctionTitle: { color: TAIR.emerald, fontSize: 14, fontWeight: "800", textAlign: "right" },
   auctionSub: { color: TAIR.muted, fontSize: 11, marginTop: 1, textAlign: "right", fontWeight: "600" },
+  catalogHead: {
+    flexDirection: "row-reverse",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  catalogTitle: { color: TAIR.emerald, fontSize: 16, fontWeight: "900" },
+  catalogCount: { color: TAIR.muted, fontSize: 12, fontWeight: "700" },
   listContent: {
     paddingTop: 12,
     paddingBottom: TAIR.tabBarH + 88,
@@ -465,6 +515,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sheetTitle: { color: TAIR.emerald, fontSize: 17, fontWeight: "800" },
+  sheetGroup: {
+    color: TAIR.goldDark || TAIR.gold,
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "right",
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
   sheetClearInline: { color: TAIR.goldDark, fontSize: 13, fontWeight: "800" },
   sheetRow: {
     flexDirection: "row-reverse",

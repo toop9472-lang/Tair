@@ -14,55 +14,74 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { tripsApi } from "../services/tairApi";
+import { profileApi, tripsApi } from "../services/tairApi";
 import TripsMapMobile from "../components/TripsMapMobile";
+import TripRequestSection from "../components/TripRequestSection";
 import { CityTriggerButton, CitySelectorSheet } from "../components/CitySelectorSheet";
-import { SAUDI_CITIES, ALL_LOCATIONS } from "../constants/saudiCities";
 import ScreenHeader from "../components/ScreenHeader";
 import TairHeader from "../components/TairHeader";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
-import { EmptyState, ErrorState, ListSkeleton } from "../components/TairUI";
+import { EmptyState, ErrorState, ListSkeleton, PressableScale, SoftPulse, TairImage } from "../components/TairUI";
+import { displayLocalPhone, openWhatsApp, savedContactPhone, toTel } from "../utils/contactPhone";
+import { tripPhase } from "../utils/tripStatus";
 
-const CITIES = ALL_LOCATIONS;
 const VEHICLES = ["سيدان", "SUV", "بيك أب", "شاحنة صغيرة"];
 
-const statusColor = (s) =>
-  ({
-    scheduled: "#3D6B54",
-    departed: "#eab308",
-    in_transit: "#f59e0b",
-    arrived: "#3D6B54",
-    completed: "#064e3b",
-    cancelled: "#8B3A2F",
-  }[s] || "#6B5E4A");
-const statusLabel = (s) =>
-  ({
-    scheduled: "مجدولة",
-    departed: "انطلقت",
-    in_transit: "في الطريق",
-    arrived: "وصلت",
-    completed: "مكتملة",
-    cancelled: "ملغاة",
-  }[s] || s);
+function localDay(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
-function TripCard({ trip, onPress, onViewOnMap, onContact }) {
+function dayFromNow(offset) {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return localDay(date);
+}
+
+const DEPART_HOURS = [
+  { h: 6, label: "6 ص" },
+  { h: 9, label: "9 ص" },
+  { h: 12, label: "12 ظ" },
+  { h: 15, label: "3 م" },
+  { h: 18, label: "6 م" },
+  { h: 21, label: "9 م" },
+];
+
+function nearestHour(date) {
+  const h = date.getHours();
+  return DEPART_HOURS.reduce((best, item) => (
+    Math.abs(item.h - h) < Math.abs(best - h) ? item.h : best
+  ), 9);
+}
+
+const STATUS_FILTERS = [
+  { id: "active", label: "المتاحة" },
+  { id: "upcoming", label: "قادمة" },
+  { id: "live", label: "جارية" },
+  { id: "completed", label: "مكتملة" },
+];
+
+const TripCard = React.memo(function TripCard({ trip, onPress, onViewOnMap, onContact }) {
   const dt = trip.depart_at ? new Date(trip.depart_at) : null;
   const carrierName = trip.carrier_name || "موصل طير";
   const carrierAvatar = trip.carrier_avatar;
   const rating = trip.carrier_rating_avg;
   const completed = trip.carrier_trips_completed || 0;
-  const phone = trip.carrier_phone || trip.carrier_whatsapp;
-  const digits = phone ? String(phone).replace(/[^0-9]/g, "") : "";
+  const phone = trip.carrier_whatsapp || trip.carrier_phone;
+  const phase = tripPhase(trip.status, trip);
   const hasWaypoints = Array.isArray(trip.waypoints) && trip.waypoints.length > 0;
 
+  const moving = phase.key === "moving";
+
   return (
-    <TouchableOpacity
+    <PressableScale
       style={styles.card}
-      activeOpacity={0.9}
+      scaleTo={0.985}
       onPress={() => onPress(trip)}
       data-testid={`trip-card-${trip.trip_id}`}
     >
@@ -70,7 +89,7 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
       <View style={styles.carrierHead}>
         <View style={styles.carrierAvatarWrap}>
           {carrierAvatar ? (
-            <Image source={{ uri: carrierAvatar }} style={styles.carrierAvatar} />
+            <TairImage uri={carrierAvatar} style={styles.carrierAvatar} icon="person" iconSize={16} />
           ) : (
             <View style={[styles.carrierAvatar, styles.carrierAvatarPh]}>
               <Text style={styles.carrierInitial}>{carrierName.charAt(0)}</Text>
@@ -89,11 +108,13 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
             <Text style={styles.carrierSub}>{completed} رحلة مكتملة</Text>
           </View>
         </View>
-        <View style={[styles.statusPill, { backgroundColor: statusColor(trip.status) + "22" }]}>
-          <View style={[styles.statusDot, { backgroundColor: statusColor(trip.status) }]} />
-          <Text style={[styles.statusText, { color: statusColor(trip.status) }]}>
-            {statusLabel(trip.status)}
-          </Text>
+        <View style={[styles.statusPill, { backgroundColor: phase.bg }]}>
+          {moving ? (
+            <SoftPulse size={10} color={phase.fg} />
+          ) : (
+            <View style={[styles.statusDot, { backgroundColor: phase.fg }]} />
+          )}
+          <Text style={[styles.statusText, { color: phase.fg }]}>{phase.label}</Text>
         </View>
       </View>
 
@@ -104,7 +125,7 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
           <Text style={styles.routeCityLabel}>الانطلاق</Text>
         </View>
         <View style={styles.routeLine}>
-          <View style={styles.routeDotStart} />
+          {moving ? <SoftPulse size={12} color={TAIR.gold} /> : <View style={styles.routeDotStart} />}
           <View style={styles.routeLineFill} />
           {hasWaypoints && (
             <View style={styles.waypointsPill}>
@@ -121,73 +142,47 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
         </View>
       </View>
 
-      {/* Trip meta chips */}
-      <View style={styles.metaRow}>
-        <View style={styles.metaChip}>
-          <Ionicons name="calendar-outline" size={12} color="#1B3D2F" />
-          <Text style={styles.metaText}>
-            {dt
-              ? `${dt.toLocaleDateString("ar-SA", { day: "numeric", month: "short" })} · ${dt.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}`
-              : "-"}
-          </Text>
-        </View>
-        <View style={styles.metaChip}>
-          <Ionicons name="cube-outline" size={12} color="#3D6B54" />
-          <Text style={[styles.metaText, { color: "#0F241C" }]}>
-            {trip.available_cages}/{trip.total_cages} قفص
-          </Text>
-        </View>
-        {trip.has_ac ? (
-          <View style={styles.metaChip}>
-            <Ionicons name="snow-outline" size={12} color="#3D6B54" />
-            <Text style={[styles.metaText, { color: "#3D6B54" }]}>مكيّف</Text>
-          </View>
-        ) : null}
-        {trip.is_direct && (
-          <View style={[styles.metaChip, { backgroundColor: "#fef3c7" }]}>
-            <Ionicons name="flash" size={12} color="#d97706" />
-            <Text style={[styles.metaText, { color: "#d97706" }]}>مباشرة</Text>
-          </View>
-        )}
-        {trip.price_hint_sar && (
-          <View style={[styles.metaChip, { backgroundColor: "#f0fdfa" }]}>
-            <Ionicons name="cash-outline" size={12} color="#1B3D2F" />
-            <Text style={[styles.metaText, { color: "#1B3D2F", fontWeight: "800" }]}>
-              {trip.price_hint_sar} ر.س
-            </Text>
-          </View>
-        )}
-      </View>
+      <Text style={styles.factsLine} numberOfLines={2}>
+        {dt
+          ? `${dt.toLocaleDateString("ar-SA", { day: "numeric", month: "short" })} · ${dt.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}`
+          : "الموعد لاحقاً"}
+        {"  ·  "}
+        {trip.available_cages}/{trip.total_cages} قفص
+        {"  ·  "}
+        {trip.price_hint_sar ? `${trip.price_hint_sar} ر.س` : "عند الاتفاق"}
+        {trip.is_direct ? "  ·  مباشرة" : ""}
+        {trip.has_ac ? "  ·  مكيّف" : ""}
+      </Text>
 
       {/* Contact action buttons */}
       <View style={styles.contactRow}>
-        {digits && (
+        {phone ? (
           <TouchableOpacity
             style={[styles.contactBtn, { backgroundColor: "#25D366" }]}
             onPress={(e) => {
               e?.stopPropagation?.();
-              const msg = encodeURIComponent(`السلام عليكم، أنا مهتم برحلتك من ${trip.from_city} إلى ${trip.to_city}`);
-              Linking.openURL(`https://wa.me/${digits}?text=${msg}`);
+              openWhatsApp(phone, `السلام عليكم، أنا مهتم برحلتك من ${trip.from_city} إلى ${trip.to_city}`);
             }}
             data-testid={`trip-whatsapp-${trip.trip_id}`}
           >
             <Ionicons name="logo-whatsapp" size={16} color="#fff" />
             <Text style={styles.contactBtnText}>واتساب</Text>
           </TouchableOpacity>
-        )}
-        {digits && (
+        ) : null}
+        {phone ? (
           <TouchableOpacity
             style={[styles.contactBtn, { backgroundColor: "#1B3D2F" }]}
             onPress={(e) => {
               e?.stopPropagation?.();
-              Linking.openURL(`tel:${digits}`);
+              const tel = toTel(phone);
+              if (tel) Linking.openURL(`tel:${tel}`);
             }}
             data-testid={`trip-call-${trip.trip_id}`}
           >
             <Ionicons name="call" size={16} color="#fff" />
             <Text style={styles.contactBtnText}>اتصال</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
         <TouchableOpacity
           style={[styles.contactBtn, { backgroundColor: "#0F241C" }]}
           onPress={(e) => {
@@ -201,7 +196,7 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
         </TouchableOpacity>
         {onViewOnMap && (
           <TouchableOpacity
-            style={[styles.contactBtn, { backgroundColor: "#7c3aed" }]}
+            style={[styles.contactBtn, { backgroundColor: TAIR.goldDark }]}
             onPress={(e) => {
               e?.stopPropagation?.();
               onViewOnMap(trip);
@@ -218,9 +213,9 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
           {trip.notes}
         </Text>
       ) : null}
-    </TouchableOpacity>
+    </PressableScale>
   );
-}
+});
 
 function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
   const [saving, setSaving] = useState(false);
@@ -228,7 +223,8 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
   const [form, setForm] = useState({
     from_city: "الرياض",
     to_city: "جدة",
-    depart_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    depart_day: dayFromNow(1),
+    depart_hour: 9,
     vehicle_type: "سيدان",
     has_ac: true,
     total_cages: "4",
@@ -237,8 +233,15 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
     price_hint_sar: "",
     is_direct: false,
     waypoints: [],
+    contact_phone: "",
   });
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
+
+  useEffect(() => {
+    if (!visible || editingTrip) return;
+    const saved = displayLocalPhone(savedContactPhone(user));
+    if (saved) setForm((prev) => ({ ...prev, contact_phone: saved }));
+  }, [visible, editingTrip, user]);
 
   // Pre-fill when editing
   useEffect(() => {
@@ -246,9 +249,8 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
       setForm({
         from_city: editingTrip.from_city || "الرياض",
         to_city: editingTrip.to_city || "جدة",
-        depart_at: editingTrip.depart_at
-          ? new Date(editingTrip.depart_at).toISOString().slice(0, 16)
-          : new Date(Date.now() + 86400000).toISOString().slice(0, 16),
+        depart_day: editingTrip.depart_at ? localDay(new Date(editingTrip.depart_at)) : dayFromNow(1),
+        depart_hour: editingTrip.depart_at ? nearestHour(new Date(editingTrip.depart_at)) : 9,
         vehicle_type: editingTrip.vehicle_type || "سيدان",
         has_ac: editingTrip.has_ac !== false,
         total_cages: String(editingTrip.total_cages || 4),
@@ -257,9 +259,10 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
         price_hint_sar: editingTrip.price_hint_sar ? String(editingTrip.price_hint_sar) : "",
         is_direct: !!editingTrip.is_direct,
         waypoints: editingTrip.waypoints || [],
+        contact_phone: displayLocalPhone(editingTrip.carrier_whatsapp || editingTrip.carrier_phone || savedContactPhone(user)),
       });
     }
-  }, [visible, editingTrip]);
+  }, [visible, editingTrip, user]);
 
   const addWaypoint = (city) => {
     if (!city) return;
@@ -279,7 +282,7 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
       const payload = {
         from_city: form.from_city,
         to_city: form.to_city,
-        depart_at: new Date(form.depart_at).toISOString(),
+        depart_at: new Date(`${form.depart_day}T${String(form.depart_hour).padStart(2, "0")}:00:00`).toISOString(),
         vehicle_type: form.vehicle_type,
         has_ac: form.has_ac,
         total_cages: Number(form.total_cages) || 4,
@@ -288,7 +291,12 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
         price_hint_sar: form.price_hint_sar ? Number(form.price_hint_sar) : null,
         is_direct: form.is_direct,
         waypoints: form.is_direct ? [] : (form.waypoints || []),
+        carrier_name: user?.name || null,
+        carrier_phone: form.contact_phone.trim() || null,
       };
+      if (form.contact_phone.trim()) {
+        profileApi.update(userId, { whatsapp: form.contact_phone.trim() }).catch(() => {});
+      }
       let saved;
       if (editingTrip?.trip_id) {
         saved = await tripsApi.update(editingTrip.trip_id, userId, payload);
@@ -414,14 +422,40 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
             </View>
           )}
 
-          <FormLabel>تاريخ ووقت الانطلاق *</FormLabel>
-          <TextInput
-            style={styles.input}
-            value={form.depart_at}
-            onChangeText={(v) => set("depart_at", v)}
-            placeholder="YYYY-MM-DDTHH:mm"
-            placeholderTextColor="#8A7B66"
-          />
+          <FormLabel>تاريخ الانطلاق</FormLabel>
+          <View style={styles.choiceRow}>
+            {[
+              { label: "اليوم", day: dayFromNow(0) },
+              { label: "غداً", day: dayFromNow(1) },
+              { label: "بعد غد", day: dayFromNow(2) },
+            ].map((item) => {
+              const on = form.depart_day === item.day;
+              return (
+                <TouchableOpacity
+                  key={item.label}
+                  style={[styles.choice, on && styles.choiceOn]}
+                  onPress={() => set("depart_day", item.day)}
+                >
+                  <Text style={[styles.choiceText, on && styles.choiceTextOn]}>{item.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <FormLabel>ساعة الانطلاق</FormLabel>
+          <View style={styles.choiceRow}>
+            {DEPART_HOURS.map((item) => {
+              const on = form.depart_hour === item.h;
+              return (
+                <TouchableOpacity
+                  key={item.h}
+                  style={[styles.choice, on && styles.choiceOn]}
+                  onPress={() => set("depart_hour", item.h)}
+                >
+                  <Text style={[styles.choiceText, on && styles.choiceTextOn]}>{item.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
           <FormLabel>نوع المركبة</FormLabel>
           <View style={{ flexDirection: "row-reverse", gap: 6 }}>
@@ -476,6 +510,17 @@ function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
             <Text style={styles.checkLabel}>أقبل الطيور الحساسة</Text>
           </TouchableOpacity>
 
+          <FormLabel>واتساب للتواصل — من متجرك</FormLabel>
+          <TextInput
+            style={styles.input}
+            keyboardType="phone-pad"
+            placeholder="05xxxxxxxx"
+            placeholderTextColor="#8A7B66"
+            value={form.contact_phone}
+            onChangeText={(v) => set("contact_phone", v)}
+            testID="create-trip-phone"
+          />
+
           <FormLabel>ملاحظات</FormLabel>
           <TextInput
             style={[styles.input, { minHeight: 80, textAlignVertical: "top" }]}
@@ -515,6 +560,9 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
   const [toCity, setToCity] = useState(null);
   const [createOpen, setCreateOpen] = useState(!!initialCreateOpen);
   const [editingTrip, setEditingTrip] = useState(initialEditingTrip || null);
+  const [section, setSection] = useState("trips"); // trips | request
+  const [requestRefresh, setRequestRefresh] = useState(0);
+  const [statusFilter, setStatusFilter] = useState("active");
   const [viewMode, setViewMode] = useState("list"); // 'list' | 'map'
   const [focusedTripId, setFocusedTripId] = useState(null);
   const [citySheet, setCitySheet] = useState(null); // 'from' | 'to' | null
@@ -524,6 +572,15 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
     setViewMode("map");
   }, []);
 
+  const renderTrip = useCallback(({ item }) => (
+    <TripCard
+      trip={item}
+      onPress={onOpenTrip}
+      onViewOnMap={openOnMap}
+      onContact={(t) => onContactCarrier?.(t.carrier_id, t.carrier_name)}
+    />
+  ), [onOpenTrip, openOnMap, onContactCarrier]);
+
   const filterByCity = useCallback((city, type) => {
     if (type === "from") setFromCity(city);
     else setToCity(city);
@@ -532,7 +589,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
 
   const load = useCallback(async () => {
     try {
-      const params = { status: "active", limit: 50 };
+      const params = { status: statusFilter, limit: 50 };
       if (fromCity) params.from_city = fromCity;
       if (toCity) params.to_city = toCity;
       const res = await tripsApi.list(params);
@@ -544,7 +601,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
       setLoading(false);
       setRefreshing(false);
     }
-  }, [fromCity, toCity]);
+  }, [fromCity, toCity, statusFilter]);
 
   useEffect(() => {
     load();
@@ -552,109 +609,108 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
 
   const renderHeader = (
     <View>
-      <TairHeader variant="trips" onBellPress={onOpenNotifications} onMessagesPress={onOpenMessages} />
-      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4, flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ color: TAIR.emerald, fontSize: 18, fontWeight: "900" }}>الرحلات المتاحة</Text>
+      <TairHeader variant="trips" userId={user?.user_id || user?.id} onBellPress={onOpenNotifications} onMessagesPress={onOpenMessages} />
+      <View style={styles.sectionSwitch} testID="trips-section-switch">
         <TouchableOpacity
-          style={{
-            width: 40, height: 40, borderRadius: 20,
-            backgroundColor: TAIR.emerald,
-            alignItems: "center", justifyContent: "center",
-          }}
-          onPress={() => setCreateOpen(true)}
-          data-testid="create-trip-cta"
+          style={[styles.sectionBtn, section === "trips" && styles.sectionBtnOn]}
+          onPress={() => setSection("trips")}
+          testID="trips-tab-available"
         >
-          <Ionicons name="add" size={22} color={TAIR.gold} />
+          <Text style={[styles.sectionBtnText, section === "trips" && styles.sectionBtnTextOn]}>الرحلات</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.sectionBtn, section === "request" && styles.sectionBtnOn]}
+          onPress={() => setSection("request")}
+          testID="trips-tab-request"
+        >
+          <Text style={[styles.sectionBtnText, section === "request" && styles.sectionBtnTextOn]}>طلب رحلة</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={styles.filters}>
-        <View style={styles.viewToggle} data-testid="trips-view-toggle">
-          <TouchableOpacity
-            style={[styles.viewToggleBtn, viewMode === "list" && styles.viewToggleBtnActive]}
-            onPress={() => setViewMode("list")}
-            data-testid="trips-view-list"
+      {section === "trips" ? (
+      <View style={styles.toolbar}>
+        <View style={styles.tabRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.tabScroll}
           >
-            <Ionicons
-              name="list"
-              size={14}
-              color={viewMode === "list" ? "#fff" : "#6B5E4A"}
-            />
-            <Text
-              style={[
-                styles.viewToggleText,
-                viewMode === "list" && styles.viewToggleTextActive,
-              ]}
+            {STATUS_FILTERS.map((f) => {
+              const on = statusFilter === f.id;
+              return (
+                <TouchableOpacity
+                  key={f.id}
+                  style={[styles.tabChip, on && styles.tabChipOn]}
+                  onPress={() => setStatusFilter(f.id)}
+                  testID={`trips-filter-${f.id}`}
+                >
+                  {f.id === "live" ? <SoftPulse size={8} color={on ? TAIR.gold : TAIR.goldDark} /> : null}
+                  <Text style={[styles.tabChipText, on && styles.tabChipTextOn]}>{f.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.tabTools} data-testid="trips-view-toggle">
+            <TouchableOpacity
+              style={[styles.toolBtn, viewMode === "list" && styles.toolBtnOn]}
+              onPress={() => setViewMode("list")}
+              data-testid="trips-view-list"
+              accessibilityLabel="قائمة"
             >
-              قائمة
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.viewToggleBtn, viewMode === "map" && styles.viewToggleBtnActive]}
-            onPress={() => setViewMode("map")}
-            data-testid="trips-view-map"
-          >
-            <Ionicons
-              name="map"
-              size={14}
-              color={viewMode === "map" ? "#fff" : "#6B5E4A"}
-            />
-            <Text
-              style={[
-                styles.viewToggleText,
-                viewMode === "map" && styles.viewToggleTextActive,
-              ]}
+              <Ionicons name="list" size={16} color={viewMode === "list" ? TAIR.gold : TAIR.emerald} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolBtn, viewMode === "map" && styles.toolBtnOn]}
+              onPress={() => setViewMode("map")}
+              data-testid="trips-view-map"
+              accessibilityLabel="خريطة"
             >
-              خريطة
-            </Text>
-          </TouchableOpacity>
+              <Ionicons name="map" size={15} color={viewMode === "map" ? TAIR.gold : TAIR.emerald} />
+            </TouchableOpacity>
+            <PressableScale
+              onPress={() => setCreateOpen(true)}
+              scaleTo={0.92}
+              haptic
+              style={styles.addIcon}
+              testID="add-trip-cta"
+              data-testid="create-trip-cta"
+              accessibilityLabel="أضف رحلة"
+            >
+              <Ionicons name="add" size={20} color={TAIR.gold} />
+            </PressableScale>
+          </View>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-          <View style={styles.cityPickerRow}>
-            <CityTriggerButton
-              iconName="location"
-              iconColor="#1B3D2F"
-              label="من"
-              value={fromCity}
-              onPress={() => setCitySheet("from")}
-              testId="trips-picker-from"
-            />
-            <View style={styles.arrowBadge}>
-              <Ionicons name="arrow-back" size={16} color="#8A7B66" />
-            </View>
-            <CityTriggerButton
-              iconName="flag"
-              iconColor="#C6A15B"
-              label="إلى"
-              value={toCity}
-              onPress={() => setCitySheet("to")}
-              testId="trips-picker-to"
-            />
-          </View>
-          {(fromCity || toCity) ? (
-            <TouchableOpacity
-              onPress={() => { setFromCity(null); setToCity(null); }}
-              style={styles.clearFiltersBtn}
-              data-testid="trips-clear-filters"
-            >
-              <Ionicons name="close-circle" size={16} color="#8B3A2F" />
-              <Text style={styles.clearFiltersText}>مسح الفلاتر</Text>
-            </TouchableOpacity>
-          ) : null}
-        </ScrollView>
-
-        {/* Prominent "Add Trip" CTA — parity with "أضف إعلان" on Listings */}
-        <TouchableOpacity
-          style={styles.addTripCta}
-          onPress={() => setCreateOpen(true)}
-          testID="add-trip-cta"
-          activeOpacity={0.85}
-        >
-          <Ionicons name="add-circle" size={18} color="#C6A15B" />
-          <Text style={styles.addTripCtaText}>أضف رحلة</Text>
-        </TouchableOpacity>
+        <View style={styles.routeRow}>
+          <TouchableOpacity
+            style={styles.cityChip}
+            onPress={() => setCitySheet("from")}
+            testID="trips-picker-from"
+          >
+            <Text style={styles.cityKicker}>من</Text>
+            <Text style={styles.cityValue} numberOfLines={1}>{fromCity || "أي مدينة"}</Text>
+          </TouchableOpacity>
+          <Ionicons name="arrow-back" size={14} color={TAIR.faint} />
+          <TouchableOpacity
+            style={styles.cityChip}
+            onPress={() => setCitySheet("to")}
+            testID="trips-picker-to"
+          >
+            <Text style={styles.cityKicker}>إلى</Text>
+            <Text style={styles.cityValue} numberOfLines={1}>{toCity || "أي مدينة"}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { setFromCity(null); setToCity(null); }}
+            disabled={!fromCity && !toCity}
+            style={[styles.clearBtn, !(fromCity || toCity) && styles.clearBtnIdle]}
+            data-testid="trips-clear-filters"
+            accessibilityLabel="مسح الفلاتر"
+          >
+            <Ionicons name="close-circle" size={18} color={fromCity || toCity ? "#8B3A2F" : TAIR.faint} />
+          </TouchableOpacity>
+        </View>
       </View>
+      ) : null}
     </View>
   );
 
@@ -674,7 +730,24 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
         onSelect={(c) => setToCity(c)}
         onClose={() => setCitySheet(null)}
       />
-      {viewMode === "map" ? (
+      {section === "request" ? (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 120 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRequestRefresh((n) => n + 1);
+                setRefreshing(false);
+              }}
+              tintColor={TAIR.emerald}
+            />
+          }
+        >
+          {renderHeader}
+          <TripRequestSection user={user} refreshKey={requestRefresh} />
+        </ScrollView>
+      ) : viewMode === "map" ? (
         <ScrollView
           contentContainerStyle={{ paddingBottom: 120 }}
           refreshControl={
@@ -709,14 +782,11 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
         <FlatList
           data={trips}
           keyExtractor={(t) => t.trip_id}
-          renderItem={({ item }) => (
-            <TripCard
-              trip={item}
-              onPress={onOpenTrip}
-              onViewOnMap={openOnMap}
-              onContact={(t) => onContactCarrier?.(t.carrier_id, t.carrier_name)}
-            />
-          )}
+          renderItem={renderTrip}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={6}
+          updateCellsBatchingPeriod={40}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={
             loading ? (
@@ -775,6 +845,95 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: "#0F241C", fontWeight: "700", fontSize: 13 },
 
+  sectionSwitch: {
+    flexDirection: "row-reverse",
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: TAIR.creamDeep,
+    borderRadius: 14,
+    padding: 4,
+    gap: 4,
+  },
+  sectionBtn: { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: "center" },
+  sectionBtnOn: { backgroundColor: TAIR.emerald },
+  sectionBtnText: { color: TAIR.emerald, fontWeight: "800", fontSize: 14 },
+  sectionBtnTextOn: { color: TAIR.gold },
+  toolbar: {
+    backgroundColor: TAIR.card,
+    marginHorizontal: 12,
+    marginTop: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: TAIR.line,
+    padding: 8,
+    gap: 8,
+  },
+  tabRow: { flexDirection: "row-reverse", alignItems: "center", gap: 6 },
+  tabScroll: { flexDirection: "row-reverse", alignItems: "center", gap: 6, paddingVertical: 2 },
+  tabChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: TAIR.creamDeep,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+  },
+  tabChipOn: { backgroundColor: TAIR.emerald },
+  tabChipText: { color: TAIR.emerald, fontWeight: "800", fontSize: 12 },
+  tabChipTextOn: { color: TAIR.gold },
+  tabTools: { flexDirection: "row-reverse", alignItems: "center", gap: 4 },
+  toolBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: TAIR.creamDeep,
+  },
+  toolBtnOn: { backgroundColor: TAIR.emerald },
+  addIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: TAIR.emerald,
+  },
+  routeRow: { flexDirection: "row-reverse", alignItems: "center", gap: 6 },
+  cityChip: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 12,
+    backgroundColor: TAIR.cream,
+    borderWidth: 1,
+    borderColor: TAIR.line,
+    paddingHorizontal: 8,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+  },
+  cityKicker: { color: TAIR.goldDark, fontSize: 11, fontWeight: "800" },
+  cityValue: { flex: 1, color: TAIR.ink, fontSize: 12, fontWeight: "700", textAlign: "right" },
+  clearBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8EBE7",
+  },
+  clearBtnIdle: { backgroundColor: TAIR.creamDeep },
+  filterChips: { flexDirection: "row-reverse", gap: 8, paddingVertical: 8 },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: TAIR.creamDeep,
+  },
+  filterChipOn: { backgroundColor: TAIR.emerald },
+  filterChipText: { color: TAIR.emerald, fontWeight: "800", fontSize: 12 },
+  filterChipTextOn: { color: TAIR.gold },
   filters: { backgroundColor: TAIR.card, paddingHorizontal: 14, paddingVertical: 10 },
   cityPickerRow: {
     flexDirection: "row-reverse",
@@ -1052,6 +1211,14 @@ const styles = StyleSheet.create({
   addWaypointText: { color: "#1B3D2F", fontSize: 12, fontWeight: "700" },
 
 
+  factsLine: {
+    marginTop: 12,
+    color: TAIR.emerald,
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "right",
+    lineHeight: 18,
+  },
   metaRow: {
     flexDirection: "row-reverse",
     flexWrap: "wrap",
@@ -1104,6 +1271,18 @@ const styles = StyleSheet.create({
     textAlign: "right",
     backgroundColor: "#FFFDF8",
   },
+  choiceRow: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8 },
+  choice: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: TAIR.surfaceMuted,
+    borderWidth: 1,
+    borderColor: TAIR.line,
+  },
+  choiceOn: { backgroundColor: TAIR.emerald, borderColor: TAIR.emerald },
+  choiceText: { color: TAIR.emerald, fontWeight: "800", fontSize: 13 },
+  choiceTextOn: { color: TAIR.gold },
   pill: {
     paddingHorizontal: 12,
     paddingVertical: 8,

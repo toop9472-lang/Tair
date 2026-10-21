@@ -78,7 +78,7 @@ export const TAIR = {
   fontBadge: 11,
   fontQuote: 13,
   fontOath: 14,
-  fontTab: 10,
+  fontTab: 11,
   fontPlaceholder: 14,
   fontAuctionCounter: 20,
 };

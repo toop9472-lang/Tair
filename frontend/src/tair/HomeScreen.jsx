@@ -4,10 +4,11 @@ import {
   MapPin, Bird, Plus, Heart, Clock, MessageCircle, Bell,
   Music2, Feather, Fish, Rabbit, Shell, Bug, Cat, Dog,
   Wheat, Package, ShoppingBag, Trees, Wrench, Milk, Drumstick,
-  Store, Truck, LayoutGrid, Search, Boxes,
+  Store, Truck, LayoutGrid, Search, Boxes, Bed, GraduationCap, Zap, Footprints,
 } from "lucide-react";
 import { T, S } from "./tairTheme";
-import { tairApi, ALL_LOCATIONS } from "./tairApi";
+import { tairApi } from "./tairApi";
+import { LocationPicker } from "./locations";
 import { BottomSheet, SelectorItem, SearchField, EmptyState } from "./TairUI";
 import TairBanner, { BannerCircleBtn, PAGE_BG_STYLE } from "./TairBanner";
 import { Parrot, Canary, Dove, Falcon } from "./BirdArt";
@@ -16,10 +17,11 @@ import { AnalyticsEvents } from "./analytics";
 import VerifiedTick from "./VerifiedTick";
 import AppDownloadBanner from "./AppDownloadBanner";
 const FAMILY_ICONS = {
-  livestock: Milk, songbirds: Music2, poultry: Drumstick, pigeons: Feather,
-  parrots: Bird, fish: Fish, small_mammals: Rabbit, pets: Heart,
+  livestock: Milk, horses: Footprints, songbirds: Music2, poultry: Drumstick, pigeons: Feather,
+  parrots: Bird, falcons: Zap, fish: Fish, small_mammals: Rabbit, pets: Heart,
   reptiles: Shell, insects: Bug, cats: Cat, dogs: Dog, feed: Wheat,
   bird_supplies: Package, animal_supplies: ShoppingBag, reserves: Trees, services: Wrench,
+  hotel_services: Bed, training: GraduationCap,
 };
 
 function timeAgo(iso) {
@@ -194,23 +196,11 @@ export default function HomeScreen({ user, onOpenListing, onCreateListing, onOpe
         onClose={() => setCitySheet(false)}
         title="اختر المدينة أو الدولة"
       >
-        <SelectorItem
-          icon={<MapPin size={16} strokeWidth={2.2} />}
-          label="جميع المدن والدول"
-          active={!city}
-          onClick={() => { setCity(null); setCitySheet(false); }}
-          testId="city-item-all"
+        <LocationPicker
+          selected={city}
+          allowAll
+          onSelect={(c) => { setCity(c); setCitySheet(false); }}
         />
-        {ALL_LOCATIONS.map((c) => (
-          <SelectorItem
-            key={c}
-            icon={<MapPin size={16} strokeWidth={2.2} />}
-            label={c}
-            active={city === c}
-            onClick={() => { setCity(c); setCitySheet(false); }}
-            testId={`city-item-${c}`}
-          />
-        ))}
       </BottomSheet>
     </div>
   );

@@ -6,11 +6,10 @@ import { TAIR_BANNER_IMAGE, TAIR_PALETTE } from "../constants/tairDesign";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { PressableScale } from "./TairUI";
 
-/** WholesaleCard — "قريباً" card on the home feed */
+/** WholesaleCard — دليل موردي الجملة */
 export function WholesaleCard({ onPress }) {
   const handle = onPress || (() =>
-    Alert.alert("قريباً — موردو الطيور بالجملة والمستلزمات",
-      "قسم مخصّص لموردي الطيور، الأعلاف، والأقفاص بأسعار الجملة. جاري التحضير!")
+    Alert.alert("موردو الجملة", "سجل شركتك من صفحة الموردين. تظهر في الدليل بانتظار توثيق الإدارة.")
   );
   return (
     <PressableScale onPress={handle} haptic testID="wholesale-card" scaleTo={0.985} style={s.card}>
@@ -25,7 +24,7 @@ export function WholesaleCard({ onPress }) {
             <Ionicons name="albums" size={28} color={TAIR.gold} />
           </View>
           <View style={{ flex: 1 }}>
-            <View style={s.badge}><Text style={s.badgeText}>قريباً</Text></View>
+            <View style={s.badge}><Text style={s.badgeText}>دليل الموردين</Text></View>
             <Text style={s.title}>موردو الطيور بالجملة والمستلزمات</Text>
             <Text style={s.subtitle}>طيور، أعلاف، أقفاص وأدوات بأسعار الجملة — قسم مخصّص للتجار.</Text>
           </View>

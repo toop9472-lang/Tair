@@ -4,10 +4,13 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from auth.jwt_handler import get_user_id_from_token
 from models.tair_report import TairReport, TairReportCreate
+from services.moderation import moderator_scopes
 
 router = APIRouter(prefix="/tair-reports", tags=["Tair-Reports"])
 
@@ -18,6 +21,38 @@ db = client[os.environ.get("DB_NAME", "saqr_db")]
 
 def _now():
     return datetime.now(timezone.utc)
+
+
+_bearer = HTTPBearer(auto_error=False)
+
+
+async def _actor(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    user_id: Optional[str] = Query(None),
+) -> str:
+    if credentials and credentials.credentials:
+        token_uid = get_user_id_from_token(credentials.credentials)
+        if token_uid:
+            return token_uid
+    if user_id:
+        return user_id
+    raise HTTPException(401, "غير مصرح")
+
+
+async def _can_review(user_id: str) -> bool:
+    admin = await db.admins.find_one(
+        {"$or": [{"id": user_id}, {"user_id": user_id}, {"email": user_id}]},
+        {"_id": 0, "id": 1},
+    )
+    if admin:
+        return True
+    user = await db.users.find_one(
+        {"$or": [{"id": user_id}, {"user_id": user_id}, {"email": user_id}]},
+        {"_id": 0, "is_admin": 1, "role": 1},
+    )
+    if user and (user.get("is_admin") or user.get("role") in ("admin", "super_admin")):
+        return True
+    return bool(await moderator_scopes(db, user_id))
 
 
 def _serialize(doc: dict) -> dict:
@@ -69,14 +104,9 @@ async def create_report(payload: TairReportCreate, user_id: str = Query(...)):
 
 
 @router.get("/list")
-async def list_reports(status: Optional[str] = "open", user_id: str = Query(...)):
-    # admin-only
-    admin = await db.admins.find_one(
-        {"$or": [{"id": user_id}, {"user_id": user_id}, {"email": user_id}]},
-        {"_id": 0, "id": 1},
-    )
-    if not admin:
-        raise HTTPException(403, "Admin only")
+async def list_reports(status: Optional[str] = "open", user_id: str = Depends(_actor)):
+    if not await _can_review(user_id):
+        raise HTTPException(403, "غير مصرح")
 
     query: dict = {}
     if status and status != "all":
@@ -90,16 +120,12 @@ async def list_reports(status: Optional[str] = "open", user_id: str = Query(...)
 @router.patch("/{report_id}/resolve")
 async def resolve_report(
     report_id: str,
-    resolution: str,
-    user_id: str = Query(...),
+    resolution: str = Query("resolved"),
+    user_id: str = Depends(_actor),
     notes: Optional[str] = None,
 ):
-    admin = await db.admins.find_one(
-        {"$or": [{"id": user_id}, {"user_id": user_id}, {"email": user_id}]},
-        {"_id": 0, "id": 1},
-    )
-    if not admin:
-        raise HTTPException(403, "Admin only")
+    if not await _can_review(user_id):
+        raise HTTPException(403, "غير مصرح")
 
     if resolution not in {"resolved", "dismissed"}:
         raise HTTPException(400, "Invalid resolution")

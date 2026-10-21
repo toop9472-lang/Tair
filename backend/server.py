@@ -83,6 +83,7 @@ from routes.forum_routes import router as tair_forum_router
 from routes.storefront_routes import router as storefront_router
 from routes.chat_routes import router as tair_chat_router
 from routes.tair_notifications_routes import router as tair_notifs_router
+from routes.listing_watch_routes import router as listing_watch_router
 from routes.kyc_routes import router as tair_kyc_router
 from routes.webpush_routes import router as tair_webpush_router
 from routes.trust_safety_routes import router as tair_trust_router
@@ -543,6 +544,7 @@ api_router.include_router(tair_forum_router)
 api_router.include_router(storefront_router)
 api_router.include_router(tair_chat_router)
 api_router.include_router(tair_notifs_router)
+api_router.include_router(listing_watch_router)
 api_router.include_router(tair_kyc_router)
 api_router.include_router(tair_webpush_router)
 api_router.include_router(tair_trust_router)
@@ -613,6 +615,8 @@ async def ensure_tair_indexes():
         # Notifications
         await db.tair_notifications.create_index([("user_id", 1), ("created_at", -1)])
         await db.tair_notifications.create_index([("user_id", 1), ("is_read", 1)])
+        await db.tair_listing_watches.create_index([("user_id", 1), ("created_at", -1)])
+        await db.tair_listing_watches.create_index([("active", 1)])
         # Orders
         await db.tair_orders.create_index([("buyer_id", 1), ("status", 1)])
         await db.tair_orders.create_index([("seller_id", 1), ("status", 1)])
@@ -648,6 +652,26 @@ async def cleanup_dummy_ads_on_startup():
             logger.info(f"Cleaned up {total} dummy ads on startup")
     except Exception as e:
         logger.warning(f"cleanup_dummy_ads_on_startup failed: {e}")
+
+
+@app.on_event("startup")
+async def start_return_nudges():
+    """نداء واحد لمن غاب يومين. يعيد المحاولة كل ست ساعات ولا يكرر الغياب نفسه."""
+    import asyncio
+
+    async def _loop():
+        await asyncio.sleep(60)
+        while True:
+            try:
+                from services.return_nudge_job import send_return_nudges
+                sent = await send_return_nudges(db)
+                if sent:
+                    logger.info("Return nudges sent: %s", sent)
+            except Exception as exc:
+                logger.warning("return nudge failed: %s", exc)
+            await asyncio.sleep(6 * 60 * 60)
+
+    asyncio.create_task(_loop())
 
 
 @app.on_event("shutdown")

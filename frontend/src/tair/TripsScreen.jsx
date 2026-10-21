@@ -1,19 +1,30 @@
 // طير — Trips list with premium standout cards + organized contact actions
 import React, { useEffect, useState } from "react";
 import {
-  Truck, Plus, MapPin, Calendar, Package, Snowflake, ArrowLeftRight,
+  Truck, Plus, MapPin, Calendar, Package, Snowflake, ArrowLeftRight, Navigation,
   X, Car, Wallet, Phone, MessageCircle, Star, Route, Send, Clock, Trash2,
-  Map as MapIcon, List,
+  Map as MapIcon, List, Share2,
 } from "lucide-react";
 import { T, S } from "./tairTheme";
-import { tairApi, SAUDI_CITIES, ALL_LOCATIONS, TRIP_STATUS_LABEL } from "./tairApi";
-import { BottomSheet, SelectorItem, FilterChipButton, EmptyState, StatusPill } from "./TairUI";
+import { tairApi, SAUDI_CITIES, TRIP_STATUS_LABEL } from "./tairApi";
+import { LocationPicker } from "./locations";
+import { BottomSheet, EmptyState, StatusPill } from "./TairUI";
 import { toast } from "../hooks/use-toast";
 import TripsMap from "./TripsMap";
+import { nextJourneyAction } from "./tripJourney";
 import tripsHeader from "../assets/tair-design/headers/trips.jpg";
 import { TAIR, TAIR_PAGE_STYLE, TairAppHeader } from "./TairAppChrome";
+import { toWhatsAppPhone } from "./contactPhone";
+import { buildSharePayload, shareNow } from "./shareContent";
 
-export default function TripsScreen({ user, onOpenTrip, onOpenNotifications }) {
+const STATUS_FILTERS = [
+  { id: "active", label: "المتاحة" },
+  { id: "upcoming", label: "قادمة" },
+  { id: "live", label: "جارية" },
+  { id: "completed", label: "مكتملة" },
+];
+
+export default function TripsScreen({ user, onOpenTrip, onOpenNotifications, focusTripId, unreadCount = 0 }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fromCity, setFromCity] = useState(null);
@@ -22,10 +33,11 @@ export default function TripsScreen({ user, onOpenTrip, onOpenNotifications }) {
   const [sheet, setSheet] = useState(null);
   const [viewMode, setViewMode] = useState("list"); // 'list' | 'map'
   const [focusedTripId, setFocusedTripId] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("active");
 
   const load = () => {
     setLoading(true);
-    const params = { status: "active", limit: 60 };
+    const params = { status: statusFilter, limit: 60 };
     if (fromCity) params.from_city = fromCity;
     if (toCity) params.to_city = toCity;
     tairApi
@@ -35,101 +47,100 @@ export default function TripsScreen({ user, onOpenTrip, onOpenNotifications }) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [fromCity, toCity]);
+  useEffect(load, [fromCity, toCity, statusFilter]);
+
+  useEffect(() => {
+    if (!focusTripId) return;
+    let alive = true;
+    setFocusedTripId(focusTripId);
+    setViewMode("map");
+    tairApi.getTrip(focusTripId).then((trip) => {
+      if (!alive || !trip?.trip_id) return;
+      setTrips((prev) => (prev.some((t) => t.trip_id === trip.trip_id) ? prev : [trip, ...prev]));
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [focusTripId]);
 
   const uid = user?.id || user?.user_id;
 
   return (
     <div style={{ ...S.screen, ...TAIR_PAGE_STYLE }} data-testid="trips-screen">
-      <TairAppHeader image={tripsHeader} onBell={onOpenNotifications} hasNotif={false} />
+      <TairAppHeader image={tripsHeader} onBell={onOpenNotifications} unreadCount={unreadCount} />
 
-      {/* زر إضافة رحلة عائم */}
-      <div style={{ display: "flex", flexDirection: "row-reverse", padding: "0 16px", marginTop: 12, marginBottom: 8 }}>
-        <button
-          onClick={() => setShowCreate(true)}
-          data-testid="create-trip-btn"
-          aria-label="رحلة جديدة"
-          style={{
-            display: "flex",
-            flexDirection: "row-reverse",
-            gap: 6,
-            alignItems: "center",
-            justifyContent: "center",
-            height: 40,
-            padding: "0 18px",
-            borderRadius: 20,
-            background: TAIR.emerald,
-            color: TAIR.gold,
-            border: "none",
-            fontWeight: 800,
-            fontSize: 13,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            boxShadow: "0 3px 6px rgba(27,61,47,0.16)",
-          }}
-        >
-          <Plus size={18} strokeWidth={2.4} color={TAIR.gold} />
-          <span>رحلة جديدة</span>
-        </button>
-      </div>
-
-      {/* Route filter bar */}
-      <div style={styles.filterBar}>
-        <div style={styles.filterInner}>
-          <FilterChipButton
-            icon={<MapPin size={15} strokeWidth={2.2} />}
-            label="من"
-            value={fromCity}
-            onClick={() => setSheet("from")}
-            testId="filter-from-btn"
-          />
-          <ArrowLeftRight size={16} color={T.textFaint} />
-          <FilterChipButton
-            icon={<MapPin size={15} strokeWidth={2.2} />}
-            label="إلى"
-            value={toCity}
-            onClick={() => setSheet("to")}
-            testId="filter-to-btn"
-          />
-          {(fromCity || toCity) && (
+      <div style={styles.toolbar}>
+        <div style={styles.tabRow}>
+          <div style={styles.tabs}>
+            {STATUS_FILTERS.map((f) => {
+              const on = statusFilter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setStatusFilter(f.id)}
+                  data-testid={`trips-filter-${f.id}`}
+                  style={{
+                    ...styles.tabChip,
+                    background: on ? TAIR.emerald : "#EFE4D2",
+                    color: on ? TAIR.gold : TAIR.emerald,
+                  }}
+                >
+                  {f.id === "live" ? <span style={styles.liveDot} /> : null}
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+          <div style={styles.tabTools} data-testid="trips-view-toggle">
             <button
-              onClick={() => { setFromCity(null); setToCity(null); }}
-              style={styles.clearBtn}
-              data-testid="clear-trip-filters"
-            >
-              مسح
-            </button>
-          )}
-          <div style={{ flex: 1 }} />
-          {/* View mode toggle */}
-          <div style={styles.viewToggle} data-testid="trips-view-toggle">
-            <button
+              type="button"
               onClick={() => setViewMode("list")}
-              style={{
-                ...styles.viewToggleBtn,
-                background: viewMode === "list" ? T.primary : "transparent",
-                color: viewMode === "list" ? "#fff" : T.textMuted,
-              }}
+              style={{ ...styles.toolBtn, background: viewMode === "list" ? TAIR.emerald : "#EFE4D2", color: viewMode === "list" ? TAIR.gold : TAIR.emerald }}
               data-testid="trips-view-list"
-              aria-label="عرض قائمة"
+              aria-label="قائمة"
             >
-              <List size={14} strokeWidth={2.4} />
-              <span>قائمة</span>
+              <List size={15} strokeWidth={2.4} />
             </button>
             <button
+              type="button"
               onClick={() => setViewMode("map")}
-              style={{
-                ...styles.viewToggleBtn,
-                background: viewMode === "map" ? T.primary : "transparent",
-                color: viewMode === "map" ? "#fff" : T.textMuted,
-              }}
+              style={{ ...styles.toolBtn, background: viewMode === "map" ? TAIR.emerald : "#EFE4D2", color: viewMode === "map" ? TAIR.gold : TAIR.emerald }}
               data-testid="trips-view-map"
-              aria-label="عرض خريطة"
+              aria-label="خريطة"
             >
               <MapIcon size={14} strokeWidth={2.4} />
-              <span>خريطة</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              data-testid="create-trip-btn"
+              aria-label="رحلة جديدة"
+              style={styles.addIcon}
+            >
+              <Plus size={18} strokeWidth={2.6} color={TAIR.gold} />
             </button>
           </div>
+        </div>
+        <div style={styles.routeRow}>
+          <button type="button" onClick={() => setSheet("from")} data-testid="filter-from-btn" style={styles.cityChip}>
+            <MapPin size={13} strokeWidth={2.2} color={TAIR.goldDark} />
+            <span style={styles.cityKicker}>من</span>
+            <span style={styles.cityValue}>{fromCity || "أي مدينة"}</span>
+          </button>
+          <ArrowLeftRight size={14} color={T.textFaint} />
+          <button type="button" onClick={() => setSheet("to")} data-testid="filter-to-btn" style={styles.cityChip}>
+            <span style={styles.cityKicker}>إلى</span>
+            <span style={styles.cityValue}>{toCity || "أي مدينة"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setFromCity(null); setToCity(null); }}
+            disabled={!fromCity && !toCity}
+            style={{ ...styles.clearBtn, opacity: fromCity || toCity ? 1 : 0.4 }}
+            data-testid="clear-trip-filters"
+            aria-label="مسح الفلاتر"
+          >
+            <X size={16} strokeWidth={2.4} />
+          </button>
         </div>
       </div>
 
@@ -162,10 +173,11 @@ export default function TripsScreen({ user, onOpenTrip, onOpenNotifications }) {
           />
         ) : (
           <div style={{ display: "grid", gap: 18 }}>
-            {trips.map((t) => (
+            {trips.map((t, index) => (
               <PremiumTripCard
                 key={t.trip_id}
                 trip={t}
+                index={index}
                 userId={uid}
                 onClick={() => onOpenTrip(t.trip_id)}
                 onViewOnMap={() => {
@@ -203,43 +215,19 @@ export default function TripsScreen({ user, onOpenTrip, onOpenNotifications }) {
       )}
 
       <BottomSheet open={sheet === "from"} onClose={() => setSheet(null)} title="مدينة الانطلاق">
-        <SelectorItem
-          icon={<MapPin size={16} strokeWidth={2.2} />}
-          label="الكل"
-          active={!fromCity}
-          onClick={() => { setFromCity(null); setSheet(null); }}
-          testId="from-city-all"
+        <LocationPicker
+          selected={fromCity}
+          allowAll
+          onSelect={(c) => { setFromCity(c); setSheet(null); }}
         />
-        {SAUDI_CITIES.map((c) => (
-          <SelectorItem
-            key={c}
-            icon={<MapPin size={16} strokeWidth={2.2} />}
-            label={c}
-            active={fromCity === c}
-            onClick={() => { setFromCity(c); setSheet(null); }}
-            testId={`from-city-${c}`}
-          />
-        ))}
       </BottomSheet>
 
       <BottomSheet open={sheet === "to"} onClose={() => setSheet(null)} title="مدينة الوصول">
-        <SelectorItem
-          icon={<MapPin size={16} strokeWidth={2.2} />}
-          label="الكل"
-          active={!toCity}
-          onClick={() => { setToCity(null); setSheet(null); }}
-          testId="to-city-all"
+        <LocationPicker
+          selected={toCity}
+          allowAll
+          onSelect={(c) => { setToCity(c); setSheet(null); }}
         />
-        {SAUDI_CITIES.map((c) => (
-          <SelectorItem
-            key={c}
-            icon={<MapPin size={16} strokeWidth={2.2} />}
-            label={c}
-            active={toCity === c}
-            onClick={() => { setToCity(c); setSheet(null); }}
-            testId={`to-city-${c}`}
-          />
-        ))}
       </BottomSheet>
 
       {showCreate && (
@@ -303,7 +291,7 @@ const cdStyles = {
 };
 
 // ============ Premium Trip Card ============
-function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
+function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted, index = 0 }) {
   const dt = trip.depart_at ? new Date(trip.depart_at) : null;
   const statusColor = { scheduled: T.info, departed: T.warning, in_transit: T.warning, arrived: T.success }[trip.status] || T.textMuted;
   const carrierInitial = (trip.carrier_name || trip.carrier_id || "?").charAt(0).toUpperCase();
@@ -311,9 +299,9 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
   const isOwn = trip.carrier_id === userId;
   const [deleting, setDeleting] = useState(false);
 
-  const cleanPhone = (trip.carrier_phone || "").replace(/[^\d+]/g, "");
-  const intl = cleanPhone.startsWith("+") ? cleanPhone.slice(1) :
-              (cleanPhone.startsWith("0") ? "966" + cleanPhone.slice(1) : cleanPhone);
+  const live = trip.status === "departed" || trip.status === "in_transit";
+  const cleanPhone = trip.carrier_whatsapp || trip.carrier_phone || "";
+  const intl = toWhatsAppPhone(cleanPhone);
   const waText = encodeURIComponent(`السلام عليكم، بخصوص رحلتك من ${trip.from_city} إلى ${trip.to_city}`);
 
   const openWhatsApp = (e) => {
@@ -322,7 +310,8 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
   };
   const openCall = (e) => {
     e.stopPropagation();
-    window.open(`tel:${cleanPhone}`, "_self");
+    const tel = intl.startsWith("966") ? `+${intl}` : intl;
+    if (tel) window.open(`tel:${tel}`, "_self");
   };
   const openChat = async (e) => {
     e.stopPropagation();
@@ -336,6 +325,27 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
       // Best-effort: navigate to messages
       window.dispatchEvent(new CustomEvent("tair:open-thread", { detail: { threadId: r.thread_id } }));
     } catch (err) { /* ignore */ }
+  };
+
+  const shareTrip = async (e) => {
+    e.stopPropagation();
+    const id = trip.trip_id || trip.id;
+    if (!id) return;
+    try {
+      const mode = await shareNow(buildSharePayload({
+        kind: "trip",
+        id,
+        title: `${trip.from_city || ""} ← ${trip.to_city || ""}`.trim(),
+        image: trip.carrier_avatar || "",
+        lines: [
+          dt ? dt.toLocaleString("ar-SA") : null,
+          trip.carrier_name ? `الموصل: ${trip.carrier_name}` : null,
+        ],
+      }));
+      if (mode === "copied") {
+        toast({ title: "تم نسخ المشاركة", description: "الصقها في أي تطبيق، والرابط يفتح الرحلة بالصورة." });
+      }
+    } catch { /* user cancelled */ }
   };
 
   const handleDelete = async (e) => {
@@ -356,7 +366,11 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
   return (
     <div
       onClick={onClick}
-      style={styles.premiumCard}
+      style={{
+        ...styles.premiumCard,
+        animation: "tair-rise 0.38s ease both",
+        animationDelay: `${Math.min(index, 8) * 35}ms`,
+      }}
       data-testid={`trip-card-${trip.trip_id}`}
     >
       {/* Top accent stripe */}
@@ -420,7 +434,7 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
       <div style={styles.carrierRow}>
         <div style={styles.carrierAvatar}>
           {trip.carrier_avatar ? (
-            <img src={trip.carrier_avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img src={trip.carrier_avatar} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : carrierInitial}
         </div>
         <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
@@ -445,7 +459,10 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
             <span>{trip.carrier_trips_completed || 0} رحلة</span>
           </div>
         </div>
-        <StatusPill label={TRIP_STATUS_LABEL[trip.status] || trip.status} color={statusColor} />
+        <span style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+          {live ? <span style={styles.cardPulse} /> : null}
+          <StatusPill label={TRIP_STATUS_LABEL[trip.status] || trip.status} color={statusColor} />
+        </span>
         {isOwn && (
           <button
             onClick={handleDelete}
@@ -483,8 +500,70 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted }) {
         </button>
       )}
 
+      <button
+        type="button"
+        onClick={shareTrip}
+        style={styles.shareTripBtn}
+        data-testid={`share-trip-${trip.trip_id}`}
+      >
+        <Share2 size={14} strokeWidth={2.4} />
+        <span>مشاركة الرحلة</span>
+      </button>
+
+      {isOwn && !["completed", "cancelled"].includes(trip.status) ? (
+        <div style={styles.ownerActions} onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            style={styles.ownerBtn}
+            data-testid={`share-location-${trip.trip_id}`}
+            onClick={() => {
+              if (!navigator.geolocation) {
+                toast({ title: "المتصفح لا يشارك الموقع", variant: "destructive" });
+                return;
+              }
+              navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                  await tairApi.shareTripLocation(trip.trip_id, userId, pos.coords.latitude, pos.coords.longitude);
+                  toast({ title: "ظهر موقعك على الخريطة" });
+                  onDeleted?.();
+                } catch (err) {
+                  toast({ title: "تعذّر إرسال الموقع", description: err.response?.data?.detail || err.message, variant: "destructive" });
+                }
+              }, () => toast({ title: "لم يُسمح بقراءة الموقع", variant: "destructive" }));
+            }}
+          >
+            <Navigation size={14} strokeWidth={2.4} />
+            <span>أرسل موقعي الآن</span>
+          </button>
+          {nextJourneyAction(trip) ? (
+            <button
+              type="button"
+              style={styles.ownerBtn}
+              data-testid={`advance-trip-${trip.trip_id}`}
+              onClick={async () => {
+                const action = nextJourneyAction(trip);
+                if (!action) return;
+                try {
+                  await tairApi.updateTripStatus(trip.trip_id, action.status, action.label, userId, {
+                    motion: action.motion,
+                    stop_index: action.stop_index,
+                  });
+                  toast({ title: action.label });
+                  onDeleted?.();
+                } catch (err) {
+                  toast({ title: "تعذّر تحديث الرحلة", description: err.response?.data?.detail || err.message, variant: "destructive" });
+                }
+              }}
+            >
+              <Truck size={14} strokeWidth={2.4} />
+              <span>{nextJourneyAction(trip).label}</span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* Organized Contact Actions — 3 clear buttons */}
-      {trip.carrier_phone && (
+      {(trip.carrier_whatsapp || trip.carrier_phone) && (
         <div style={styles.contactRow}>
           <button
             onClick={openChat}
@@ -543,7 +622,7 @@ function CreateTripModal({ user, onClose, onCreated }) {
     is_direct: false,
     waypoints: [],
     carrier_name: user?.name && user.name !== "زائر" ? user.name : "",
-    carrier_phone: user?.phone || "",
+    carrier_phone: user?.whatsapp || user?.phone || "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -668,7 +747,7 @@ function CreateTripModal({ user, onClose, onCreated }) {
             </div>
             <div>
               <label style={S.label}>واتساب / جوال *</label>
-              <input style={S.input} type="tel" value={form.carrier_phone} onChange={(e) => set("carrier_phone", e.target.value)} placeholder="+9665xxxxxxxx" data-testid="trip-carrier-phone" />
+              <input style={S.input} type="tel" value={form.carrier_phone} onChange={(e) => set("carrier_phone", e.target.value)} placeholder="05xxxxxxxx" data-testid="trip-carrier-phone" />
             </div>
           </div>
 
@@ -689,24 +768,21 @@ function CreateTripModal({ user, onClose, onCreated }) {
       </div>
 
       <BottomSheet open={fromSheetOpen} onClose={() => setFromSheetOpen(false)} title="مدينة الانطلاق">
-        {ALL_LOCATIONS.map((c) => (
-          <SelectorItem key={c} icon={<MapPin size={16} strokeWidth={2.2} />} label={c} active={form.from_city === c} onClick={() => { set("from_city", c); setFromSheetOpen(false); }} testId={`from-loc-${c}`} />
-        ))}
+        <LocationPicker selected={form.from_city} onSelect={(c) => { if (c) { set("from_city", c); setFromSheetOpen(false); } }} />
       </BottomSheet>
 
       <BottomSheet open={toSheetOpen} onClose={() => setToSheetOpen(false)} title="مدينة الوصول">
-        {ALL_LOCATIONS.map((c) => (
-          <SelectorItem key={c} icon={<MapPin size={16} strokeWidth={2.2} />} label={c} active={form.to_city === c} onClick={() => { set("to_city", c); setToSheetOpen(false); }} testId={`to-loc-${c}`} />
-        ))}
+        <LocationPicker selected={form.to_city} onSelect={(c) => { if (c) { set("to_city", c); setToSheetOpen(false); } }} />
       </BottomSheet>
 
       <BottomSheet open={waypointSheetOpen} onClose={() => setWaypointSheetOpen(false)} title="اختر المحافظات">
         <div style={{ padding: "6px 12px 12px", color: T.textMuted, fontSize: 12, textAlign: "right" }}>
           اختر المدن التي تمر بها الرحلة.
         </div>
-        {ALL_LOCATIONS.filter((c) => c !== form.from_city && c !== form.to_city).map((c) => (
-          <SelectorItem key={c} icon={<MapPin size={16} strokeWidth={2.2} />} label={c} active={form.waypoints.includes(c)} onClick={() => toggleWaypoint(c)} testId={`wp-loc-${c}`} />
-        ))}
+        <LocationPicker
+          exclude={[form.from_city, form.to_city]}
+          onSelect={(c) => { if (c) toggleWaypoint(c); }}
+        />
       </BottomSheet>
     </div>
   );
@@ -730,6 +806,128 @@ function CheckOption({ label, icon, checked, onChange, testId }) {
 
 // ==================== Styles ====================
 const styles = {
+  toolbar: {
+    margin: "10px 12px 0",
+    background: TAIR.card,
+    border: `1px solid ${TAIR.divider}`,
+    borderRadius: 16,
+    padding: 8,
+    display: "grid",
+    gap: 8,
+  },
+  tabRow: {
+    display: "flex",
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+  },
+  tabs: {
+    display: "flex",
+    flexDirection: "row-reverse",
+    gap: 6,
+    overflowX: "auto",
+    scrollbarWidth: "none",
+    flex: 1,
+  },
+  tabChip: {
+    display: "inline-flex",
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 5,
+    border: "none",
+    borderRadius: 999,
+    padding: "6px 10px",
+    fontSize: 12,
+    fontWeight: 800,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    whiteSpace: "nowrap",
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 99,
+    background: TAIR.gold,
+    boxShadow: `0 0 0 0 ${TAIR.gold}`,
+    animation: "tair-ring 2.2s ease-out infinite",
+  },
+  tabTools: { display: "flex", flexDirection: "row-reverse", alignItems: "center", gap: 4, flexShrink: 0 },
+  toolBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    border: "none",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+  },
+  addIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    border: "none",
+    background: TAIR.emerald,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+  },
+  routeRow: {
+    display: "flex",
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+  },
+  cityChip: {
+    flex: 1,
+    minWidth: 0,
+    height: 36,
+    borderRadius: 12,
+    border: `1px solid ${TAIR.divider}`,
+    background: TAIR.bg,
+    display: "flex",
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+    padding: "0 8px",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
+  cityKicker: { color: TAIR.goldDark, fontSize: 11, fontWeight: 800, flexShrink: 0 },
+  cityValue: {
+    color: "#0F241C",
+    fontSize: 12,
+    fontWeight: 700,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  clearBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    border: "none",
+    background: "#F8EBE7",
+    color: "#8B3A2F",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    flexShrink: 0,
+  },
+  cardPulse: {
+    position: "absolute",
+    right: -4,
+    top: "50%",
+    width: 8,
+    height: 8,
+    marginTop: -4,
+    borderRadius: 99,
+    background: TAIR.gold,
+    animation: "tair-ring 2.2s ease-out infinite",
+    pointerEvents: "none",
+  },
   filterBar: {
     background: "rgba(255,255,255,0.9)",
     backdropFilter: "blur(10px)",
@@ -902,6 +1100,19 @@ const styles = {
     borderTop: `1px solid ${T.divider}`,
     background: "#fafafa",
   },
+  ownerActions: {
+    display: "flex", flexDirection: "row-reverse", gap: 8,
+    margin: "0 20px 12px",
+  },
+  ownerBtn: {
+    flex: 1,
+    display: "flex", flexDirection: "row-reverse",
+    alignItems: "center", justifyContent: "center", gap: 6,
+    padding: "10px 8px", borderRadius: 12,
+    background: "#1B3D2F",
+    color: "#C6A15B", fontSize: 13, fontWeight: 800,
+    border: "none", cursor: "pointer", fontFamily: "inherit",
+  },
   viewOnMapBtn: {
     display: "flex", flexDirection: "row-reverse",
     alignItems: "center", justifyContent: "center", gap: 6,
@@ -911,6 +1122,16 @@ const styles = {
     color: "#fff", fontSize: 13, fontWeight: 800,
     border: "none", cursor: "pointer", fontFamily: "inherit",
     boxShadow: "0 4px 12px rgba(15,118,110,0.25)",
+    width: "calc(100% - 40px)",
+  },
+  shareTripBtn: {
+    display: "flex", flexDirection: "row-reverse",
+    alignItems: "center", justifyContent: "center", gap: 6,
+    margin: "0 20px 12px",
+    padding: "10px 14px", borderRadius: 12,
+    background: "#1B3D2F",
+    color: "#C6A15B", fontSize: 13, fontWeight: 800,
+    border: "1px solid #C6A15B", cursor: "pointer", fontFamily: "inherit",
     width: "calc(100% - 40px)",
   },
   contactBtn: {

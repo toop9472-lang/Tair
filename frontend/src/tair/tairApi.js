@@ -127,10 +127,18 @@ export const tairApi = {
     });
     return data.items || [];
   },
-  updateTripStatus: async (tripId, status, note, userId) => {
+  updateTripStatus: async (tripId, status, note, userId, extra = {}) => {
     const { data } = await client.patch(
       `/trips/${tripId}/status`,
-      { status, note },
+      { status, note, motion: extra.motion ?? null, stop_index: extra.stop_index ?? null },
+      { params: { user_id: userId } },
+    );
+    return data;
+  },
+  shareTripLocation: async (tripId, userId, lat, lng) => {
+    const { data } = await client.patch(
+      `/trips/${tripId}/location`,
+      { lat, lng },
       { params: { user_id: userId } },
     );
     return data;
@@ -435,14 +443,6 @@ export const tairApi = {
     return data;
   },
 
-  // Trip status
-  updateTripStatus: async (tripId, status, userId) => {
-    const { data } = await client.patch(`/trips/${tripId}/status`, { status }, {
-      params: { user_id: userId },
-    });
-    return data;
-  },
-
   // Follow / unfollow
   toggleFollow: async (sellerId, userId) => {
     const { data } = await client.post(`/phone/follow/${sellerId}`, null, {
@@ -468,6 +468,18 @@ export const tairApi = {
   },
   getWholesaleSupplier: async (supplierId) => {
     const { data } = await client.get(`/wholesale/suppliers/${supplierId}`);
+    return data;
+  },
+  getMySupplier: async () => {
+    const { data } = await client.get("/wholesale/suppliers/mine");
+    return data?.supplier || null;
+  },
+  registerSupplier: async (payload) => {
+    const { data } = await client.post("/wholesale/suppliers", payload);
+    return data;
+  },
+  updateMySupplier: async (payload) => {
+    const { data } = await client.patch("/wholesale/suppliers/mine", payload);
     return data;
   },
 
@@ -498,6 +510,52 @@ export const tairApi = {
     return data.items || [];
   },
 
+  storefrontSettings: async (userId) => {
+    const { data } = await client.get("/storefront/settings", { params: { user_id: userId } });
+    return data;
+  },
+  updateStorefront: async (userId, payload) => {
+    const { data } = await client.patch("/storefront/settings", payload, { params: { user_id: userId } });
+    return data;
+  },
+  uploadStoreMedia: async (userId, kind, file) => {
+    const form = new FormData();
+    form.append("file", file);
+    const { data } = await client.post("/storefront/upload-media", form, {
+      params: { user_id: userId, kind },
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data.url;
+  },
+  createFlashSale: async (userId, payload) => {
+    const { data } = await client.post("/storefront/flash-sales", payload, { params: { user_id: userId } });
+    return data;
+  },
+  deleteFlashSale: async (userId, saleId) => {
+    const { data } = await client.delete(`/storefront/flash-sales/${saleId}`, { params: { user_id: userId } });
+    return data;
+  },
+  createCoupon: async (userId, payload) => {
+    const { data } = await client.post("/storefront/coupons", payload, { params: { user_id: userId } });
+    return data;
+  },
+  setCouponActive: async (userId, code, active) => {
+    const { data } = await client.patch(`/storefront/coupons/${encodeURIComponent(code)}`, { active }, { params: { user_id: userId } });
+    return data;
+  },
+  deleteCoupon: async (userId, code) => {
+    const { data } = await client.delete(`/storefront/coupons/${encodeURIComponent(code)}`, { params: { user_id: userId } });
+    return data;
+  },
+  updateInventory: async (userId, payload) => {
+    const { data } = await client.post("/storefront/inventory", payload, { params: { user_id: userId } });
+    return data;
+  },
+  storeAnalytics: async (userId, days = 30) => {
+    const { data } = await client.get("/storefront/analytics", { params: { user_id: userId, days } });
+    return data;
+  },
+
   // AI bird identification
   identifyBirdFromBase64: async (imageBase64, mimeType = "image/jpeg") => {
     const { data } = await client.post("/ai/identify-bird-b64", {
@@ -508,51 +566,7 @@ export const tairApi = {
   },
 };
 
-export const SAUDI_CITIES = [
-  // Riyadh region
-  "الرياض", "الدرعية", "الخرج", "المجمعة", "الدوادمي", "القويعية", "وادي الدواسر",
-  "الأفلاج", "الزلفي", "شقراء", "حوطة بني تميم", "عفيف", "السليل", "ضرما",
-  "الحريق", "رماح", "ثادق", "الغاط", "حريملاء", "المزاحمية",
-  // Makkah region
-  "مكة المكرمة", "جدة", "الطائف", "رابغ", "القنفذة", "الليث", "الجموم", "الكامل",
-  "تربة", "الخرمة", "رنية", "ميسان", "أضم",
-  // Madinah region
-  "المدينة المنورة", "ينبع", "العلا", "بدر", "المهد", "الحناكية", "خيبر", "وادي الفرع",
-  // Eastern region
-  "الدمام", "الخبر", "الظهران", "الأحساء", "الجبيل", "القطيف", "حفر الباطن",
-  "رأس تنورة", "بقيق", "النعيرية", "الخفجي", "قرية العليا",
-  // Asir region
-  "أبها", "خميس مشيط", "بيشة", "النماص", "محايل عسير", "تنومة", "رجال ألمع",
-  "بلقرن", "ظهران الجنوب", "سراة عبيدة", "أحد رفيدة",
-  // Jazan region
-  "جازان", "صبيا", "أبو عريش", "صامطة", "بيش", "أحد المسارحة", "الحرث",
-  "ضمد", "فيفا", "الدرب", "الريث", "الطوال",
-  // Najran region
-  "نجران", "شرورة", "حبونا", "بدر الجنوب", "يدمة", "خباش", "ثار",
-  // Al-Baha region
-  "الباحة", "بلجرشي", "المندق", "المخواة", "قلوة", "العقيق", "القرى",
-  // Tabuk region
-  "تبوك", "أملج", "الوجه", "ضباء", "تيماء", "حقل", "البدع",
-  // Hail region
-  "حائل", "بقعاء", "الشنان", "الغزالة", "الحائط", "موقق", "السليمي",
-  // Northern Borders region
-  "عرعر", "رفحاء", "طريف", "العويقيلة",
-  // Qassim region
-  "بريدة", "عنيزة", "الرس", "المذنب", "البدائع", "الأسياح", "رياض الخبراء",
-  "البكيرية", "الفيصلية", "دلفى", "عيون الجواء", "الشماسية",
-];
-
-// Gulf countries (delivery to/from — country level only, no cities)
-export const GULF_COUNTRIES = [
-  "الإمارات العربية المتحدة",
-  "البحرين",
-  "قطر",
-  "الكويت",
-  "سلطنة عمان",
-];
-
-// Combined list for pickers (Saudi cities + Gulf countries)
-export const ALL_LOCATIONS = [...SAUDI_CITIES, ...GULF_COUNTRIES];
+export { SAUDI_CITIES, GULF_COUNTRIES, ALL_LOCATIONS, LOCATION_GROUPS } from "./locations";
 
 export const ORDER_STATUS_LABEL = {
   pending: "بانتظار الموصّل",
@@ -569,7 +583,7 @@ export const ORDER_STATUS_COLOR = {
   accepted_by_carrier: "#0891b2",
   in_transit: "#3b82f6",
   delivered: "#10b981",
-  completed: "#065f46",
+  completed: "#1B3D2F",
   disputed: "#dc2626",
   cancelled: "#64748b",
 };

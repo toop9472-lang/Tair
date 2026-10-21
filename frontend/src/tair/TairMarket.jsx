@@ -3,48 +3,78 @@
  * الاتجاه RTL، الألوان: كريمي/زمرد/ذهب.
  */
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, MapPin, Feather, Music, Bird, Fish, Cat, Dog, Wheat, ShoppingBag, Landmark, Wrench, Rat, PawPrint, Bug, X, Sprout, Package } from "lucide-react";
+import { Search, MapPin, Feather, Music, Bird, Fish, Cat, Dog, Wheat, ShoppingBag, Landmark, Wrench, Rat, PawPrint, Bug, X, Sprout, Package, Bed, GraduationCap, Zap, Footprints } from "lucide-react";
 import { tairApi } from "./tairApi";
+import { LocationPicker } from "./locations";
 import marketHeader from "../assets/tair-design/headers/market.jpg";
 import auctionBanner from "../assets/tair-design/headers/auction_banner.jpg";
 import { TAIR, TAIR_PAGE_STYLE, TairAppHeader, TairAppBottomBar } from "./TairAppChrome";
 
-const CATEGORIES = [
-  { key: "livestock",       label: "مواشي",              Icon: PawPrint },
-  { key: "songbirds",       label: "طيور مغردة",           Icon: Music },
-  { key: "poultry",         label: "دواجن",              Icon: Bird },
-  { key: "pigeons",         label: "حمام",               Icon: Feather },
-  { key: "parrots",         label: "ببغاوات",             Icon: Bird },
-  { key: "fish",            label: "أسماك",              Icon: Fish },
-  { key: "small_mammals",   label: "ثدييات صغيرة",         Icon: Rat },
-  { key: "pets",            label: "حيوانات أليفة",         Icon: PawPrint },
-  { key: "reptiles",        label: "زواحف",              Icon: Sprout },
-  { key: "insects",         label: "حشرات",              Icon: Bug },
-  { key: "cats",            label: "قطط",               Icon: Cat },
-  { key: "dogs",            label: "كلاب",               Icon: Dog },
-  { key: "feed",            label: "أعلاف",              Icon: Wheat },
-  { key: "bird_supplies",   label: "مستلزمات الطيور",       Icon: ShoppingBag },
-  { key: "animal_supplies", label: "مستلزمات الحيوانات",     Icon: Package },
-  { key: "reserves",        label: "المحميات",            Icon: Landmark },
-  { key: "services",        label: "خدمات تركيب الأقفاص والمحميات", Icon: Wrench },
+const FAMILY_ICONS = {
+  parrots: Bird, songbirds: Music, pigeons: Feather, poultry: Bird, falcons: Zap,
+  livestock: PawPrint, horses: Footprints, cats: Cat, dogs: Dog, small_mammals: Rat,
+  pets: PawPrint, reptiles: Sprout, fish: Fish, insects: Bug, feed: Wheat,
+  bird_supplies: ShoppingBag, animal_supplies: Package, hotel_services: Bed,
+  training: GraduationCap, services: Wrench, reserves: Landmark,
+};
+const FALLBACK_FAMILIES = [
+  { family_id: "parrots", name_ar: "ببغاوات", group: "birds", group_ar: "طيور" },
+  { family_id: "songbirds", name_ar: "طيور صغيرة", group: "birds", group_ar: "طيور" },
+  { family_id: "pigeons", name_ar: "حمام", group: "birds", group_ar: "طيور" },
+  { family_id: "poultry", name_ar: "دواجن", group: "birds", group_ar: "طيور" },
+  { family_id: "falcons", name_ar: "صقور", group: "birds", group_ar: "طيور" },
+  { family_id: "livestock", name_ar: "مواشي", group: "animals", group_ar: "حيوانات" },
+  { family_id: "horses", name_ar: "خيل", group: "animals", group_ar: "حيوانات" },
+  { family_id: "cats", name_ar: "قطط", group: "animals", group_ar: "حيوانات" },
+  { family_id: "dogs", name_ar: "كلاب", group: "animals", group_ar: "حيوانات" },
+  { family_id: "small_mammals", name_ar: "حيوانات صغيرة", group: "animals", group_ar: "حيوانات" },
+  { family_id: "pets", name_ar: "أليفة أخرى", group: "animals", group_ar: "حيوانات" },
+  { family_id: "reptiles", name_ar: "زواحف", group: "animals", group_ar: "حيوانات" },
+  { family_id: "fish", name_ar: "أسماك", group: "animals", group_ar: "حيوانات" },
+  { family_id: "insects", name_ar: "نحل وحشرات", group: "animals", group_ar: "حيوانات" },
+  { family_id: "feed", name_ar: "أعلاف وأكل", group: "care", group_ar: "عناية وخدمات" },
+  { family_id: "bird_supplies", name_ar: "مستلزمات الطيور", group: "care", group_ar: "عناية وخدمات" },
+  { family_id: "animal_supplies", name_ar: "مستلزمات الحيوانات", group: "care", group_ar: "عناية وخدمات" },
+  { family_id: "hotel_services", name_ar: "فندقة الطيور", group: "care", group_ar: "عناية وخدمات" },
+  { family_id: "training", name_ar: "تدريب", group: "care", group_ar: "عناية وخدمات" },
+  { family_id: "services", name_ar: "تركيب وتجهيز", group: "care", group_ar: "عناية وخدمات" },
+  { family_id: "reserves", name_ar: "محميات", group: "care", group_ar: "عناية وخدمات" },
 ];
+const GROUP_ORDER = ["birds", "animals", "care"];
 
 function toArabicNumerals(n) {
   return String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d, 10)]);
 }
 
-export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, activeTab = "market", onTabChange, onOpenNotifications }) {
+export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, activeTab = "market", onTabChange, onOpenNotifications, unreadCount = 0 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [pickedCat, setPickedCat] = useState(null);
+  const [pickedCity, setPickedCity] = useState(null);
   const [catOpen, setCatOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [families, setFamilies] = useState(FALLBACK_FAMILIES);
+
+  useEffect(() => {
+    tairApi.listFamilies().then((items) => {
+      if (Array.isArray(items) && items.length) setFamilies(items);
+    }).catch(() => {});
+  }, []);
+
+  const familyGroups = useMemo(() => {
+    return GROUP_ORDER.map((id) => ({
+      id,
+      label: families.find((f) => f.group === id)?.group_ar || FALLBACK_FAMILIES.find((f) => f.group === id)?.group_ar,
+      items: families.filter((f) => (f.group || FALLBACK_FAMILIES.find((x) => x.family_id === f.family_id)?.group || "care") === id),
+    })).filter((g) => g.items.length);
+  }, [families]);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
     tairApi
-      .feedListings({ limit: 40, family: pickedCat || undefined, q: query || undefined })
+      .feedListings({ limit: 40, family: pickedCat || undefined, city: pickedCity || undefined, q: query || undefined })
       .then((r) => {
         if (alive) setItems(Array.isArray(r?.items) ? r.items : []);
       })
@@ -53,13 +83,13 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
     return () => {
       alive = false;
     };
-  }, [pickedCat, query]);
+  }, [pickedCat, pickedCity, query]);
 
   const filtered = items;
 
   return (
     <div dir="rtl" style={TAIR_PAGE_STYLE}>
-      <TairAppHeader image={marketHeader} onBell={onOpenNotifications} hasNotif={true} />
+      <TairAppHeader image={marketHeader} onBell={onOpenNotifications} unreadCount={unreadCount} />
 
       {/* صف البحث + الفئات */}
       <div style={{ display: "flex", flexDirection: "row-reverse", gap: 8, padding: "0 16px", alignItems: "center" }}>
@@ -88,12 +118,32 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
             <circle cx="16" cy="16" r="2.5" fill={TAIR.gold} />
           </svg>
         </button>
+        <button
+          onClick={() => setCityOpen(true)}
+          data-testid="market-city-btn"
+          aria-label="المدينة"
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            background: pickedCity ? TAIR.emerald : TAIR.card,
+            border: `1.5px solid ${TAIR.gold}`,
+            boxShadow: TAIR.softShadow,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          <MapPin size={18} color={TAIR.gold} />
+        </button>
 
         <div style={{ flex: 1, height: 44, borderRadius: 22, background: TAIR.card, border: `1px solid ${TAIR.divider}`, display: "flex", flexDirection: "row-reverse", alignItems: "center", gap: 8, padding: "0 14px", boxShadow: TAIR.softShadow }}>
           <Search size={18} color={TAIR.textSoft} />
           <input
             type="search"
-            placeholder={pickedCat ? CATEGORIES.find((c) => c.key === pickedCat)?.label : "ابحث في السوق"}
+            placeholder={pickedCity || (pickedCat ? families.find((c) => c.family_id === pickedCat)?.name_ar : "ابحث في السوق")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             data-testid="market-search-input"
@@ -181,6 +231,24 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
       {/* الشريط السفلي */}
       <TairAppBottomBar active={activeTab} onChange={onTabChange} />
 
+      {cityOpen && (
+        <div onClick={() => setCityOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,36,28,0.35)", zIndex: 20, display: "flex", alignItems: "flex-end" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: TAIR.card, width: "100%", padding: 8, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 24, maxHeight: "80vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: "8px 8px 4px" }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: TAIR.emerald }}>مدينة الإعلان</div>
+              <button onClick={() => setCityOpen(false)} aria-label="إغلاق" style={{ width: 34, height: 34, borderRadius: 17, background: TAIR.bg, border: `1px solid ${TAIR.divider}`, cursor: "pointer", color: TAIR.emerald }}>
+                <X size={18} />
+              </button>
+            </div>
+            <LocationPicker
+              selected={pickedCity}
+              allowAll
+              onSelect={(c) => { setPickedCity(c); setCityOpen(false); }}
+            />
+          </div>
+        </div>
+      )}
+
       {catOpen && (
         <div onClick={() => setCatOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,36,28,0.35)", zIndex: 20, display: "flex", alignItems: "flex-end" }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: TAIR.card, width: "100%", padding: 16, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 32, maxHeight: "80vh", overflowY: "auto" }}>
@@ -200,14 +268,17 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
                 <X size={18} strokeWidth={2.2} />
               </button>
             </div>
-            {CATEGORIES.map((c) => {
-              const I = c.Icon;
-              const selected = pickedCat === c.key;
+            {familyGroups.map((group) => (
+              <div key={group.id}>
+                <div style={{ marginTop: 10, marginBottom: 4, color: TAIR.gold, fontSize: 12, fontWeight: 800, textAlign: "right" }}>{group.label}</div>
+                {group.items.map((c) => {
+              const I = FAMILY_ICONS[c.family_id] || Bird;
+              const selected = pickedCat === c.family_id;
               return (
                 <button
-                  key={c.key}
-                  onClick={() => { setPickedCat(selected ? null : c.key); setCatOpen(false); }}
-                  data-testid={`category-${c.key}`}
+                  key={c.family_id}
+                  onClick={() => { setPickedCat(selected ? null : c.family_id); setCatOpen(false); }}
+                  data-testid={`category-${c.family_id}`}
                   style={{
                     display: "flex", flexDirection: "row-reverse",
                     justifyContent: "space-between", alignItems: "center",
@@ -226,12 +297,14 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
                     }}>
                       <I size={18} color={selected ? TAIR.gold : TAIR.emerald} strokeWidth={1.8} />
                     </span>
-                    <span style={{ color: TAIR.text, fontSize: 15, fontWeight: 600 }}>{c.label}</span>
+                    <span style={{ color: TAIR.text, fontSize: 15, fontWeight: 600 }}>{c.name_ar}</span>
                   </span>
                   {selected ? <span style={{ color: TAIR.gold, fontWeight: 800 }}>✓</span> : null}
                 </button>
               );
-            })}
+                })}
+              </div>
+            ))}
             <div style={{ textAlign: "center", marginTop: 14 }}>
               <button onClick={() => { setPickedCat(null); setCatOpen(false); }} data-testid="cat-clear-btn" style={{ padding: "8px 22px", borderRadius: 999, background: TAIR.bg, border: `1px solid ${TAIR.divider}`, color: TAIR.emerald, fontWeight: 800, cursor: "pointer" }}>
                 مسح الفلترة

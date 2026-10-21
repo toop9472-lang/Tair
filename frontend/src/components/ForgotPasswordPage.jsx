@@ -123,16 +123,16 @@ const ForgotPasswordPage = () => {
   // Email sent confirmation screen
   if (emailSent && step === 1) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4" dir={isRTL ? 'rtl' : 'ltr'}>
-        <Card className="w-full max-w-md bg-[#111827] border-gray-800">
+      <div className="min-h-screen bg-[#F7F1E8] flex items-center justify-center p-4" dir={isRTL ? 'rtl' : 'ltr'}>
+        <Card className="w-full max-w-md bg-[#FFFDF8] border-[#E6DCC8]">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8 text-green-500" />
             </div>
-            <CardTitle className="text-2xl text-white">
+            <CardTitle className="text-2xl text-[#1B3D2F]">
               {isRTL ? 'تم إرسال الرابط' : 'Link Sent'}
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-[#6B5E4A]">
               {isRTL 
                 ? 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. يرجى التحقق من صندوق الوارد.'
                 : 'A password reset link has been sent to your email. Please check your inbox.'}
@@ -141,7 +141,7 @@ const ForgotPasswordPage = () => {
           <CardContent>
             <Button 
               onClick={() => navigate('/')} 
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-[#1B3D2F] hover:bg-[#0F241C]"
             >
               {isRTL ? 'العودة لتسجيل الدخول' : 'Back to Login'}
             </Button>
@@ -154,29 +154,29 @@ const ForgotPasswordPage = () => {
   // Reset password form (when token exists)
   if (step === 2) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4" dir={isRTL ? 'rtl' : 'ltr'}>
-        <Card className="w-full max-w-md bg-[#111827] border-gray-800">
+      <div className="min-h-screen bg-[#F7F1E8] flex items-center justify-center p-4" dir={isRTL ? 'rtl' : 'ltr'}>
+        <Card className="w-full max-w-md bg-[#FFFDF8] border-[#E6DCC8]">
           <CardHeader>
-            <CardTitle className="text-2xl text-white text-center">
+            <CardTitle className="text-2xl text-[#1B3D2F] text-center">
               {isRTL ? 'إنشاء كلمة مرور جديدة' : 'Create New Password'}
             </CardTitle>
-            <CardDescription className="text-gray-400 text-center">
+            <CardDescription className="text-[#6B5E4A] text-center">
               {isRTL ? 'أدخل كلمة المرور الجديدة' : 'Enter your new password'}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">
+                <Label className="text-[#1B3D2F]">
                   {isRTL ? 'كلمة المرور الجديدة' : 'New Password'}
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-[#8A7B66]" />
                   <Input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="pl-10 bg-gray-800 border-gray-700 text-white"
+                    className="pl-10 bg-[#F7F1E8] border-[#E6DCC8] text-[#1B3D2F]"
                     placeholder="••••••"
                     required
                   />
@@ -184,16 +184,16 @@ const ForgotPasswordPage = () => {
               </div>
               
               <div className="space-y-2">
-                <Label className="text-gray-300">
+                <Label className="text-[#1B3D2F]">
                   {isRTL ? 'تأكيد كلمة المرور' : 'Confirm Password'}
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-[#8A7B66]" />
                   <Input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 bg-gray-800 border-gray-700 text-white"
+                    className="pl-10 bg-[#F7F1E8] border-[#E6DCC8] text-[#1B3D2F]"
                     placeholder="••••••"
                     required
                   />
@@ -202,7 +202,7 @@ const ForgotPasswordPage = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-[#1B3D2F] hover:bg-[#0F241C]"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -220,20 +220,20 @@ const ForgotPasswordPage = () => {
 
   // Request reset form
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4" dir={isRTL ? 'rtl' : 'ltr'}>
-      <Card className="w-full max-w-md bg-[#111827] border-gray-800">
+    <div className="min-h-screen bg-[#F7F1E8] flex items-center justify-center p-4" dir={isRTL ? 'rtl' : 'ltr'}>
+      <Card className="w-full max-w-md bg-[#FFFDF8] border-[#E6DCC8]">
         <CardHeader>
           <button 
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white mb-4"
+            className="flex items-center gap-2 text-[#6B5E4A] hover:text-[#C6A15B] mb-4"
           >
             <ArrowLeft size={20} />
             {isRTL ? 'رجوع' : 'Back'}
           </button>
-          <CardTitle className="text-2xl text-white text-center">
+          <CardTitle className="text-2xl text-[#1B3D2F] text-center">
             {isRTL ? 'نسيت كلمة المرور؟' : 'Forgot Password?'}
           </CardTitle>
-          <CardDescription className="text-gray-400 text-center">
+          <CardDescription className="text-[#6B5E4A] text-center">
             {isRTL 
               ? 'أدخل بريدك الإلكتروني وسنرسل لك رابط لإعادة تعيين كلمة المرور'
               : 'Enter your email and we will send you a link to reset your password'}
@@ -242,16 +242,16 @@ const ForgotPasswordPage = () => {
         <CardContent>
           <form onSubmit={handleRequestReset} className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-gray-300">
+              <Label className="text-[#1B3D2F]">
                 {isRTL ? 'البريد الإلكتروني' : 'Email'}
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-[#8A7B66]" />
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 bg-gray-800 border-gray-700 text-white"
+                  className="pl-10 bg-[#F7F1E8] border-[#E6DCC8] text-[#1B3D2F]"
                   placeholder="example@email.com"
                   required
                 />
@@ -260,7 +260,7 @@ const ForgotPasswordPage = () => {
 
             <Button 
               type="submit" 
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-[#1B3D2F] hover:bg-[#0F241C]"
               disabled={isLoading}
             >
               {isLoading ? (

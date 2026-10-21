@@ -17,17 +17,15 @@ import {
   Modal,
   Dimensions,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import Constants from "expo-constants";
-import api from "../services/api";
+import api, { API_URL } from "../services/api";
 import { TAIR_PALETTE, TAIR_BANNER_IMAGE } from "../constants/tairDesign";
 import { shareInApp } from "../services/shareContent";
+import { openWhatsApp, toTel, toWhatsAppPhone } from "../utils/contactPhone";
 
-const API_BASE =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
-  process.env.EXPO_PUBLIC_BACKEND_URL ||
-  "";
+const API_BASE = API_URL || "";
 const resolveMediaUrl = (u) => {
   if (!u || typeof u !== "string") return "";
   if (u.startsWith("http") || u.startsWith("data:")) return u;
@@ -155,11 +153,26 @@ export default function SellerStorefrontScreen({
 
   const identity = profile.identity_color || TAIR_PALETTE.primary;
   const bannerSlides = Array.isArray(profile.banner_slides) ? profile.banner_slides : [];
+  const slideUrls = [];
+  const addSlide = (u) => {
+    const r = resolveMediaUrl(u);
+    if (r && !slideUrls.includes(r)) slideUrls.push(r);
+  };
+  addSlide(profile.profile_bg_url);
+  addSlide(profile.bg_image);
+  bannerSlides.forEach(addSlide);
+  const verifiedShop = !!(profile.is_verified_shop || profile.is_verified_merchant);
+  const scopes = Array.isArray(profile.moderator_scopes) ? profile.moderator_scopes : [];
+  const modBadges = scopes.includes("general")
+    ? [{ id: "general", label: "مشرف عام", icon: "shield-checkmark" }]
+    : [
+        scopes.includes("clinic_admin") || scopes.includes("clinic") ? { id: "clinic", label: "مشرف العيادة", icon: "medkit" } : null,
+        scopes.includes("market") ? { id: "market", label: "مشرف السوق", icon: "storefront" } : null,
+        scopes.includes("community") ? { id: "community", label: "مشرف المجتمع", icon: "people" } : null,
+      ].filter(Boolean);
   const highlights = Array.isArray(profile.highlights) ? profile.highlights : [];
-  const backgroundImage = profile.profile_bg_url || profile.bg_image; // full-page bg
-  const banner = bannerSlides[0];
   const rawPhone = profile.whatsapp || profile.phone;
-  const digits = rawPhone ? String(rawPhone).replace(/[^0-9]/g, "") : "";
+  const digits = toWhatsAppPhone(rawPhone);
   const prefs = profile.contact_prefs || { whatsapp: true, call: false, chat: true };
   const hours = profile.business_hours || [];
   const openToday = (() => {
@@ -173,37 +186,19 @@ export default function SellerStorefrontScreen({
     return { closed: false, open: row.open, close: row.close };
   })();
 
-  const openWhatsapp = async () => {
+  const openWhatsapp = () => {
     if (!digits) {
       return Alert.alert(
         "لا يوجد رقم",
         "لم يشارك البائع رقم واتساب. يمكنك التواصل عبر المحادثة الداخلية.",
       );
     }
-    // Try native WhatsApp scheme first — if the app is installed AND the
-    // number is registered on WhatsApp, this opens the chat instantly.
-    // Otherwise we fall through to wa.me which shows a friendly error page.
-    const msg = encodeURIComponent(`السلام عليكم، أنا مهتم بمتجرك: ${profile.name || ""}`);
-    const nativeUrl = `whatsapp://send?phone=${digits}&text=${msg}`;
-    const webUrl = `https://wa.me/${digits}?text=${msg}`;
-    try {
-      const canNative = await Linking.canOpenURL(nativeUrl);
-      if (canNative) {
-        return Linking.openURL(nativeUrl).catch(() => Linking.openURL(webUrl));
-      }
-    } catch {}
-    try {
-      await Linking.openURL(webUrl);
-    } catch {
-      Alert.alert(
-        "تعذّر فتح واتساب",
-        "قد يكون الرقم لا يستخدم واتساب أو أن التطبيق غير مثبّت على جهازك.",
-      );
-    }
+    openWhatsApp(rawPhone, `السلام عليكم، أنا مهتم بمتجرك: ${profile.name || ""}`);
   };
   const openCall = () => {
-    if (!digits) return Alert.alert("لا يوجد رقم", "لم يشارك البائع رقم اتصال.");
-    Linking.openURL(`tel:${digits}`).catch(() => Alert.alert("خطأ", "تعذّر إجراء الاتصال"));
+    const tel = toTel(rawPhone);
+    if (!tel) return Alert.alert("لا يوجد رقم", "لم يشارك البائع رقم اتصال.");
+    Linking.openURL(`tel:${tel}`).catch(() => Alert.alert("خطأ", "تعذّر إجراء الاتصال"));
   };
   const openChat = () => onContactSeller?.(profile.user_id, profile.name);
   const isOwnStore = !!viewerId && viewerId === userId;
@@ -213,14 +208,17 @@ export default function SellerStorefrontScreen({
       kind: "store",
       id: userId,
       title: profile.name || "متجر طير",
+      image: resolveMediaUrl(profile.logo_url || profile.profile_bg_url || profile.avatar),
       lines: [profile.city || profile.storefront_settings?.city || "متجر على طير"],
     });
   };
   const openMap = () => {
     const lat = profile.location?.lat;
     const lng = profile.location?.lng;
-    if (!lat || !lng) return Alert.alert("لا يوجد موقع", "لم يحدد البائع موقعاً على الخريطة.");
-    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`).catch(() =>
+    const place = profile.location?.city || profile.location?.address_label;
+    const query = lat && lng ? `${lat},${lng}` : place;
+    if (!query) return Alert.alert("لا يوجد موقع", "لم يحدد البائع مدينة المتجر.");
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`).catch(() =>
       Alert.alert("خطأ", "تعذّر فتح الخريطة"),
     );
   };
@@ -238,19 +236,13 @@ export default function SellerStorefrontScreen({
       >
         {/* ==== Hero banner — auto-sliding carousel OR profile background image ==== */}
         <BannerCarousel
-          slides={
-            bannerSlides.length > 0
-              ? bannerSlides.map(resolveMediaUrl).filter(Boolean)
-              : backgroundImage
-                ? [resolveMediaUrl(backgroundImage)]
-                : []
-          }
+          slides={slideUrls}
           identity={identity}
           height={260}
           hasBg={false}
         >
           <View style={s.bannerContent} pointerEvents="box-none">
-            <View style={[s.logoWrap, { borderColor: "#ffffff" }]}>
+            <View style={[s.logoWrap, verifiedShop && s.logoVerified, { borderColor: verifiedShop ? "#C6A15B" : "#ffffff" }]}>
               {profile.logo_url || profile.avatar ? (
                 <Image
                   source={{ uri: resolveMediaUrl(profile.logo_url || profile.avatar) }}
@@ -266,19 +258,30 @@ export default function SellerStorefrontScreen({
             </View>
             <Text style={s.bannerName} numberOfLines={1}>{profile.name}</Text>
             <View style={s.badgesRow}>
-              {profile.is_verified_shop && (
-                <Badge icon="storefront" text="متجر موثوق" color={identity} />
+              {verifiedShop && (
+                <Badge icon="shield-checkmark" text="متجر موثّق" solid />
               )}
+              {profile.is_admin && (
+                <Badge icon="ribbon" text="مدير طير" solid />
+              )}
+              {modBadges.map((b) => (
+                <Badge key={b.id} icon={b.icon} text={b.label} solid />
+              ))}
               {profile.is_verified_carrier && (
                 <Badge icon="car" text="موصل معتمد" color="#1B3D2F" />
               )}
-              {openToday && (
+              {profile.store_paused ? (
+                <Badge icon="pause-circle" text="المتجر متوقف" color="#8B3A2F" />
+              ) : openToday ? (
                 <Badge
                   icon={openToday.closed ? "close-circle" : "time"}
                   text={openToday.closed ? "مغلق اليوم" : `مفتوح ${openToday.open} - ${openToday.close}`}
                   color={openToday.closed ? "#8B3A2F" : "#059669"}
                 />
-              )}
+              ) : null}
+              {profile.response_promise ? (
+                <Badge icon="chatbubble-ellipses" text={`يرد ${profile.response_promise}`} color="#1B3D2F" />
+              ) : null}
             </View>
 
             {/* Follow button — brand-tinted glass pill */}
@@ -391,6 +394,18 @@ export default function SellerStorefrontScreen({
           </View>
         ) : null}
 
+        {profile.store_paused || profile.announcement ? (
+          <View style={[s.aboutCard, { borderColor: "#C6A15B55", backgroundColor: "#FFF8EC" }]}>
+            <View style={[s.aboutIconWrap, { backgroundColor: "#C6A15B22" }]}>
+              <Ionicons name={profile.store_paused ? "pause-circle" : "megaphone"} size={20} color="#8A6A2E" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.aboutTitle, { color: "#8A6A2E" }]}>{profile.store_paused ? "المتجر متوقف مؤقتاً" : "من المتجر"}</Text>
+              {profile.announcement ? <Text style={s.aboutText}>{profile.announcement}</Text> : null}
+            </View>
+          </View>
+        ) : null}
+
         {/* ==== KPI strip — merchant identity ==== */}
         <View style={s.kpiStrip}>
           <Kpi
@@ -443,13 +458,13 @@ export default function SellerStorefrontScreen({
         </View>
 
         {/* ==== Location / Pickup ==== */}
-        {(profile.location?.lat || profile.pickup_enabled) ? (
+        {(profile.location?.city || profile.location?.address_label || profile.location?.lat || profile.pickup_enabled) ? (
           <SectionCard icon="map-outline" title="الموقع والاستلام" color={identity}>
-            {profile.location?.lat ? (
+            {(profile.location?.city || profile.location?.address_label || profile.location?.lat) ? (
               <TouchableOpacity style={s.locRow} onPress={openMap} testID="seller-open-map">
                 <Ionicons name="location" size={18} color={identity} />
                 <View style={{ flex: 1 }}>
-                  <Text style={s.locLabel}>{profile.location.address_label || "افتح الموقع على الخريطة"}</Text>
+                  <Text style={s.locLabel}>{profile.location.city || profile.location.address_label || "افتح الموقع على الخريطة"}</Text>
                   <Text style={s.locHint}>اضغط لفتح خرائط قوقل</Text>
                 </View>
                 <Ionicons name="chevron-back" size={18} color="#8A7B66" />
@@ -466,6 +481,16 @@ export default function SellerStorefrontScreen({
                 </View>
               </View>
             ) : null}
+          </SectionCard>
+        ) : null}
+
+        {(profile.shipping_note || profile.return_note || profile.delivery_cities?.length) ? (
+          <SectionCard icon="cube-outline" title="التوصيل والاسترجاع" color={identity}>
+            {profile.delivery_cities?.length ? (
+              <Text style={s.locLabel}>التوصيل إلى: {profile.delivery_cities.join(" · ")}</Text>
+            ) : null}
+            {profile.shipping_note ? <Text style={s.pickupNote}>{profile.shipping_note}</Text> : null}
+            {profile.return_note ? <Text style={s.pickupNote}>{profile.return_note}</Text> : null}
           </SectionCard>
         ) : null}
 
@@ -511,6 +536,7 @@ export default function SellerStorefrontScreen({
                   <Text style={s.saleTitle}>{sale.title}</Text>
                   <Text style={s.saleMeta}>
                     ينتهي {new Date(sale.ends_at).toLocaleString("ar-SA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    {sale.listing_titles?.length ? ` • ${sale.listing_titles.slice(0, 2).join("، ")}` : ""}
                   </Text>
                 </View>
               </View>
@@ -525,11 +551,13 @@ export default function SellerStorefrontScreen({
               <TouchableOpacity
                 key={c.code || i}
                 activeOpacity={0.7}
-                onPress={() => {
+                onPress={async () => {
                   try {
-                    // Just show for now — copy is native module; alert works everywhere
-                    Alert.alert("كوبون خصم", `الكود: ${c.code}\nاستخدمه عند التواصل مع البائع.`);
-                  } catch {}
+                    await Clipboard.setStringAsync(String(c.code || ""));
+                    Alert.alert("تم نسخ الكوبون", `${c.code}\nاذكره عند التواصل مع البائع.`);
+                  } catch {
+                    Alert.alert("كوبون خصم", c.code);
+                  }
                 }}
                 style={[s.couponRow, { borderColor: identity + "40", backgroundColor: identity + "0F" }]}
               >
@@ -774,8 +802,8 @@ function BannerCarousel({ slides, identity, height = 260, hasBg, children }) {
           renderItem={({ item }) => (
             <ImageBackground
               source={{ uri: item }}
-              style={{ width: screenW, height }}
-              resizeMode="cover"
+              style={{ width: screenW, height, backgroundColor: "#0F241C" }}
+              resizeMode="contain"
             >
               <LinearGradient
                 colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.25)", "rgba(0,0,0,0.55)"]}
@@ -975,11 +1003,11 @@ function TopBar({ onBack, title, onShare, color }) {
   );
 }
 
-function Badge({ icon, text, color }) {
+function Badge({ icon, text, solid }) {
   return (
-    <View style={[s.badge, { borderColor: "rgba(255,255,255,0.4)" }]}>
-      <Ionicons name={icon} size={11} color="#fff" />
-      <Text style={s.badgeText}>{text}</Text>
+    <View style={[s.badge, solid ? s.badgeSolid : { borderColor: "rgba(255,255,255,0.4)" }]}>
+      <Ionicons name={icon} size={12} color={solid ? "#1B3D2F" : "#fff"} />
+      <Text style={[s.badgeText, solid && { color: "#1B3D2F" }]}>{text}</Text>
     </View>
   );
 }
@@ -1128,6 +1156,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   hvCaptionText: { color: "#fff", fontSize: 13, lineHeight: 20, textAlign: "right" },
+  logoVerified: { borderWidth: 3 },
   logoWrap: {
     width: 96, height: 96, borderRadius: 48,
     backgroundColor: "#fff",
@@ -1140,6 +1169,7 @@ const s = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.4)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3,
   },
   badgesRow: { flexDirection: "row-reverse", gap: 6, marginTop: 8, flexWrap: "wrap", justifyContent: "center" },
+  badgeSolid: { backgroundColor: "#C6A15B", borderColor: "#8A6A2E" },
   badge: {
     flexDirection: "row-reverse", alignItems: "center", gap: 4,
     backgroundColor: "rgba(15,36,28,0.55)",
@@ -1296,7 +1326,7 @@ const s = StyleSheet.create({
     backgroundColor: "#f0fdf4", borderWidth: 1, borderColor: "#a7f3d0",
     padding: 10, borderRadius: 10, marginTop: 10,
   },
-  pickupLabel: { fontSize: 12, color: "#065f46", fontWeight: "800", textAlign: "right" },
+  pickupLabel: { fontSize: 12, color: "#1B3D2F", fontWeight: "800", textAlign: "right" },
   pickupNote: { fontSize: 11, color: "#059669", marginTop: 3, textAlign: "right" },
 
   portfolioImg: { width: 130, height: 90, borderRadius: 10, backgroundColor: "#f1f5f9" },
@@ -1356,7 +1386,7 @@ const s = StyleSheet.create({
     backgroundColor: "#f0fdfa", borderWidth: 1, borderColor: "#a7f3d0",
     borderRadius: 12,
   },
-  safetyText: { flex: 1, color: "#065f46", fontSize: 11.5, lineHeight: 19, textAlign: "right" },
+  safetyText: { flex: 1, color: "#1B3D2F", fontSize: 11.5, lineHeight: 19, textAlign: "right" },
 
   tabs: {
     flexDirection: "row-reverse",

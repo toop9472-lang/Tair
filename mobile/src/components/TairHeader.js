@@ -5,11 +5,13 @@
  *  - وسط: صورة الهدر (طير + الشاشة)
  *  - أسفل: تدرّج تلاشي إلى الخلفية الكريمية
  */
-import React from "react";
-import { View, Image, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useEffect } from "react";
+import { View, Image, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { TAIR, TAIR_ELEVATION, TAIR_HEADERS } from "../constants/tairTheme";
+import { subscribeUnread } from "../services/unreadNotifications";
+import { HeaderSheen } from "./TairPolish";
 
 export default function TairHeader({
   variant = "market",
@@ -20,10 +22,14 @@ export default function TairHeader({
   hasUnreadMsgs = false,
   testID,
 }) {
+  const [unreadCount, setLocalCount] = React.useState(0);
+
+  useEffect(() => subscribeUnread(setLocalCount), []);
   const source = TAIR_HEADERS[variant] || TAIR_HEADERS.market;
   return (
     <View style={styles.wrap} testID={testID || `tair-header-${variant}`}>
       <Image source={source} style={styles.img} resizeMode="contain" />
+      <HeaderSheen />
 
       {/* تدرّج تلاشي إلى الخلفية الكريمية */}
       <LinearGradient
@@ -54,7 +60,11 @@ export default function TairHeader({
         testID="header-bell"
       >
         <Ionicons name="notifications" size={22} color={TAIR.gold} />
-        {hasUnread ? <View style={styles.unreadDot} /> : null}
+        {unreadCount > 0 ? (
+          <View style={styles.countBadge} testID="header-unread-count">
+            <Text style={styles.countText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+          </View>
+        ) : hasUnread ? <View style={styles.unreadDot} /> : null}
       </TouchableOpacity>
     </View>
   );
@@ -118,6 +128,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(198,161,91,0.55)",
+    zIndex: 12,
     ...TAIR_ELEVATION.card,
   },
   /* زر الرسائل — يُغطي الجرس المرسوم بالكامل على اليمين */
@@ -146,22 +157,37 @@ const styles = StyleSheet.create({
     backgroundColor: "#C4493A",
     borderWidth: 2, borderColor: TAIR.emerald,
   },
-  /* الجرس — صغير على اليسار ليبقى واضحاً مع الرسائل على اليمين */
+  /* دائرة معتمة تغطي الجرس المرسوم في يمين الهيدر بالكامل */
   bellHit: {
     position: "absolute",
-    top: "48%",
-    left: "4.5%",
-    width: "14%",
+    top: "45%",
+    left: "78%",
+    width: "18%",
     aspectRatio: 1,
     borderRadius: 999,
-    backgroundColor: "rgba(15,36,28,0.88)",
+    backgroundColor: "#1B3D2F",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
+    borderWidth: 3,
     borderColor: TAIR.gold,
-    zIndex: 10,
-    ...TAIR_ELEVATION.raised,
+    zIndex: 30,
+    elevation: 8,
   },
+  countBadge: {
+    position: "absolute",
+    top: -3,
+    left: -3,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 4,
+    backgroundColor: "#8B2E24",
+    borderWidth: 2,
+    borderColor: "#1B3D2F",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countText: { color: "#fff", fontSize: 11, fontWeight: "900" },
   unreadDot: {
     position: "absolute",
     top: "10%",

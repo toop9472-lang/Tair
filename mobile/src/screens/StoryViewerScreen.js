@@ -290,6 +290,7 @@ export default function StoryViewerScreen({ initialStoryId, onClose }) {
             kind: "story",
             id: sid,
             title: st.user_name ? `قصة ${st.user_name}` : "قصة على طير",
+            image: st.image_url || "",
             lines: st.caption ? [st.caption] : [],
           })}
           style={styles.actionBtn}

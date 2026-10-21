@@ -1,6 +1,6 @@
 // طير — Create Listing (Mobile) — Matches Web parity
 // Features: Family → Species hierarchy, video upload (15s max), cover badge on 1st image
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -18,12 +18,15 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { Video, ResizeMode } from "expo-av";
-import { listingsApi, speciesApi } from "../services/tairApi";
+import { listingsApi, profileApi, speciesApi } from "../services/tairApi";
 import api from "../services/api";
 import IdentifyBirdModal from "../components/IdentifyBirdModal";
 import { CityTriggerButton, CitySelectorSheet } from "../components/CitySelectorSheet";
+import { villagesFor } from "../constants/villages";
 import { ALL_LOCATIONS } from "../constants/saudiCities";
+import { categoryForFamily, groupFamilies } from "../constants/marketFamilies";
 import { TAIR } from "../constants/tairTheme";
+import { displayLocalPhone, savedContactPhone, toStoredPhone } from "../utils/contactPhone";
 
 const GENDERS = [
   { id: "male", label: "ذكر" },
@@ -47,6 +50,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [citySheetOpen, setCitySheetOpen] = useState(false);
+  const [villageSheetOpen, setVillageSheetOpen] = useState(false);
   const [familySheetOpen, setFamilySheetOpen] = useState(false);
   const [speciesSheetOpen, setSpeciesSheetOpen] = useState(false);
 
@@ -71,6 +75,12 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
     health: { status: "good", vaccinated: false, ring_number: "", notes: "" },
   });
 
+  useEffect(() => {
+    const saved = savedContactPhone(user);
+    if (!saved) return;
+    setForm((prev) => (prev.whatsapp ? prev : { ...prev, whatsapp: displayLocalPhone(saved) }));
+  }, [user]);
+
   // Load families once
   useEffect(() => {
     speciesApi.families()
@@ -91,7 +101,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
       .then((r) => {
         const items = r.items || [];
         setSpecies(items);
-        setForm((prev) => ({ ...prev, species: items[0]?.species_id || "" }));
+        setForm((prev) => ({ ...prev, species: items[0]?.species_id || "", breed: "" }));
       })
       .catch(() => setSpecies([]));
   }, [form.family]);
@@ -253,19 +263,14 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
       }
 
       const userId = user?.user_id || user?.id;
-      // Normalize WhatsApp to +966 format
-      const rawWa = (form.whatsapp || "").trim().replace(/[^\d+]/g, "");
-      let wa = null;
-      if (rawWa) {
-        if (rawWa.startsWith("+")) wa = rawWa;
-        else if (rawWa.startsWith("00")) wa = "+" + rawWa.slice(2);
-        else if (rawWa.startsWith("966")) wa = "+" + rawWa;
-        else if (rawWa.startsWith("0")) wa = "+966" + rawWa.slice(1);
-        else wa = "+966" + rawWa;
+      const typedWa = (form.whatsapp || "").trim();
+      const wa = typedWa ? toStoredPhone(typedWa) : null;
+      if (typedWa) {
+        profileApi.update(userId, { whatsapp: typedWa }).catch(() => {});
       }
       const payload = {
         title: form.title.trim(),
-        category: form.family === "hotel_services" ? "services" : "birds",
+        category: categoryForFamily(form.family),
         family: form.family,
         species: form.species || null,
         breed: form.breed.trim() || null,
@@ -313,6 +318,15 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
 
   const currentFamily = families.find((f) => f.family_id === form.family);
   const currentSpecies = species.find((s) => s.species_id === form.species);
+  const breedOptions = currentSpecies?.common_breeds || [];
+  const familyOptions = useMemo(
+    () =>
+      groupFamilies(families).flatMap((g) => [
+        { id: `group-${g.id}`, label: g.label, header: true },
+        ...g.items.map((f) => ({ id: f.family_id, label: f.name_ar })),
+      ]),
+    [families],
+  );
 
   return (
     <KeyboardAvoidingView
@@ -485,17 +499,33 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             </Field>
           </View>
 
-          <View style={{ flexDirection: "row-reverse", gap: 8 }}>
-            <Field label="السلالة" style={{ flex: 1 }}>
-              <TextInput
-                style={styles.input}
-                placeholder="ألماني"
-                placeholderTextColor="#8A7B66"
-                value={form.breed}
-                onChangeText={(v) => set("breed", v)}
-              />
-            </Field>
-            <Field label="العمر" style={{ flex: 1 }}>
+          <Field label="السلالة">
+            {breedOptions.length > 0 ? (
+              <View style={styles.breedRow}>
+                {breedOptions.map((b) => {
+                  const on = form.breed === b;
+                  return (
+                    <TouchableOpacity
+                      key={b}
+                      style={[styles.pill, on && styles.pillActive]}
+                      onPress={() => set("breed", on ? "" : b)}
+                    >
+                      <Text style={[styles.pillText, on && styles.pillTextActive]}>{b}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
+            <TextInput
+              style={styles.input}
+              placeholder="أو اكتب السلالة"
+              placeholderTextColor="#8A7B66"
+              value={form.breed}
+              onChangeText={(v) => set("breed", v)}
+            />
+          </Field>
+
+          <Field label="العمر">
               <View style={{ flexDirection: "row-reverse", gap: 6 }}>
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
@@ -519,8 +549,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
                   </TouchableOpacity>
                 ))}
               </View>
-            </Field>
-          </View>
+          </Field>
 
           <Field label="اللون">
             <TextInput
@@ -638,11 +667,11 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
           </View>
 
           {/* واتساب — بدون مفتاح الدولة */}
-          <Field label="رقم الواتساب (بدون مفتاح الدولة — نضيف +966 تلقائياً)">
+          <Field label="واتساب للتواصل — يُؤخذ من متجرك، وبلا مفتاح دولة">
             <TextInput
               style={styles.input}
               keyboardType="phone-pad"
-              placeholder="مثال: 0501234567"
+              placeholder="05xxxxxxxx"
               placeholderTextColor="#8A7B66"
               value={form.whatsapp}
               onChangeText={(v) => set("whatsapp", v)}
@@ -677,13 +706,21 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
             </Field>
           </View>
 
-          <Field label="الحي (اختياري)">
-            <TextInput
-              style={styles.input}
-              placeholder="حي النرجس"
-              placeholderTextColor="#8A7B66"
+          <Field label="القرية (اختياري)">
+            <CityTriggerButton
+              iconName="business"
+              iconColor="#1B3D2F"
+              label="القرية"
               value={form.district}
-              onChangeText={(v) => set("district", v)}
+              placeholder={form.city ? "اختر من القائمة" : "اختر المدينة أولاً"}
+              onPress={() => {
+                if (!form.city) {
+                  Alert.alert("المدينة", "اختر المدينة أولاً لتظهر قراها");
+                  return;
+                }
+                setVillageSheetOpen(true);
+              }}
+              testId="create-listing-village"
             />
           </Field>
         </View>
@@ -713,20 +750,31 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
         visible={citySheetOpen}
         title="اختر مدينة الإعلان"
         selected={form.city}
-        onSelect={(c) => set("city", c)}
+        onSelect={(c) => {
+          setForm((prev) => ({
+            ...prev,
+            city: c,
+            district: villagesFor(c).includes(prev.district) ? prev.district : "",
+          }));
+        }}
         onClose={() => setCitySheetOpen(false)}
+      />
+      <CitySelectorSheet
+        visible={villageSheetOpen}
+        title={form.city ? `قرى ${form.city}` : "اختر القرية"}
+        selected={form.district || null}
+        places={villagesFor(form.city)}
+        allowClear
+        searchPlaceholder="ابحث عن قرية…"
+        emptyLabel="لا توجد قرى مطابقة لهذه المدينة"
+        onSelect={(name) => set("district", name || "")}
+        onClose={() => setVillageSheetOpen(false)}
       />
 
       <PickerSheet
         visible={familySheetOpen}
         title="اختر الفئة"
-        options={[
-          ...families.map((f) => ({ id: f.family_id, label: f.name_ar })),
-          { id: "hotel_services", label: "🏨 خدمات فندقة الطيور" },
-          { id: "supplies", label: "🛒 مستلزمات" },
-          { id: "food", label: "🌾 أغذية" },
-          { id: "training", label: "🎓 تدريب" },
-        ]}
+        options={familyOptions}
         selected={form.family}
         onSelect={(id) => set("family", id)}
         onClose={() => setFamilySheetOpen(false)}
@@ -737,7 +785,7 @@ export default function CreateListingScreen({ user, onDone, onCancel }) {
         title="اختر النوع"
         options={species.map((s) => ({ id: s.species_id, label: s.name_ar }))}
         selected={form.species}
-        onSelect={(id) => set("species", id)}
+        onSelect={(id) => setForm((prev) => ({ ...prev, species: id, breed: "" }))}
         onClose={() => setSpeciesSheetOpen(false)}
       />
 
@@ -780,32 +828,36 @@ function PickerSheet({ visible, title, options, selected, onSelect, onClose }) {
             <Text style={styles.sheetTitle}>{title}</Text>
             <View style={{ width: 32 }} />
           </View>
-          <ScrollView style={{ maxHeight: 400 }}>
-            {options.map((o) => (
-              <TouchableOpacity
-                key={o.id}
-                style={[
-                  styles.sheetItem,
-                  selected === o.id && styles.sheetItemActive,
-                ]}
-                onPress={() => {
-                  onSelect(o.id);
-                  onClose();
-                }}
-              >
-                <Text
+          <ScrollView style={{ maxHeight: 480 }}>
+            {options.map((o) =>
+              o.header ? (
+                <Text key={o.id} style={styles.sheetGroup}>{o.label}</Text>
+              ) : (
+                <TouchableOpacity
+                  key={o.id}
                   style={[
-                    styles.sheetItemText,
-                    selected === o.id && styles.sheetItemTextActive,
+                    styles.sheetItem,
+                    selected === o.id && styles.sheetItemActive,
                   ]}
+                  onPress={() => {
+                    onSelect(o.id);
+                    onClose();
+                  }}
                 >
-                  {o.label}
-                </Text>
-                {selected === o.id && (
-                  <Ionicons name="checkmark-circle" size={18} color="#1B3D2F" />
-                )}
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.sheetItemText,
+                      selected === o.id && styles.sheetItemTextActive,
+                    ]}
+                  >
+                    {o.label}
+                  </Text>
+                  {selected === o.id && (
+                    <Ionicons name="checkmark-circle" size={18} color="#1B3D2F" />
+                  )}
+                </TouchableOpacity>
+              ),
+            )}
           </ScrollView>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -898,6 +950,7 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: "#1B3D2F", borderColor: "#C6A15B" },
   pillText: { color: "#6B5E4A", fontWeight: "700", fontSize: 12.5 },
   pillTextActive: { color: "#C6A15B", fontWeight: "900" },
+  breedRow: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 6, marginBottom: 8 },
 
   imagesGrid: {
     flexDirection: "row-reverse",
@@ -1081,6 +1134,15 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   sheetTitle: { fontSize: 15, fontWeight: "900", color: "#0F241C" },
+  sheetGroup: {
+    textAlign: "right",
+    color: "#8A6A2E",
+    fontSize: 12,
+    fontWeight: "800",
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 4,
+  },
   sheetItem: {
     flexDirection: "row-reverse",
     alignItems: "center",

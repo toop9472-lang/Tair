@@ -7,6 +7,8 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
+
+from services.moderation import moderator_scopes
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -44,18 +46,75 @@ async def _is_admin_or_mod(user_id: str, scope: str = "clinic") -> bool:
     )
     if u and (u.get("is_admin") or u.get("role") in ("admin", "super_admin")):
         return True
-    m = await db.tair_moderators.find_one(
-        {"$or": [{"user_id": user_id}, {"email": user_id}]},
-        {"_id": 0, "scopes": 1},
+    scopes = await moderator_scopes(db, user_id)
+    return scope in scopes or "general" in scopes or "clinic_admin" in scopes
+
+
+async def _identity_keys(user_id: str) -> set:
+    keys = {user_id} if user_id else set()
+    if not user_id:
+        return keys
+    user = await db.users.find_one(
+        {"$or": [{"id": user_id}, {"user_id": user_id}, {"email": user_id}]},
+        {"_id": 0, "id": 1, "user_id": 1, "email": 1},
     )
-    if not m:
-        return False
-    scopes = m.get("scopes") or []
-    return (
-        scope in scopes
-        or "general" in scopes
-        or "clinic_admin" in scopes
-    )
+    if user:
+        for key in ("id", "user_id", "email"):
+            if user.get(key):
+                keys.add(user[key])
+    return keys
+
+
+async def _clinic_staff_ids() -> list:
+    """مشرفو العيادة ومديرها والمشرف العام والمدير. التنبيه يصلهم داخل التطبيق وعلى الجوال."""
+    ids = []
+    async for mod in db.tair_moderators.find({}, {"_id": 0, "user_id": 1, "scopes": 1}):
+        scopes = mod.get("scopes") or []
+        if isinstance(scopes, str):
+            scopes = [scopes]
+        if any(s in scopes for s in ("clinic", "clinic_admin", "general")) and mod.get("user_id"):
+            ids.append(mod["user_id"])
+    async for admin in db.admins.find({}, {"_id": 0, "id": 1, "user_id": 1, "email": 1}):
+        uid = admin.get("user_id") or admin.get("id") or admin.get("email")
+        if uid:
+            ids.append(uid)
+    async for user in db.users.find(
+        {"$or": [{"is_admin": True}, {"role": {"$in": ["admin", "super_admin"]}}]},
+        {"_id": 0, "id": 1, "user_id": 1, "email": 1},
+    ):
+        uid = user.get("user_id") or user.get("id") or user.get("email")
+        if uid:
+            ids.append(uid)
+    return ids
+
+
+async def _notify_people(raw_ids, exclude_ids, title, body, notif_type, data):
+    blocked = set()
+    for eid in exclude_ids or []:
+        blocked |= await _identity_keys(eid)
+    sent = set()
+    try:
+        from routes.tair_notifications_routes import create_tair_notification
+    except Exception as exc:
+        logger.warning("clinic notify import failed: %s", exc)
+        return
+    for uid in raw_ids or []:
+        if not uid or uid == "clinic_bot":
+            continue
+        keys = await _identity_keys(uid)
+        if keys & blocked or keys & sent:
+            continue
+        sent |= keys
+        try:
+            await create_tair_notification(
+                user_id=uid,
+                title=title,
+                body=body,
+                notif_type=notif_type,
+                data=data,
+            )
+        except Exception as exc:
+            logger.warning("clinic notify failed for %s: %s", uid, exc)
 
 
 # ============== CLINIC BOT TOGGLE ==============
@@ -119,8 +178,10 @@ async def _enrich_topic(t: dict):
             {"$or": [{"user_id": uid}, {"email": uid}, {"id": uid}]},
             {"_id": 0, "name": 1, "avatar": 1, "profile_image": 1},
         ) or {}
-        if not t.get("user_name") or t.get("user_name") == "مستخدم":
-            t["user_name"] = u.get("name") or t.get("user_name") or "مستخدم"
+        if u.get("name"):
+            t["user_name"] = u["name"]
+        elif not t.get("user_name"):
+            t["user_name"] = "عضو"
         if not t.get("user_avatar"):
             t["user_avatar"] = u.get("avatar") or u.get("profile_image")
     return t
@@ -128,7 +189,12 @@ async def _enrich_topic(t: dict):
 
 @router.get("/topics")
 async def list_topics(limit: int = Query(30, le=100), skip: int = 0):
-    cursor = db.tair_clinic_topics.find({"status": {"$ne": "deleted"}}).sort("created_at", -1).skip(skip).limit(limit)
+    cursor = (
+        db.tair_clinic_topics.find({"status": {"$ne": "deleted"}})
+        .sort([("updated_at", -1), ("created_at", -1)])
+        .skip(skip)
+        .limit(limit)
+    )
     items = [_clean(d) async for d in cursor]
     for t in items:
         await _enrich_topic(t)
@@ -165,11 +231,23 @@ async def create_topic(payload: Topic, user_id: str = Query(...)):
         "user_name": (user or {}).get("name") or "مستخدم",
         "user_avatar": (user or {}).get("avatar") or (user or {}).get("profile_image"),
         "created_at": _now(),
+        "updated_at": _now(),
         "replies_count": 0,
         "views_count": 0,
         "status": "open",
     })
     await db.tair_clinic_topics.insert_one(data)
+    try:
+        await _notify_people(
+            await _clinic_staff_ids(),
+            [user_id],
+            "موضوع جديد في العيادة",
+            f"{data['user_name']}: {payload.title}",
+            "clinic_topic",
+            {"topic_id": tid},
+        )
+    except Exception as exc:
+        logger.warning("clinic topic notify failed: %s", exc)
 
     # 🤖 Auto-reply from Clinic Bot (if enabled by admins)
     try:
@@ -215,7 +293,18 @@ async def create_topic(payload: Topic, user_id: str = Query(...)):
         await db.tair_clinic_replies.insert_one(bot_reply_doc)
         await db.tair_clinic_topics.update_one(
             {"topic_id": tid},
-            {"$inc": {"replies_count": 1}},
+            {"$inc": {"replies_count": 1}, "$set": {"updated_at": _now()}},
+        )
+        preview = (bot_result.get("reply") or "").strip().replace("\n", " ")
+        if len(preview) > 90:
+            preview = preview[:87] + "..."
+        await _notify_people(
+            [user_id],
+            [],
+            "رد أولي من بوت العيادة",
+            preview or "وصل رد أولي على موضوعك. انتظر تأكيد المشرف.",
+            "clinic_reply",
+            {"topic_id": tid},
         )
     except Exception as e:
         logger.warning("Clinic bot failed to post initial reply: %s", e)
@@ -284,6 +373,7 @@ async def create_reply(topic_id: str, payload: Reply, user_id: str = Query(...))
         {"_id": 0, "name": 1, "avatar": 1, "profile_image": 1},
     )
     rid = f"crep_{uuid.uuid4().hex[:12]}"
+    reply_text = payload.text.strip()
     await db.tair_clinic_replies.insert_one({
         "reply_id": rid,
         "topic_id": topic_id,
@@ -291,11 +381,51 @@ async def create_reply(topic_id: str, payload: Reply, user_id: str = Query(...))
         "user_name": (user or {}).get("name") or "مستخدم",
         "user_avatar": (user or {}).get("avatar") or (user or {}).get("profile_image"),
         "is_moderator": is_mod,
-        "text": payload.text.strip(),
+        "text": reply_text,
         "images": payload.images or [],
         "created_at": _now(),
     })
-    await db.tair_clinic_topics.update_one({"topic_id": topic_id}, {"$inc": {"replies_count": 1}})
+    if is_mod:
+        try:
+            from services.clinic_assist import case_tokens, lesson_text
+            learned = lesson_text(reply_text)
+            if learned:
+                await db.tair_clinic_lessons.insert_one({
+                    "lesson_id": f"cles_{uuid.uuid4().hex[:12]}",
+                    "topic_id": topic_id,
+                    "reply_id": rid,
+                    "moderator_id": user_id,
+                    "title": (t.get("title") or "")[:160],
+                    "text": learned,
+                    "tokens": case_tokens(t)[:16],
+                    "created_at": _now(),
+                })
+        except Exception as exc:
+            logger.warning("clinic lesson save failed: %s", exc)
+    await db.tair_clinic_topics.update_one(
+        {"topic_id": topic_id},
+        {"$inc": {"replies_count": 1}, "$set": {"updated_at": _now()}},
+    )
+    try:
+        preview = payload.text.strip().replace("\n", " ")
+        if len(preview) > 90:
+            preview = preview[:87] + "..."
+        name = (user or {}).get("name") or "مشرف"
+        title = (t.get("title") or "موضوع").strip()
+        recipients = await _clinic_staff_ids()
+        owner = t.get("user_id")
+        if owner:
+            recipients.append(owner)
+        await _notify_people(
+            recipients,
+            [user_id],
+            "رد جديد في العيادة",
+            f"{name} على {title}: {preview}",
+            "clinic_reply",
+            {"topic_id": topic_id},
+        )
+    except Exception as exc:
+        logger.warning("clinic reply notify failed: %s", exc)
     return {"success": True, "reply_id": rid, "is_moderator": is_mod}
 
 
@@ -376,50 +506,70 @@ async def ai_assist(topic_id: str, user_id: str = Query(...)):
     if not topic:
         raise HTTPException(404, "الموضوع غير موجود")
 
-    # 1) Simple keyword-based matching for library/similar topics (fast, no LLM)
-    text = " ".join(filter(None, [
-        topic.get("title"), topic.get("description"),
-        topic.get("q_lethargy"), topic.get("q_appetite"), topic.get("q_mouth_droppings"),
-    ])).strip()
-    # Extract key Arabic words (simple)
-    words = [w for w in text.split() if len(w) > 2]
-    seen = set()
-    keywords = []
-    for w in words[:30]:
-        if w not in seen:
-            seen.add(w); keywords.append(w)
-    # Library matches by title/desc/tags regex
-    lib_matches = []
-    if keywords:
-        regex = "|".join(keywords[:8])
-        async for d in db.tair_clinic_library.find({
-            "$or": [
-                {"title": {"$regex": regex, "$options": "i"}},
-                {"description": {"$regex": regex, "$options": "i"}},
-                {"tags": {"$in": keywords}},
-            ]
-        }).limit(3):
-            lib_matches.append(_clean(d))
-    # Similar past topics
-    similar = []
-    if keywords:
-        regex = "|".join(keywords[:8])
-        async for d in db.tair_clinic_topics.find({
-            "topic_id": {"$ne": topic_id},
-            "$or": [
-                {"title": {"$regex": regex, "$options": "i"}},
-                {"description": {"$regex": regex, "$options": "i"}},
-            ],
-        }).sort("replies_count", -1).limit(3):
+    from services.clinic_assist import (
+        PRIORITY_LABEL, case_alerts, case_tokens, compose_note, lesson_text,
+        priority_level, rank_items, safe_query_tokens,
+    )
+    tokens = case_tokens(topic)
+    query_tokens = safe_query_tokens(tokens)
+    regex = "|".join(query_tokens) if query_tokens else ""
+
+    def _finder(fields):
+        if not regex:
+            return None
+        return {"$or": [{field: {"$regex": regex, "$options": "i"}} for field in fields]}
+
+    lib_raw = []
+    lib_query = _finder(("title", "description"))
+    if lib_query:
+        async for d in db.tair_clinic_library.find(lib_query).limit(20):
+            lib_raw.append(_clean(d))
+    lib_matches = rank_items(
+        tokens, lib_raw,
+        lambda row: f"{row.get('title') or ''} {row.get('description') or ''} {' '.join(row.get('tags') or [])}",
+        limit=3, min_score=6,
+    )
+
+    similar_raw = []
+    topic_query = _finder(("title", "description"))
+    if topic_query:
+        topic_query = {"topic_id": {"$ne": topic_id}, **topic_query}
+        async for d in db.tair_clinic_topics.find(topic_query).sort("replies_count", -1).limit(16):
             d2 = _clean(d)
-            # Attach top reply if any
             top_reply = await db.tair_clinic_replies.find_one(
                 {"topic_id": d2.get("topic_id"), "is_moderator": True},
                 sort=[("created_at", 1)],
             )
             if top_reply:
-                d2["mod_reply_preview"] = (top_reply.get("text") or "")[:220]
-            similar.append(d2)
+                d2["mod_reply_preview"] = lesson_text(top_reply.get("text") or "")[:220]
+            similar_raw.append(d2)
+    similar = rank_items(
+        tokens, similar_raw,
+        lambda row: f"{row.get('title') or ''} {row.get('description') or ''} {row.get('mod_reply_preview') or ''}",
+        limit=3, min_score=6,
+    )
+
+    learned_raw = []
+    lesson_query = _finder(("title", "text"))
+    if lesson_query:
+        lesson_query = {"topic_id": {"$ne": topic_id}, **lesson_query}
+        async for d in db.tair_clinic_lessons.find(lesson_query).sort("created_at", -1).limit(30):
+            row = _clean(d)
+            row["text"] = lesson_text(row.get("text") or "")
+            if row["text"]:
+                learned_raw.append(row)
+    learned = rank_items(
+        tokens, learned_raw,
+        lambda row: f"{row.get('title') or ''} {row.get('text') or ''} {' '.join(row.get('tokens') or [])}",
+        limit=4, min_score=8,
+    )
+    mod_reply = await db.tair_clinic_replies.find_one(
+        {"topic_id": topic_id, "is_moderator": True, "user_id": {"$ne": "clinic_bot"}},
+        {"_id": 1},
+    )
+    has_mod_reply = bool(mod_reply)
+    alerts = case_alerts(topic, has_mod_reply=has_mod_reply)
+    level = priority_level(topic, has_mod_reply=has_mod_reply)
 
     # 2) AI drafted reply using Gemini
     suggested_reply = ""
@@ -438,22 +588,26 @@ async def ai_assist(topic_id: str, user_id: str = Query(...)):
                 f"- حالة سابقة: {x.get('title')} → رد المشرف: {x.get('mod_reply_preview', '—')[:200]}"
                 for x in similar
             ) or "لا توجد حالات مشابهة"
+            learned_ctx = "\n".join(
+                f"- {x.get('title')}: {x.get('text', '')[:240]}"
+                for x in learned
+            ) or "لا توجد ردود مشرفين محفوظة لحالة قريبة"
             from services.clinic_bot import match_entries
             kb_hits = match_entries(
                 f"{topic.get('title') or ''}\n{topic.get('description') or ''}",
                 top_n=3,
             )
             kb_ctx = "\n".join(
-                f"- {e.get('name_ar')} ({e.get('name_en')}): {(e.get('definition') or '')[:220]} | افعل: {(e.get('action') or '')}"
+                f"- {e.get('name_ar')} ({e.get('name_en')}): {(e.get('definition') or '')[:220]}"
                 for _, e in kb_hits
             ) or "لا توجد بطاقة مطابقة"
-            prompt = f"""أنت مساعد لمشرف عيادة طير. اكتب رداً مقترحاً بالعربية الواضحة.
-الرد:
+            prompt = f"""أنت مساعد لمشرف عيادة طير. اكتب ملاحظة قصيرة بالعربية يراجعها المشرف قبل الإرسال.
+القواعد:
 - من 4 إلى 8 أسطر
-- مبني على بطاقات العيادة إن وُجدت، بلا اختراع مرض
-- بلا جرعات وبلا مليغرام وبلا شرح مخبري لزرع الممرض
-- تشخيص مبدئي فقط، ويطلب تأكيد المشرف
-- إن كانت الحالة تنفسية شديدة أو النفوق جماعياً فابدأ بالعزل والإبلاغ
+- ابنِ الملاحظة على ردود المشرفين السابقة إن وُجدت، ولا تخترع حالة
+- بلا جرعات وبلا مليغرام وبلا شرح مخبري
+- لا تكتب خطة علاج. سمّها ملاحظة للمراجعة
+- اختم بأن المشرف يراجع الملاحظة قبل إرسالها لصاحب الحالة
 
 عنوان الحالة: {topic.get('title')}
 
@@ -468,26 +622,40 @@ async def ai_assist(topic_id: str, user_id: str = Query(...)):
 
 حالات مشابهة سابقة:
 {sim_ctx}
+
+ردود المشرفين على حالات قريبة:
+{learned_ctx}
 """
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"clinic_ai_{topic_id}",
-                system_message="أنت مساعد مشرف عيادة طير. تلخّص المعرفة البيطرية التعليمية بالعربية بلا جرعات وبلا طرق زرع.",
+                system_message="أنت مساعد مشرف عيادة طير. تكتب ملاحظة للمراجعة بالعربية بلا جرعات وبلا طرق زرع وبلا خطة علاج.",
             ).with_model("gemini", "gemini-3-flash-preview")
             resp = await chat.send_message(UserMessage(text=prompt))
-            suggested_reply = (resp or "").strip()[:1800]
-            if not suggested_reply:
+            suggested_reply = lesson_text((resp or "").strip()) or ""
+            if len((resp or "").strip()) >= 12 and not suggested_reply:
+                ai_error = "الملاحظة أُزيلت لأنها احتوت جرعة أو شرحاً مخبرياً"
+            elif not suggested_reply:
                 ai_error = "النموذج أعاد رداً فارغاً"
     except Exception as e:
         logger.warning("AI assist failed for topic %s: %s", topic_id, e)
         ai_error = f"{type(e).__name__}: {str(e)[:200]}"
         suggested_reply = ""
 
+    if not suggested_reply:
+        suggested_reply = compose_note(topic, learned[0]["text"] if learned else "")
+        if suggested_reply:
+            ai_error = None
+
     return {
         "library_matches": lib_matches,
         "similar_topics": similar,
+        "learned_replies": learned,
+        "alerts": alerts,
+        "priority": level,
+        "priority_label": PRIORITY_LABEL.get(level, ""),
         "suggested_reply": suggested_reply,
-        "keywords": keywords[:10],
+        "keywords": tokens[:10],
         "ai_error": ai_error,
     }
 

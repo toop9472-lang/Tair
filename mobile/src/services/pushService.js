@@ -21,6 +21,16 @@ export async function registerForPushNotifications(userId) {
     finalStatus = status;
   }
   if (finalStatus !== "granted") return null;
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "الإشعارات",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#1B3D2F",
+      sound: "default",
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility?.PUBLIC ?? 1,
+    }).catch(() => null);
+  }
   try {
     const t = await Notifications.getExpoPushTokenAsync({
       projectId: "2a08ac90-1772-4377-bf99-af5d2357db30",
@@ -30,14 +40,6 @@ export async function registerForPushNotifications(userId) {
       await storefrontApi
         .registerPushToken(userId, token, Platform.OS)
         .catch(() => null);
-    }
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "default",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#1B3D2F",
-      });
     }
     return token;
   } catch (e) {

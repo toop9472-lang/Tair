@@ -109,14 +109,39 @@ export const tripsApi = {
   get: (id) => req(`/api/trips/${id}`),
   byCarrier: (carrierId, includeCompleted = false) =>
     req(`/api/trips/carrier/${carrierId}?include_completed=${includeCompleted}`),
-  updateStatus: (id, userId, status, note) =>
+  book: (id, userId) =>
+    req(`/api/trips/${id}/book?user_id=${encodeURIComponent(userId)}`, {
+      method: "POST",
+    }),
+  updateStatus: (id, userId, status, note, extra = {}) =>
     req(`/api/trips/${id}/status?user_id=${encodeURIComponent(userId)}`, {
       method: "PATCH",
-      body: JSON.stringify({ status, note }),
+      body: JSON.stringify({ status, note, motion: extra.motion, stop_index: extra.stop_index }),
+    }),
+  shareLocation: (id, userId, lat, lng) =>
+    req(`/api/trips/${id}/location?user_id=${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ lat, lng }),
     }),
   cancel: (id, userId) =>
     req(`/api/trips/${id}?user_id=${encodeURIComponent(userId)}`, {
       method: "DELETE",
+    }),
+  listRequests: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ""),
+    ).toString();
+    return req(`/api/trips/requests${qs ? `?${qs}` : ""}`);
+  },
+  createRequest: (userId, payload) =>
+    req(`/api/trips/requests?user_id=${encodeURIComponent(userId)}`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateRequestStatus: (id, userId, status, note) =>
+    req(`/api/trips/requests/${id}/status?user_id=${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, note: note || null }),
     }),
 };
 
@@ -222,6 +247,14 @@ export const storefrontApi = {
   createCoupon: (userId, payload) =>
     req(`/api/storefront/coupons?user_id=${encodeURIComponent(userId)}`, {
       method: "POST", body: JSON.stringify(payload),
+    }),
+  setCouponActive: (userId, code, active) =>
+    req(`/api/storefront/coupons/${encodeURIComponent(code)}?user_id=${encodeURIComponent(userId)}`, {
+      method: "PATCH", body: JSON.stringify({ active }),
+    }),
+  deleteCoupon: (userId, code) =>
+    req(`/api/storefront/coupons/${encodeURIComponent(code)}?user_id=${encodeURIComponent(userId)}`, {
+      method: "DELETE",
     }),
   updateInventory: (userId, payload) =>
     req(`/api/storefront/inventory?user_id=${encodeURIComponent(userId)}`, {
@@ -459,8 +492,29 @@ export const sellerRatingsApi = {
 export const tairNotificationsApi = {
   list: async (userId, limit = 50) =>
     req(`/api/tair-notifications/list?user_id=${encodeURIComponent(userId)}&limit=${limit}`),
+  markRead: async (notifId, userId) =>
+    req(`/api/tair-notifications/${encodeURIComponent(notifId)}/read?user_id=${encodeURIComponent(userId)}`, { method: "POST" }),
   readAll: async (userId) =>
     req(`/api/tair-notifications/read-all?user_id=${encodeURIComponent(userId)}`, { method: "POST" }),
+};
+
+export const listingWatchApi = {
+  list: async (userId) =>
+    req(`/api/listing-watches?user_id=${encodeURIComponent(userId)}`),
+  create: async (userId, payload) =>
+    req(`/api/listing-watches?user_id=${encodeURIComponent(userId)}`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+    }),
+  update: async (userId, watchId, payload) =>
+    req(`/api/listing-watches/${encodeURIComponent(watchId)}?user_id=${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+    }),
+  remove: async (userId, watchId) =>
+    req(`/api/listing-watches/${encodeURIComponent(watchId)}?user_id=${encodeURIComponent(userId)}`, { method: "DELETE" }),
 };
 
 export const clinicTopicsApi = {

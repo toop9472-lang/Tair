@@ -98,7 +98,7 @@ const AdminSettings = () => {
     email_enabled: false,
     resend_api_key: '',
     sender_email: 'onboarding@resend.dev',
-    sender_name: 'صقر Saqr',
+    sender_name: 'طير',
     send_welcome_email: true,
     send_withdrawal_notifications: true,
     send_ad_notifications: true
@@ -574,7 +574,7 @@ const AdminSettings = () => {
                     <Input
                       value={emailSettings.sender_name}
                       onChange={(e) => setEmailSettings(prev => ({ ...prev, sender_name: e.target.value }))}
-                      placeholder="صقر Saqr"
+                      placeholder="طير"
                     />
                   </div>
                   <div>

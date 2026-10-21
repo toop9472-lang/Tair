@@ -9,9 +9,12 @@ from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form, Dep
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from models.listing import Listing, ListingCreate, ListingUpdate
+from models.places import city_match_values
+from models.species import family_match, listing_category
 from models.listing_comment import ListingComment, ListingCommentCreate
 from services.r2_storage import r2
 from auth.actor import require_actor
+from services.moderation import moderator_scopes
 
 router = APIRouter(prefix="/listings", tags=["Tair-Listings"])
 
@@ -72,6 +75,9 @@ async def create_listing(payload: ListingCreate, user_id: str = Query(...), acto
 
     listing_id = f"lst_{uuid.uuid4().hex[:12]}"
     payload_dict = payload.model_dump()
+    mapped = listing_category(payload_dict.get("family"))
+    if mapped:
+        payload_dict["category"] = mapped
     if not payload_dict.get("cover_image"):
         imgs = payload_dict.get("images") or []
         payload_dict["cover_image"] = imgs[0] if imgs else None
@@ -94,6 +100,25 @@ async def create_listing(payload: ListingCreate, user_id: str = Query(...), acto
     )
     doc = listing.model_dump()
     await db.listings.insert_one(doc)
+    try:
+        from services.listing_watch_notify import notify_listing_watches
+        await notify_listing_watches(db, doc)
+    except Exception as exc:
+        print(f"[listing watch] {exc}")
+    try:
+        from services.moderation import notify_staff
+        title = (payload.title or "إعلان").strip()
+        await notify_staff(
+            db,
+            {"market"},
+            [user_id],
+            "إعلان جديد في السوق",
+            f"{payload.city}: {title}",
+            "listing_new",
+            {"listing_id": listing_id},
+        )
+    except Exception as exc:
+        print(f"[listing notify] {exc}")
     return _serialize(doc)
 
 
@@ -111,27 +136,24 @@ async def feed_listings(
     skip: int = 0,
 ):
     query: dict = {"status": "active", "is_flagged": False}
+    filters = []
     if city:
-        query["city"] = city
+        names = city_match_values(city)
+        filters.append({"$or": [{"city": {"$in": names}}, {"district": {"$in": names}}]})
     if category:
         query["category"] = category
     if species:
         query["species"] = species
     if family:
-        # Match either listings tagged directly with this family, OR listings whose species is in this family.
+        aliases, seed_ids = family_match(family)
         fam_species = await db.species_catalog.find(
-            {"family": family}, {"_id": 0, "species_id": 1}
+            {"family": {"$in": aliases}}, {"_id": 0, "species_id": 1}
         ).to_list(500)
-        species_ids = [s["species_id"] for s in fam_species]
-        family_clauses = [{"family": family}]
+        species_ids = list({*seed_ids, *(s["species_id"] for s in fam_species)})
+        family_clauses = [{"family": {"$in": aliases}}]
         if species_ids:
             family_clauses.append({"species": {"$in": species_ids}})
-        # Compose with any existing $and clauses safely.
-        existing_or = query.pop("$or", None)
-        if existing_or:
-            query["$and"] = [{"$or": existing_or}, {"$or": family_clauses}]
-        else:
-            query["$or"] = family_clauses
+        filters.append({"$or": family_clauses})
     if min_price is not None or max_price is not None:
         query["price_sar"] = {}
         if min_price is not None:
@@ -139,10 +161,14 @@ async def feed_listings(
         if max_price is not None:
             query["price_sar"]["$lte"] = max_price
     if q:
-        query["$or"] = [
+        filters.append({"$or": [
             {"title": {"$regex": q, "$options": "i"}},
             {"description": {"$regex": q, "$options": "i"}},
-        ]
+            {"district": {"$regex": q, "$options": "i"}},
+            {"city": {"$regex": q, "$options": "i"}},
+        ]})
+    if filters:
+        query.setdefault("$and", []).extend(filters)
 
     cursor = (
         db.listings.find(query).sort("posted_at", -1).skip(skip).limit(min(limit, 100))
@@ -250,6 +276,12 @@ async def update_listing(
 
     await db.listings.update_one({"listing_id": listing_id}, {"$set": updates})
     fresh = await db.listings.find_one({"listing_id": listing_id})
+    if fresh and fresh.get("status") == "active":
+        try:
+            from services.listing_watch_notify import notify_listing_watches
+            await notify_listing_watches(db, fresh)
+        except Exception as exc:
+            print(f"[listing watch] {exc}")
     return _serialize(fresh)
 
 
@@ -294,6 +326,13 @@ async def unmark_listing_sold(listing_id: str, user_id: str = Query(...), actor:
         {"listing_id": doc.get("listing_id")},
         {"$set": {"status": "active", "updated_at": now}, "$unset": {"sold_at": ""}},
     )
+    fresh = await db.listings.find_one({"listing_id": doc.get("listing_id")})
+    if fresh:
+        try:
+            from services.listing_watch_notify import notify_listing_watches
+            await notify_listing_watches(db, fresh)
+        except Exception as exc:
+            print(f"[listing watch] {exc}")
     return {"success": True}
 
 
@@ -330,17 +369,9 @@ async def delete_listing(listing_id: str, user_id: str = Query(...), actor: str 
             elif user.get("email"):
                 admin = await db.admins.find_one({"email": user["email"]}, {"_id": 0, "id": 1})
     if not is_owner and not admin:
-        # Also allow moderators with 'market' or 'general' scope
-        try:
-            m = await db.tair_moderators.find_one(
-                {"$or": [{"user_id": user_id}, {"email": user_id}]},
-                {"_id": 0, "scopes": 1},
-            )
-            scopes = (m or {}).get("scopes") or []
-            if "market" in scopes or "general" in scopes:
-                admin = {"id": user_id, "moderator": True}
-        except Exception:
-            pass
+        scopes = await moderator_scopes(db, user_id)
+        if "market" in scopes or "general" in scopes:
+            admin = {"id": user_id, "moderator": True}
     if not is_owner and not admin:
         raise HTTPException(403, "Not authorized")
     if admin:

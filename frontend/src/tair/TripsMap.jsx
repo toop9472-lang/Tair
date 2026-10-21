@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 import { Truck, MapPin, Calendar } from "lucide-react";
 import { T } from "./tairTheme";
 import { coordsFor, SAUDI_CENTER, SAUDI_ZOOM } from "./saudiCityCoords";
+import { journeyState, vehiclePosition } from "./tripJourney";
 
 // Fix Leaflet's default icon path (breaks in webpack builds)
 delete L.Icon.Default.prototype._getIconUrl;
@@ -30,8 +31,10 @@ const makeDivIcon = (bg) =>
     iconAnchor: [15, 15],
   });
 
-const fromIcon = makeDivIcon("#0f766e");
-const toIcon = makeDivIcon("#ec4899");
+const fromIcon = makeDivIcon("#1B3D2F");
+const stopIcon = makeDivIcon("#C6A15B");
+const toIcon = makeDivIcon("#1B3D2F");
+const vehicleIcon = makeDivIcon("#C6A15B");
 
 // Auto-fit the map to a set of coordinates whenever they change.
 function FitBounds({ positions, focusedRoute }) {
@@ -62,19 +65,30 @@ export default function TripsMap({
     const allPositions = [];
 
     for (const t of trips) {
-      const a = coordsFor(t.from_city);
-      const b = coordsFor(t.to_city);
-      if (!a || !b) continue;
-
+      const journey = journeyState(t);
+      const placed = journey.cities
+        .map((name, index) => ({ name, index, pos: coordsFor(name) }))
+        .filter((point) => point.pos);
+      if (placed.length < 2) continue;
+      const positions = placed.map((point) => point.pos);
+      const spot = vehiclePosition(t, journey, placed);
       routes.push({
         id: t.trip_id,
         trip: t,
-        positions: [a, b],
+        positions,
+        done: placed.filter((point) => point.index <= journey.stopIndex).map((point) => point.pos),
+        rest: placed.filter((point) => point.index >= journey.stopIndex).map((point) => point.pos),
+        marker: spot.pos,
+        live: spot.live,
+        label: journey.label,
+        here: journey.here,
       });
-      allPositions.push(a, b);
-
-      if (!seen.has(t.from_city)) seen.set(t.from_city, { pos: a, type: "from" });
-      if (!seen.has(t.to_city)) seen.set(t.to_city, { pos: b, type: "to" });
+      allPositions.push(...positions);
+      if (spot.pos) allPositions.push(spot.pos);
+      placed.forEach((point) => {
+        const kind = point.index === 0 ? "from" : point.index === journey.last ? "to" : "stop";
+        if (!seen.has(point.name)) seen.set(point.name, { pos: point.pos, type: kind });
+      });
     }
 
     const focusedRoute = focusedTripId
@@ -103,15 +117,32 @@ export default function TripsMap({
         {routes.map((r) => {
           const isFocused = r.id === focusedTripId;
           return (
+          <>
+          <Polyline
+            key={`${r.id}-rest`}
+            positions={r.rest.length > 1 ? r.rest : r.positions}
+            pathOptions={{ color: "#C6A15B", weight: 3, opacity: 0.8, dashArray: "7 7" }}
+            eventHandlers={{ click: () => onTripClick?.(r.trip.trip_id) }}
+          />
+          {r.done.length > 1 ? (
+            <Polyline
+              key={`${r.id}-done`}
+              positions={r.done}
+              pathOptions={{ color: "#1B3D2F", weight: isFocused ? 5 : 3, opacity: 0.95 }}
+              eventHandlers={{ click: () => onTripClick?.(r.trip.trip_id) }}
+            />
+          ) : null}
+          <Marker position={r.marker} icon={vehicleIcon} eventHandlers={{ click: () => onTripClick?.(r.trip.trip_id) }}>
+            <Popup>
+              <div style={styles.popup} dir="rtl">
+                <div style={styles.popupTitle}>{r.label}{r.live ? " · موقع مباشر" : r.here ? ` · ${r.here}` : ""}</div>
+              </div>
+            </Popup>
+          </Marker>
           <Polyline
             key={r.id}
             positions={r.positions}
-            pathOptions={{
-              color: isFocused ? "#ec4899" : "#14b8a6",
-              weight: isFocused ? 5 : 3,
-              opacity: isFocused ? 0.95 : 0.65,
-              dashArray: isFocused ? null : "6 6",
-            }}
+            pathOptions={{ color: "transparent", weight: 12 }}
             eventHandlers={{ click: () => onTripClick?.(r.trip.trip_id) }}
           >
             <Popup>
@@ -146,6 +177,7 @@ export default function TripsMap({
               </div>
             </Popup>
           </Polyline>
+          </>
         );})}
 
         {/* City markers */}
@@ -153,7 +185,7 @@ export default function TripsMap({
           <Marker
             key={city}
             position={info.pos}
-            icon={info.type === "from" ? fromIcon : toIcon}
+            icon={info.type === "from" ? fromIcon : info.type === "stop" ? stopIcon : toIcon}
             eventHandlers={{ click: () => onCityClick?.(city, info.type) }}
           >
             <Popup>
@@ -180,16 +212,16 @@ export default function TripsMap({
       {/* Legend */}
       <div style={styles.legend} dir="rtl">
         <div style={styles.legendItem}>
-          <span style={{ ...styles.legendDot, background: "#0f766e" }} />
-          <span>الانطلاق</span>
+          <span style={{ ...styles.legendDot, background: "#C6A15B" }} />
+          <span>توقف</span>
         </div>
         <div style={styles.legendItem}>
-          <span style={{ ...styles.legendDot, background: "#ec4899" }} />
-          <span>الوصول</span>
+          <span style={{ ...styles.legendLine, background: "#1B3D2F" }} />
+          <span>تحرك</span>
         </div>
         <div style={styles.legendItem}>
-          <span style={{ ...styles.legendLine }} />
-          <span>مسار الرحلة</span>
+          <span style={{ ...styles.legendDot, background: "#1B3D2F" }} />
+          <span>وصول</span>
         </div>
       </div>
     </div>

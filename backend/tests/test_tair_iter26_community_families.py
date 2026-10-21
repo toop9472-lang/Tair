@@ -12,9 +12,10 @@ ADMIN_EMAIL = "sky-321@hotmail.com"
 ADMIN_PASSWORD = "Talal12@"
 
 EXPECTED_FAMILIES = {
-    "livestock", "songbirds", "poultry", "pigeons", "parrots", "fish",
+    "livestock", "horses", "songbirds", "poultry", "pigeons", "parrots", "falcons", "fish",
     "small_mammals", "pets", "reptiles", "insects", "cats", "dogs",
     "feed", "bird_supplies", "animal_supplies", "reserves", "services",
+    "hotel_services", "training",
 }
 
 
@@ -36,11 +37,11 @@ def admin_token(s):
 
 # ==================== 1. Species families ====================
 class TestFamilies:
-    def test_families_17(self, s):
+    def test_families_catalog(self, s):
         r = s.get(f"{API}/species/families")
         assert r.status_code == 200
         data = r.json()
-        assert data.get("total") == 17
+        assert data.get("total") == 21
         ids = {f["family_id"] for f in data["items"]}
         assert ids == EXPECTED_FAMILIES, f"Missing: {EXPECTED_FAMILIES - ids}, Extra: {ids - EXPECTED_FAMILIES}"
         # Each family must have name_ar and icon

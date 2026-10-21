@@ -3,60 +3,39 @@
 import React, { useMemo } from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { WebView } from "react-native-webview";
-
-// Saudi city coordinates (subset — mirror of the web version)
-const CITY_COORDS = {
-  "الرياض":     [24.7136, 46.6753],
-  "جدة":        [21.4858, 39.1925],
-  "مكة":        [21.3891, 39.8579],
-  "مكة المكرمة":[21.3891, 39.8579],
-  "المدينة":    [24.5247, 39.5692],
-  "المدينة المنورة": [24.5247, 39.5692],
-  "الدمام":     [26.4207, 50.0888],
-  "الخبر":      [26.2172, 50.1971],
-  "الأحساء":    [25.3833, 49.5833],
-  "الطائف":     [21.2703, 40.4158],
-  "أبها":       [18.2164, 42.5053],
-  "نجران":      [17.4924, 44.1277],
-  "جازان":      [16.8892, 42.5511],
-  "تبوك":       [28.3835, 36.5662],
-  "حائل":       [27.5219, 41.6907],
-  "بريدة":      [26.3260, 43.9750],
-  "الجبيل":     [27.0114, 49.6580],
-  "ينبع":       [24.0895, 38.0618],
-  "الباحة":     [20.0129, 41.4677],
-};
-
-function coordsFor(city) {
-  if (!city) return null;
-  const key = city.trim();
-  if (CITY_COORDS[key]) return CITY_COORDS[key];
-  const found = Object.keys(CITY_COORDS).find(
-    (k) => k.startsWith(key) || key.startsWith(k)
-  );
-  return found ? CITY_COORDS[found] : null;
-}
+import { coordsFor } from "../constants/cityCoords";
+import { journeyState, vehiclePosition } from "../utils/tripJourney";
 
 function buildHtml(trips, focusedTripId) {
   const routes = [];
   const cities = new Map();
 
   for (const t of trips || []) {
-    const a = coordsFor(t.from_city);
-    const b = coordsFor(t.to_city);
-    if (!a || !b) continue;
+    const journey = journeyState(t);
+    const placed = journey.cities
+      .map((name, index) => ({ name, index, pos: coordsFor(name) }))
+      .filter((point) => point.pos);
+    if (placed.length < 2) continue;
+    const spot = vehiclePosition(t, journey, placed);
     routes.push({
       id: t.trip_id,
-      a,
-      b,
+      points: placed,
+      marker: spot.pos,
+      live: spot.live,
+      motion: journey.motion,
+      label: journey.label,
+      here: journey.here,
+      stopIndex: journey.stopIndex,
       from: t.from_city,
       to: t.to_city,
       carrier: t.carrier_name || "موصّل",
       when: t.depart_at ? new Date(t.depart_at).toLocaleDateString("ar-SA") : "",
       focused: t.trip_id === focusedTripId,
     });
-    if (!cities.has(t.from_city)) cities.set(t.from_city, { pos: a, type: "from" });
-    if (!cities.has(t.to_city)) cities.set(t.to_city, { pos: b, type: "to" });
+    placed.forEach((point) => {
+      const kind = point.index === 0 ? "from" : point.index === journey.last ? "to" : "stop";
+      if (!cities.has(point.name)) cities.set(point.name, { pos: point.pos, type: kind });
+    });
   }
 
   const cityArr = Array.from(cities.entries());
@@ -78,7 +57,9 @@ function buildHtml(trips, focusedTripId) {
       box-shadow: 0 3px 10px rgba(0,0,0,0.3);
     }
     .pin.from { background: #1B3D2F; }
-    .pin.to { background: #ec4899; }
+    .pin.stop { background: #C6A15B; }
+    .pin.to { background: #1B3D2F; box-shadow: 0 0 0 3px #C6A15B; }
+    .pin.vehicle { background: #1B3D2F; border-color: #C6A15B; }
     .legend {
       position: absolute; bottom: 12px; right: 12px; z-index: 500;
       background: rgba(255,255,255,0.95); padding: 8px 12px;
@@ -99,9 +80,9 @@ function buildHtml(trips, focusedTripId) {
 <body>
   <div id="map"></div>
   <div class="legend">
-    <div class="row"><span class="dot" style="background:#1B3D2F"></span><span>الانطلاق</span></div>
-    <div class="row"><span class="dot" style="background:#ec4899"></span><span>الوصول</span></div>
-    <div class="row"><span style="width:16px;height:3px;background:#3D6B54;border-radius:2px;"></span><span>مسار الرحلة</span></div>
+    <div class="row"><span class="dot" style="background:#C6A15B"></span><span>توقف</span></div>
+    <div class="row"><span style="width:16px;height:3px;background:#1B3D2F;border-radius:2px;"></span><span>تحرك</span></div>
+    <div class="row"><span class="dot" style="background:#1B3D2F"></span><span>وصول</span></div>
   </div>
   <script>
     const map = L.map('map', { zoomControl: true }).setView([23.8859, 45.0792], 5);
@@ -124,15 +105,25 @@ function buildHtml(trips, focusedTripId) {
     const bounds = [];
 
     routes.forEach(r => {
-      const line = L.polyline([r.a, r.b], {
-        color: r.focused ? '#ec4899' : '#3D6B54',
-        weight: r.focused ? 5 : 3,
-        opacity: r.focused ? 0.95 : 0.65,
-        dashArray: r.focused ? null : '6 6'
+      const positions = r.points.map(p => p.pos);
+      const done = r.points.filter(p => p.index <= r.stopIndex).map(p => p.pos);
+      const rest = r.points.filter(p => p.index >= r.stopIndex).map(p => p.pos);
+      if (rest.length > 1) {
+        L.polyline(rest, { color: '#C6A15B', weight: 3, opacity: 0.85, dashArray: '7 7' }).addTo(map);
+      }
+      if (done.length > 1) {
+        L.polyline(done, { color: '#1B3D2F', weight: r.focused ? 5 : 3, opacity: 0.95 }).addTo(map);
+      } else if (positions.length > 1 && r.motion === 'stopped') {
+        L.polyline(positions, { color: '#C6A15B', weight: 3, opacity: 0.8, dashArray: '7 7' }).addTo(map);
+      }
+      bounds.push(...positions);
+      if (r.marker) bounds.push(r.marker);
+      const vehicle = L.marker(r.marker, {
+        icon: L.divIcon({ className: '', html: '<div class="pin vehicle"></div>', iconSize: [26, 26], iconAnchor: [13, 13] })
       }).addTo(map);
-      bounds.push(r.a, r.b);
-      line.bindPopup(
+      vehicle.bindPopup(
         '<div class="popup-title">' + r.from + ' → ' + r.to + '</div>' +
+        '<div class="popup-meta">' + r.label + (r.live ? ' · موقع مباشر' : (r.here ? ' · ' + r.here : '')) + '</div>' +
         (r.when ? '<div class="popup-meta">📅 ' + r.when + '</div>' : '') +
         '<div class="popup-meta">🚗 ' + r.carrier + '</div>' +
         '<a href="#" class="open-btn" onclick="window.__openTrip(\\'' + r.id + '\\');return false;">فتح الرحلة</a>'
@@ -141,7 +132,7 @@ function buildHtml(trips, focusedTripId) {
 
     cities.forEach(([name, info]) => {
       const iconHtml = '<div class="pin ' + info.type + '"></div>';
-      const label = info.type === 'from' ? 'الرحلات من هنا' : 'الرحلات إلى هنا';
+      const label = info.type === 'from' ? 'الرحلات من هنا' : info.type === 'stop' ? 'مدن التوقف' : 'الرحلات إلى هنا';
       L.marker(info.pos, {
         icon: L.divIcon({ className: '', html: iconHtml, iconSize: [26, 26], iconAnchor: [13, 13] })
       }).addTo(map).bindPopup(
@@ -151,8 +142,8 @@ function buildHtml(trips, focusedTripId) {
     });
 
     // Fit map to visible routes (or the focused one)
-    if (focused) {
-      map.fitBounds([focused.a, focused.b], { padding: [40, 40], maxZoom: 7, animate: true });
+    if (focused && focused.points) {
+      map.fitBounds(focused.points.map(p => p.pos), { padding: [40, 40], maxZoom: 7, animate: true });
     } else if (bounds.length > 0) {
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: 7, animate: true });
     }

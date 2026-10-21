@@ -1,12 +1,12 @@
 /**
- * Translations for Saqr App
+ * Translations for Tair App
  * Supports: Arabic (ar), English (en), French (fr), Turkish (tr), Urdu (ur), Hindi (hi)
  */
 
 export const translations = {
   ar: {
     // App
-    appName: 'صقر',
+    appName: 'طير',
     loading: 'جاري التحميل...',
     
     // Auth
@@ -41,8 +41,8 @@ export const translations = {
     games: 'الألعاب',
     
     // Home Page Features
-    saqrFortunes: 'ثروات صقر',
-    saqrFortunesDesc: 'جواهر صقر للاستبدال بالمال!',
+    saqrFortunes: 'ثروات طير',
+    saqrFortunesDesc: 'جواهر طير داخل المنصة',
     globalChat: 'الدردشة العامة',
     globalChatDesc: 'تواصل مع لاعبين من حول العالم!',
     friends: 'الأصدقاء',
@@ -202,7 +202,7 @@ export const translations = {
   },
   
   en: {
-    appName: 'Saqr',
+    appName: 'Tair',
     loading: 'Loading...',
     login: 'Login',
     register: 'Register',
@@ -233,8 +233,8 @@ export const translations = {
     games: 'Games',
     
     // Home Page Features
-    saqrFortunes: 'Saqr Fortunes',
-    saqrFortunesDesc: 'Exchange Saqr gems for money!',
+    saqrFortunes: 'Tair Fortunes',
+    saqrFortunesDesc: 'Tair gems inside the platform',
     globalChat: 'Global Chat',
     globalChatDesc: 'Connect with players worldwide!',
     friends: 'Friends',
@@ -371,7 +371,7 @@ export const translations = {
   },
   
   fr: {
-    appName: 'Saqr',
+    appName: 'Tair',
     loading: 'Chargement...',
     login: 'Connexion',
     register: "S'inscrire",
@@ -525,7 +525,7 @@ export const translations = {
   },
   
   tr: {
-    appName: 'Saqr',
+    appName: 'Tair',
     loading: 'Yükleniyor...',
     login: 'Giriş Yap',
     register: 'Kayıt Ol',
@@ -679,7 +679,7 @@ export const translations = {
   },
   
   ur: {
-    appName: 'صقر',
+    appName: 'طير',
     loading: 'لوڈ ہو رہا ہے...',
     login: 'لاگ ان',
     register: 'رجسٹر',
@@ -833,7 +833,7 @@ export const translations = {
   },
   
   hi: {
-    appName: 'सकर',
+    appName: 'Tair',
     loading: 'लोड हो रहा है...',
     login: 'लॉग इन',
     register: 'रजिस्टर',

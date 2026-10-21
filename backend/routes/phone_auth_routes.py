@@ -8,6 +8,7 @@ from auth.jwt_handler import create_token_pair
 from auth.password_utils import validate_password_strength
 from passlib.hash import bcrypt
 from datetime import datetime, timedelta
+from services.display_names import assert_unique_name
 import os
 import uuid
 import re
@@ -501,9 +502,10 @@ async def otp_login_or_register(data: OtpLoginRequest, request: Request):
     is_new = user is None
 
     if is_new:
-        name = (data.name or '').strip()
-        if len(name) < 2:
-            raise HTTPException(400, 'الاسم مطلوب للتسجيل')
+        try:
+            name = await assert_unique_name(db, data.name or '')
+        except ValueError as exc:
+            raise HTTPException(400, str(exc))
         user_id = str(uuid.uuid4())
         client_ip = request.client.host if request.client else None
         user_doc = {
@@ -593,10 +595,13 @@ async def update_profile(data: UpdateProfileRequest, user_id: str, actor: str = 
     if data.bio is not None:
         updates['bio'] = data.bio.strip()[:500]
     if data.name is not None:
-        n = data.name.strip()
-        if len(n) < 2:
-            raise HTTPException(400, 'الاسم قصير جداً')
+        try:
+            n = await assert_unique_name(db, data.name, user_id)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc))
         updates['name'] = n
+        updates['name_key'] = n.casefold()
+        updates['needs_name_setup'] = False
     if data.phone is not None:
         p = _normalize_digits(data.phone.strip())
         updates['phone'] = p or None

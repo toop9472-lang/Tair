@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Image,
   TouchableOpacity,
   RefreshControl,
   TextInput,
@@ -17,8 +16,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 import { listingsApi, speciesApi } from "../services/tairApi";
 import { TairBanner } from "../components/TairBanner";
+import { TairImage } from "../components/TairUI";
 import { CitySelectorSheet } from "../components/CitySelectorSheet";
-import { ALL_LOCATIONS } from "../constants/saudiCities";
 
 // Resolve possibly-relative media URLs from backend (when R2 is unavailable)
 const API_BASE =
@@ -31,20 +30,6 @@ const resolveMediaUrl = (u) => {
   if (u.startsWith("/")) return `${API_BASE}${u}`;
   return u;
 };
-
-const CITIES = [
-  "الكل",
-  "الرياض",
-  "جدة",
-  "مكة",
-  "المدينة",
-  "الدمام",
-  "الأحساء",
-  "الطائف",
-  "بريدة",
-  "تبوك",
-  "أبها",
-];
 
 const formatPrice = (sar) =>
   new Intl.NumberFormat("ar-SA", { maximumFractionDigits: 0 }).format(sar) + " ر.س";
@@ -59,7 +44,7 @@ function ListingCard({ item, onPress }) {
     >
       <View style={styles.imageWrap}>
         {item.cover_image ? (
-          <Image source={{ uri: resolveMediaUrl(item.cover_image) }} style={styles.image} />
+          <TairImage uri={resolveMediaUrl(item.cover_image)} style={styles.image} iconSize={28} />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
             <Ionicons name="images-outline" size={40} color="#8A7B66" />
@@ -200,10 +185,10 @@ export default function ListingsFeedScreen({
                 <Ionicons
                   name="storefront"
                   size={13}
-                  color="#ec4899"
+                  color="#8A6A2E"
                   style={{ marginLeft: 4 }}
                 />
-                <Text style={[styles.speciesChipText, { color: "#ec4899", fontWeight: "800" }]}>
+                <Text style={[styles.speciesChipText, { color: "#1B3D2F", fontWeight: "800" }]}>
                   الموردون
                 </Text>
               </TouchableOpacity>
@@ -325,7 +310,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#065f46",
+    color: "#1B3D2F",
     textAlign: "right",
   },
   heroSubtitle: {
@@ -344,7 +329,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   ctaText: {
-    color: "#065f46",
+    color: "#1B3D2F",
     fontWeight: "700",
     fontSize: 13,
   },
@@ -374,7 +359,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#f1f5f9",
   },
-  chipActive: { backgroundColor: "#065f46" },
+  chipActive: { backgroundColor: "#1B3D2F" },
   chipText: { color: "#475569", fontWeight: "600", fontSize: 13 },
   chipTextActive: { color: "#fff" },
 
@@ -396,11 +381,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   speciesChipActive: { backgroundColor: "#1B3D2F", borderColor: "#1B3D2F" },
-  speciesChipText: { color: "#0e7490", fontWeight: "600", fontSize: 12 },
+  speciesChipText: { color: "#1B3D2F", fontWeight: "600", fontSize: 12 },
   speciesChipTextActive: { color: "#fff" },
   suppliersChip: {
-    backgroundColor: "#fdf2f8",
-    borderColor: "rgba(236,72,153,0.35)",
+    backgroundColor: "#F7F1E8",
+    borderColor: "rgba(198,161,91,0.7)",
   },
 
   resultBar: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 4 },
@@ -495,7 +480,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 8,
   },
-  price: { color: "#065f46", fontSize: 16, fontWeight: "800" },
+  price: { color: "#1B3D2F", fontSize: 16, fontWeight: "800" },
   stats: {
     flexDirection: "row-reverse",
     alignItems: "center",
