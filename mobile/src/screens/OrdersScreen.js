@@ -14,6 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ordersApi } from "../services/tairApi";
 import RateUserModal from "../components/RateUserModal";
 import { logPositiveEvent, maybeAskForReview } from "../services/rateApp";
+import { HeaderSheen } from "../components/TairPolish";
 
 const statusMeta = {
   pending: { color: "#0891b2", label: "قيد الانتظار", icon: "time-outline" },
@@ -181,8 +182,12 @@ export default function OrdersScreen({ user, onOpenOrder }) {
         colors={["#1B3D2F", "#0F241C"]}
         style={styles.hero}
       >
-        <Text style={styles.heroTitle}>طلباتي</Text>
-        <Text style={styles.heroSubtitle}>تابع جميع صفقاتك في مكان واحد</Text>
+        <HeaderSheen />
+        <View style={styles.goldRule} pointerEvents="none" />
+        <View style={styles.heroCopy}>
+          <Text style={styles.heroTitle}>طلباتي</Text>
+          <Text style={styles.heroSubtitle}>تابع جميع صفقاتك في مكان واحد</Text>
+        </View>
       </LinearGradient>
       <View style={styles.rolesBar}>
         {["all", "buyer", "seller", "carrier"].map((r) => (
@@ -241,7 +246,19 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 16,
+    overflow: "hidden",
   },
+  goldRule: {
+    position: "absolute",
+    left: 28,
+    right: 28,
+    bottom: 0,
+    height: 2,
+    backgroundColor: "#C6A15B",
+    opacity: 0.85,
+    zIndex: 4,
+  },
+  heroCopy: { zIndex: 4 },
   heroTitle: { fontSize: 24, fontWeight: "800", color: "#C6A15B", textAlign: "right" },
   heroSubtitle: { fontSize: 13, color: "#F7F1E8", marginTop: 2, textAlign: "right" },
 

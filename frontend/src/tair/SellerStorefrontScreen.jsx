@@ -1,11 +1,13 @@
 // طير — Seller storefront: modern immersive identity-driven design
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowRight, MapPin, Star, Package, Clock, ShieldCheck, UserPlus, UserCheck, Users, Store, Award, Heart, Eye, MessageCircle, Phone, Megaphone, Ticket, Truck } from "lucide-react";
+import { ArrowRight, MapPin, Star, Package, Clock, ShieldCheck, UserPlus, UserCheck, Users, Store, Award, Heart, Eye, MessageCircle, Phone, Megaphone, Ticket, Truck, Share2 } from "lucide-react";
 import { T, S } from "./tairTheme";
 import { tairApi } from "./tairApi";
 import { EmptyState } from "./TairUI";
 import VerifiedTick from "./VerifiedTick";
 import { toWhatsAppPhone } from "./contactPhone";
+import { buildSharePayload, shareNow } from "./shareContent";
+import { toast } from "../hooks/use-toast";
 
 const money = (v) => new Intl.NumberFormat("ar-SA").format(v || 0);
 
@@ -246,6 +248,22 @@ export default function SellerStorefrontScreen({ userId, viewerId, onBack, onOpe
 
   const rating = profile.rating_avg;
 
+  const shareStore = async () => {
+    if (!userId) return;
+    try {
+      const mode = await shareNow(buildSharePayload({
+        kind: "store",
+        id: userId,
+        title: profile.name || "متجر طير",
+        image: profile.logo_url || profile.profile_bg_url || profile.avatar || "",
+        lines: [profile.city || profile.storefront_settings?.city || "متجر على طير"],
+      }));
+      if (mode === "copied") {
+        toast({ title: "تم نسخ المشاركة", description: "الصقها في أي تطبيق، والرابط يفتح المتجر بالصورة." });
+      }
+    } catch { /* user cancelled */ }
+  };
+
   return (
     <div style={pageStyle} data-testid="seller-storefront">
       {/* Full-page background image (heavy top, transparent bottom) — NO identity tint */}
@@ -277,7 +295,7 @@ export default function SellerStorefrontScreen({ userId, viewerId, onBack, onOpe
       }} />
 
       <div style={{ position: "relative", zIndex: 1 }}>
-        <TopBar onBack={onBack} textColor={heroText} />
+        <TopBar onBack={onBack} textColor={heroText} onShare={shareStore} />
 
         {/* HERO — logo + name + verified + business hours chip */}
         <section style={styles.hero}>
@@ -576,9 +594,9 @@ export default function SellerStorefrontScreen({ userId, viewerId, onBack, onOpe
   );
 }
 
-function TopBar({ onBack, textColor }) {
+function TopBar({ onBack, textColor, onShare }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", padding: "10px 12px", position: "sticky", top: 0, zIndex: 5 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", position: "sticky", top: 0, zIndex: 5 }}>
       <button
         onClick={onBack}
         data-testid="storefront-back"
@@ -593,6 +611,23 @@ function TopBar({ onBack, textColor }) {
         }}
       >
         <ArrowRight size={20} strokeWidth={2.6} color={textColor} />
+      </button>
+      <button
+        type="button"
+        onClick={onShare}
+        data-testid="storefront-share"
+        aria-label="مشاركة المتجر"
+        style={{
+          width: 40, height: 40, borderRadius: 20,
+          background: "rgba(27,61,47,0.88)",
+          border: "1px solid #C6A15B",
+          display: onShare ? "flex" : "none",
+          alignItems: "center", justifyContent: "center",
+          cursor: "pointer",
+          color: "#C6A15B",
+        }}
+      >
+        <Share2 size={18} strokeWidth={2.4} />
       </button>
     </div>
   );

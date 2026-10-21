@@ -58,3 +58,16 @@ def test_clients_use_the_same_hooks_and_store_links():
         assert "/api/share/" in text
         assert card.PLAY_URL in text
         assert card.APPLE_URL in text
+
+
+def test_web_share_and_mobile_heroes_cover_the_leftovers():
+    trips = (REPO / "frontend/src/tair/TripsScreen.jsx").read_text(encoding="utf-8")
+    store = (REPO / "frontend/src/tair/SellerStorefrontScreen.jsx").read_text(encoding="utf-8")
+    auction = (REPO / "frontend/src/tair/AuctionScreen.jsx").read_text(encoding="utf-8")
+    assert 'kind: "trip"' in trips and "share-trip-" in trips
+    assert 'kind: "store"' in store and "storefront-share" in store
+    assert 'kind: "auction"' in auction and "auction-details-share" in auction
+    profile = (REPO / "mobile/src/screens/ProfileScreen.js").read_text(encoding="utf-8")
+    orders = (REPO / "mobile/src/screens/OrdersScreen.js").read_text(encoding="utf-8")
+    assert "HeaderSheen" in profile and "goldRule" in profile
+    assert "HeaderSheen" in orders and "goldRule" in orders

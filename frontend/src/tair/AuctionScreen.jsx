@@ -6,10 +6,11 @@
  * - كل الأوقات معروضة بصيغة ٢٤ ساعة
  */
 import React, { useEffect, useMemo, useState } from "react";
-import { Gavel, ShieldCheck, Clock, ChevronRight, X, Plus } from "lucide-react";
+import { Gavel, ShieldCheck, Clock, ChevronRight, X, Plus, Share2 } from "lucide-react";
 import { tairApi } from "./tairApi";
 import auctionHeader from "../assets/tair-design/headers/auction.jpg";
 import { TAIR, TAIR_PAGE_STYLE, TairAppHeader, format12, formatDate12, toArabicDigits } from "./TairAppChrome";
+import { buildSharePayload, shareNow } from "./shareContent";
 
 function toArabicNumerals(n) { return toArabicDigits(n); }
 
@@ -20,6 +21,22 @@ function countdownStr(ms) {
   const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+async function shareAuction(a) {
+  if (!a?.auction_id) return "missing";
+  const price = Number(a.current_bid_sar || a.starting_price_sar || 0);
+  return shareNow(buildSharePayload({
+    kind: "auction",
+    id: a.auction_id,
+    title: a.title || "مزاد طير",
+    image: typeof a.images?.[0] === "string" ? a.images[0] : "",
+    lines: [
+      a.sequence_number ? `مزاد رقم ${a.sequence_number}` : null,
+      `${price} ر.س`,
+      a.city || null,
+    ],
+  }));
 }
 
 export default function AuctionScreen({ user, onBack, onOpenNotifications, unreadCount = 0 }) {
@@ -173,6 +190,7 @@ export default function AuctionScreen({ user, onBack, onOpenNotifications, unrea
                 a={a}
                 now={now}
                 onOpen={() => setActiveAuction(a)}
+                onShare={() => shareAuction(a).catch(() => {})}
               />
             ))}
           </div>
@@ -212,11 +230,12 @@ export default function AuctionScreen({ user, onBack, onOpenNotifications, unrea
 }
 
 // ---------- AuctionCard ----------
-function AuctionCard({ a, now, onOpen }) {
+function AuctionCard({ a, now, onOpen, onShare }) {
   const end = new Date(a.end_at).getTime();
   const remaining = end - now;
   const active = a.status === "live" && remaining > 0;
   return (
+    <div style={{ position: "relative" }}>
     <button
       onClick={onOpen}
       data-testid={`auction-${a.auction_id}`}
@@ -266,6 +285,32 @@ function AuctionCard({ a, now, onOpen }) {
         </div>
       </div>
     </button>
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onShare?.(); }}
+      data-testid={`auction-share-${a.auction_id}`}
+      aria-label="مشاركة المزاد"
+      style={{
+        position: "absolute",
+        top: 18,
+        left: 18,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        border: "1px solid #C6A15B",
+        background: "rgba(27,61,47,0.92)",
+        color: "#C6A15B",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        zIndex: 2,
+        padding: 0,
+      }}
+    >
+      <Share2 size={15} strokeWidth={2.4} />
+    </button>
+    </div>
   );
 }
 
@@ -537,8 +582,31 @@ function AuctionDetailsModal({ auction, userId, onClose, onChanged, isOpen, now 
   return (
     <div dir="rtl" style={{ position: "fixed", inset: 0, background: "rgba(15,36,28,0.55)", zIndex: 60, display: "flex", alignItems: "flex-end" }}>
       <div style={{ background: TAIR.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, width: "100%", maxWidth: 500, paddingBottom: 32, maxHeight: "88vh", overflowY: "auto" }} data-testid="auction-details-modal">
-        <div style={{ display: "flex", flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div style={{ fontSize: 17, fontWeight: 900, color: TAIR.emerald }}>{full.title}</div>
+        <div style={{ display: "flex", flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
+          <div style={{ fontSize: 17, fontWeight: 900, color: TAIR.emerald, flex: 1 }}>{full.title}</div>
+          <button
+            type="button"
+            data-testid="auction-details-share"
+            aria-label="مشاركة المزاد"
+            onClick={async () => {
+              try {
+                const mode = await shareAuction(full);
+                if (mode === "copied") {
+                  setFlash("تم نسخ المشاركة");
+                  setTimeout(() => setFlash(null), 2500);
+                }
+              } catch { /* user cancelled */ }
+            }}
+            style={{
+              width: 36, height: 36, borderRadius: 18, flexShrink: 0,
+              background: TAIR.emerald, color: TAIR.gold,
+              border: `1px solid ${TAIR.gold}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", padding: 0,
+            }}
+          >
+            <Share2 size={16} strokeWidth={2.4} />
+          </button>
           <button onClick={onClose} data-testid="close-auction-details" style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, color: TAIR.emerald }}>
             <X size={22} />
           </button>

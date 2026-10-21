@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import {
   Truck, Plus, MapPin, Calendar, Package, Snowflake, ArrowLeftRight, Navigation,
   X, Car, Wallet, Phone, MessageCircle, Star, Route, Send, Clock, Trash2,
-  Map as MapIcon, List,
+  Map as MapIcon, List, Share2,
 } from "lucide-react";
 import { T, S } from "./tairTheme";
 import { tairApi, SAUDI_CITIES, TRIP_STATUS_LABEL } from "./tairApi";
@@ -15,6 +15,7 @@ import { nextJourneyAction } from "./tripJourney";
 import tripsHeader from "../assets/tair-design/headers/trips.jpg";
 import { TAIR, TAIR_PAGE_STYLE, TairAppHeader } from "./TairAppChrome";
 import { toWhatsAppPhone } from "./contactPhone";
+import { buildSharePayload, shareNow } from "./shareContent";
 
 const STATUS_FILTERS = [
   { id: "active", label: "المتاحة" },
@@ -326,6 +327,27 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted, index 
     } catch (err) { /* ignore */ }
   };
 
+  const shareTrip = async (e) => {
+    e.stopPropagation();
+    const id = trip.trip_id || trip.id;
+    if (!id) return;
+    try {
+      const mode = await shareNow(buildSharePayload({
+        kind: "trip",
+        id,
+        title: `${trip.from_city || ""} ← ${trip.to_city || ""}`.trim(),
+        image: trip.carrier_avatar || "",
+        lines: [
+          dt ? dt.toLocaleString("ar-SA") : null,
+          trip.carrier_name ? `الموصل: ${trip.carrier_name}` : null,
+        ],
+      }));
+      if (mode === "copied") {
+        toast({ title: "تم نسخ المشاركة", description: "الصقها في أي تطبيق، والرابط يفتح الرحلة بالصورة." });
+      }
+    } catch { /* user cancelled */ }
+  };
+
   const handleDelete = async (e) => {
     e.stopPropagation();
     if (!window.confirm("هل تريد حذف هذه الرحلة نهائياً؟ لا يمكن التراجع.")) return;
@@ -477,6 +499,16 @@ function PremiumTripCard({ trip, userId, onClick, onViewOnMap, onDeleted, index 
           <span>عرض على الخريطة</span>
         </button>
       )}
+
+      <button
+        type="button"
+        onClick={shareTrip}
+        style={styles.shareTripBtn}
+        data-testid={`share-trip-${trip.trip_id}`}
+      >
+        <Share2 size={14} strokeWidth={2.4} />
+        <span>مشاركة الرحلة</span>
+      </button>
 
       {isOwn && !["completed", "cancelled"].includes(trip.status) ? (
         <div style={styles.ownerActions} onClick={(e) => e.stopPropagation()}>
@@ -1090,6 +1122,16 @@ const styles = {
     color: "#fff", fontSize: 13, fontWeight: 800,
     border: "none", cursor: "pointer", fontFamily: "inherit",
     boxShadow: "0 4px 12px rgba(15,118,110,0.25)",
+    width: "calc(100% - 40px)",
+  },
+  shareTripBtn: {
+    display: "flex", flexDirection: "row-reverse",
+    alignItems: "center", justifyContent: "center", gap: 6,
+    margin: "0 20px 12px",
+    padding: "10px 14px", borderRadius: 12,
+    background: "#1B3D2F",
+    color: "#C6A15B", fontSize: 13, fontWeight: 800,
+    border: "1px solid #C6A15B", cursor: "pointer", fontFamily: "inherit",
     width: "calc(100% - 40px)",
   },
   contactBtn: {
