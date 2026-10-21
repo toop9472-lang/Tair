@@ -1,35 +1,38 @@
-# صقر بوينتس - Saqr Points
+# طير | سوق الطيور و الحيوانات
 
-تطبيق مكافآت متكامل يتيح للمستخدمين مشاهدة الإعلانات وجمع النقاط واستبدالها بمكافآت حقيقية.
+منصة شاملة لمحبي الطيور والحيوانات في المملكة العربية السعودية، تجمع التجار والمربين والمشترين والموصلين والموردين في بيئة واحدة منظمة.
 
 ## 📱 نظرة عامة
 
-**صقر بوينتس** هو منصة إعلانية تفاعلية تربط بين المعلنين والمستخدمين:
-- **للمستخدمين**: شاهد إعلانات قصيرة واكسب نقاط قابلة للاستبدال
-- **للمعلنين**: أنشئ حملات إعلانية وتابع إحصائياتها
+**طير** هو سوق إلكتروني متخصص للطيور والحيوانات الأليفة، يوفر:
+- سوق لبيع وشراء الطيور والحيوانات
+- مزادات يومية
+- عيادة بيطرية بدعم الذكاء الاصطناعي
+- مجتمع للمربين
+- خدمات توصيل
+- صفحات متاجر قابلة للتخصيص
+- دعم الموردين بالجملة
+
+**بدون عمولة** — الربح كامل للبائع.
 
 ---
 
 ## 🏗️ هيكل المشروع
 
 ```
-/app
+Tair/
 ├── backend/          # FastAPI (Python) - الخادم الخلفي
-│   ├── routes/       # API endpoints (32 ملف)
-│   ├── models/       # Pydantic models
-│   ├── auth/         # JWT authentication
-│   └── server.py     # نقطة الدخول الرئيسية
-│
+│   ├── routes/
+│   ├── models/
+│   ├── auth/
+│   └── server.py
 ├── frontend/         # Next.js - لوحة الإدارة
-│   └── src/
-│       ├── pages/    # صفحات الويب
-│       └── components/
-│
 └── mobile/           # React Native (Expo) - تطبيق الموبايل
     └── src/
-        ├── screens/  # شاشات التطبيق
-        ├── services/ # API & Storage
-        └── styles/   # الألوان والتنسيقات
+        ├── screens/   # شاشات التطبيق
+        ├── components/
+        ├── services/
+        └── constants/
 ```
 
 ---
@@ -37,138 +40,54 @@
 ## 🚀 الميزات الرئيسية
 
 ### للمستخدمين
-| الميزة | الوصف |
-|--------|-------|
-| 🎬 مشاهدة الإعلانات | شاهد إعلانات قصيرة (60 ثانية) واكسب نقاط |
-| 💰 جمع النقاط | اكسب نقاط مع كل مشاهدة كاملة |
-| 🎁 استبدال المكافآت | حوّل نقاطك إلى رصيد أو بطاقات شراء |
-| 🔐 المصادقة الثنائية | حماية حسابك بـ 2FA عبر البريد |
-| 🌙 الوضع الداكن | دعم كامل للوضع الداكن |
-| 🌍 تعدد اللغات | العربية والإنجليزية |
+- تصفح السوق والإعلانات (بدون تسجيل كزائر)
+- المشاركة في المزادات
+- العيادة البيطرية واستشارات الخبراء
+- المجتمع والمنتدى
+- خدمات التوصيل
+- الرسائل الخاصة
+- صفحات المتاجر
 
-### للمعلنين
-| الميزة | الوصف |
-|--------|-------|
-| 📢 إنشاء إعلانات | أنشئ إعلانات بسهولة مع باقات متعددة |
-| 📊 الإحصائيات | تابع المشاهدات ونسب الإكمال |
-| 💳 دفع آمن | ادفع عبر Stripe أو تحويل بنكي |
+### للبائعين
+- نشر الإعلانات والمزادات
+- إدارة المتجر
+- إحصائيات المبيعات
 
 ### للإدارة
-| الميزة | الوصف |
-|--------|-------|
-| 👥 إدارة المستخدمين | عرض وإدارة حسابات المستخدمين |
-| 📺 إدارة الإعلانات | الموافقة على الإعلانات ومراجعتها |
-| 📈 لوحة التحكم | إحصائيات شاملة للمنصة |
-| 🎫 تذاكر الدعم | الرد على استفسارات المستخدمين |
+- لوحة تحكم شاملة
+- مراجعة الإعلانات
+- إدارة المستخدمين والمزادات
 
 ---
 
 ## 🛠️ التقنيات المستخدمة
 
 ### Backend
-- **Framework**: FastAPI (Python 3.11+)
-- **Database**: MongoDB (Motor async driver)
-- **Auth**: JWT tokens + 2FA
-- **Email**: Resend API
-
-### Frontend (Admin)
-- **Framework**: Next.js / React
-- **Styling**: TailwindCSS
-- **Icons**: Lucide React
-- **State**: Context API
+- FastAPI (Python)
+- MongoDB
+- JWT Authentication
 
 ### Mobile
-- **Framework**: React Native + Expo
-- **Navigation**: React Navigation
-- **Icons**: Ionicons
-- **Storage**: AsyncStorage
+- React Native + Expo
+- React Navigation
+
+### Frontend (Admin)
+- Next.js / React
 
 ---
 
-## ⚙️ متغيرات البيئة
+## 📱 التطبيق على المتاجر
 
-### Backend (`/app/backend/.env`)
-```env
-MONGO_URL=mongodb://...
-DB_NAME=saqr_db
-STRIPE_API_KEY=sk_...
-RESEND_API_KEY=re_...
-JWT_SECRET=your_secret
-```
-
-### Frontend (`/app/frontend/.env`)
-```env
-REACT_APP_BACKEND_URL=https://your-domain.com
-```
-
-### Mobile (`/app/mobile/.env`)
-```env
-API_URL=https://your-domain.com
-```
-
----
-
-## 🔌 API Endpoints الرئيسية
-
-### المصادقة
-| Method | Endpoint | الوصف |
-|--------|----------|-------|
-| POST | `/api/auth/register` | تسجيل حساب جديد |
-| POST | `/api/auth/login` | تسجيل الدخول |
-| POST | `/api/auth/verify-2fa` | التحقق من رمز 2FA |
-| POST | `/api/auth/change-password` | تغيير كلمة المرور |
-
-### الإعلانات
-| Method | Endpoint | الوصف |
-|--------|----------|-------|
-| GET | `/api/ads` | جلب الإعلانات النشطة |
-| POST | `/api/ads/watch` | تسجيل مشاهدة إعلان |
-| GET | `/api/ads/{id}` | تفاصيل إعلان |
-
-### للمعلنين
-| Method | Endpoint | الوصف |
-|--------|----------|-------|
-| POST | `/api/advertiser/ads` | إنشاء إعلان جديد |
-| GET | `/api/advertiser/ads/{id}` | تفاصيل إعلان المعلن |
-| GET | `/api/analytics/advertiser/{email}` | إحصائيات المعلن |
-| GET | `/api/packages` | الباقات المتاحة |
-
-### الدعم الفني
-| Method | Endpoint | الوصف |
-|--------|----------|-------|
-| POST | `/api/support/tickets` | إنشاء تذكرة |
-| GET | `/api/support/tickets` | تذاكري |
-| POST | `/api/support/tickets/{id}/reply` | الرد على تذكرة |
-
-### المدفوعات
-| Method | Endpoint | الوصف |
-|--------|----------|-------|
-| POST | `/api/payments/checkout` | إنشاء جلسة دفع Stripe |
-| POST | `/api/payments/webhook` | Stripe webhook |
-
----
-
-## 🧪 الاختبار
-
-### تشغيل اختبارات Backend
-```bash
-cd /app/backend
-pytest tests/ -v
-```
-
-### حساب تجريبي
-- **Email**: `demo@saqr.app`
-- **Password**: `Demo123456`
+- **iOS**: [طير على App Store](https://apps.apple.com/sa/app/%D8%B7%D9%8A%D8%B1-%D8%B3%D9%88%D9%82-%D8%A7%D9%84%D8%B7%D9%8A%D9%88%D8%B1-%D9%88-%D8%A7%D9%84%D8%AD%D9%8A%D9%88%D8%A7%D9%86%D8%A7%D8%AA/id6758868843)
 
 ---
 
 ## 📞 التواصل
 
-- **البريد**: support@saqr.app
-- **الموقع**: https://saqrpointscom.store
+- سياسة الخصوصية: https://saqr-ui-sync.emergent.host/privacy
 
 ---
 
 ## 📄 الترخيص
 
-جميع الحقوق محفوظة © 2025 صقر بوينتس
+جميع الحقوق محفوظة © 2026 طير
