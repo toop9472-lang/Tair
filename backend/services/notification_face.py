@@ -18,6 +18,8 @@ _EXACT = {
     "admin_broadcast": ("من طير", "general"),
     "app_update": ("تحديث التطبيق", "general"),
     "listing_new": ("إعلان", "general"),
+    "listing_watch": ("طلبك في السوق", "general"),
+    "return_nudge": ("طير", "general"),
     "story_new": ("قصة", "general"),
 }
 

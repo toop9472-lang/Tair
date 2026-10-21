@@ -492,8 +492,29 @@ export const sellerRatingsApi = {
 export const tairNotificationsApi = {
   list: async (userId, limit = 50) =>
     req(`/api/tair-notifications/list?user_id=${encodeURIComponent(userId)}&limit=${limit}`),
+  markRead: async (notifId, userId) =>
+    req(`/api/tair-notifications/${encodeURIComponent(notifId)}/read?user_id=${encodeURIComponent(userId)}`, { method: "POST" }),
   readAll: async (userId) =>
     req(`/api/tair-notifications/read-all?user_id=${encodeURIComponent(userId)}`, { method: "POST" }),
+};
+
+export const listingWatchApi = {
+  list: async (userId) =>
+    req(`/api/listing-watches?user_id=${encodeURIComponent(userId)}`),
+  create: async (userId, payload) =>
+    req(`/api/listing-watches?user_id=${encodeURIComponent(userId)}`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+    }),
+  update: async (userId, watchId, payload) =>
+    req(`/api/listing-watches/${encodeURIComponent(watchId)}?user_id=${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+    }),
+  remove: async (userId, watchId) =>
+    req(`/api/listing-watches/${encodeURIComponent(watchId)}?user_id=${encodeURIComponent(userId)}`, { method: "DELETE" }),
 };
 
 export const clinicTopicsApi = {

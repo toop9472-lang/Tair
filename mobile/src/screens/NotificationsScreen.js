@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, FlatList, RefreshControl, Platform } from "reac
 import { Ionicons } from "@expo/vector-icons";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { tairNotificationsApi } from "../services/tairApi";
-import { setUnreadCount } from "../services/unreadNotifications";
+import { getUnreadCount, setUnreadCount } from "../services/unreadNotifications";
 import { EmptyState, ErrorState, ListSkeleton, PressableScale } from "../components/TairUI";
 
 const FACE = {
@@ -25,6 +25,8 @@ const FACE = {
   admin_broadcast: ["من طير", "general"],
   app_update: ["تحديث التطبيق", "general"],
   listing_new: ["إعلان", "general"],
+  listing_watch: ["طلبك في السوق", "general"],
+  return_nudge: ["طير", "general"],
   story_new: ["قصة", "general"],
 };
 
@@ -38,6 +40,8 @@ const ICONS = {
   clinic_topic: "medkit",
   clinic_reply: "chatbox-ellipses",
   listing_new: "pricetag",
+  listing_watch: "pricetag",
+  return_nudge: "sunny",
   story_new: "sparkles",
   trip_match: "airplane",
   trip_request: "map",
@@ -81,6 +85,7 @@ function openHint(item) {
   if (kind.startsWith("trip") && data.trip_id) return "افتح الرحلة";
   if (kind.startsWith("trip")) return "افتح الرحلات";
   if (data.listing_id || kind.startsWith("listing")) return "افتح الإعلان";
+  if (kind === "return_nudge") return "افتح السوق";
   return "";
 }
 
@@ -144,11 +149,7 @@ export default function NotificationsScreen({ user, onBack, onOpenItem }) {
       const r = await tairNotificationsApi.list(uid, 100);
       setItems(r?.items || []);
       setLoadError(null);
-      if (r?.unread_count) {
-        tairNotificationsApi.readAll(uid).then(() => setUnreadCount(0)).catch(() => null);
-      } else {
-        setUnreadCount(0);
-      }
+      setUnreadCount(r?.unread_count || 0);
     } catch (e) {
       setLoadError(e?.message || "تعذّر تحميل الإشعارات");
     } finally {
@@ -159,7 +160,23 @@ export default function NotificationsScreen({ user, onBack, onOpenItem }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const openOne = async (item) => {
+    if (!item?.is_read && item?.notif_id) {
+      setItems((prev) => prev.map((row) => (row.notif_id === item.notif_id ? { ...row, is_read: true } : row)));
+      setUnreadCount(Math.max(0, getUnreadCount() - 1));
+      tairNotificationsApi.markRead(item.notif_id, uid).catch(() => null);
+    }
+    onOpenItem?.(item);
+  };
+
+  const markAll = async () => {
+    setItems((prev) => prev.map((row) => ({ ...row, is_read: true })));
+    setUnreadCount(0);
+    tairNotificationsApi.readAll(uid).catch(() => null);
+  };
+
   const rows = withSections(items);
+  const unread = items.some((row) => !row.is_read);
   const renderItem = ({ item: row }) => {
     if (row.row === "head") {
       return <Text style={s.section}>{row.title}</Text>;
@@ -171,7 +188,7 @@ export default function NotificationsScreen({ user, onBack, onOpenItem }) {
       <PressableScale
         style={[s.card, !item.is_read && s.cardUnread]}
         scaleTo={0.985}
-        onPress={() => onOpenItem?.(item)}
+        onPress={() => openOne(item)}
         testID={`notif-${item.notif_id}`}
       >
         <View style={[s.icon, !item.is_read && s.iconUnread]}>
@@ -199,7 +216,11 @@ export default function NotificationsScreen({ user, onBack, onOpenItem }) {
           <Ionicons name="chevron-forward" size={22} color={TAIR.gold} />
         </PressableScale>
         <Text style={s.hTitle}>الإشعارات</Text>
-        <View style={{ width: 36 }} />
+        {unread ? (
+          <PressableScale onPress={markAll} scaleTo={0.96} testID="notifications-read-all">
+            <Text style={s.readAll}>قراءة الكل</Text>
+          </PressableScale>
+        ) : <View style={{ width: 36 }} />}
       </View>
       {loading ? (
         <ListSkeleton count={5} />
@@ -249,6 +270,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: "rgba(198,161,91,0.4)",
   },
   hTitle: { color: TAIR.gold, fontSize: 17, fontWeight: "800" },
+  readAll: { color: TAIR.gold, fontSize: 12, fontWeight: "800" },
   card: {
     flexDirection: "row-reverse", gap: 12, backgroundColor: TAIR.card, borderRadius: 18,
     padding: 14, marginBottom: 10, borderWidth: 1, borderColor: TAIR.divider,

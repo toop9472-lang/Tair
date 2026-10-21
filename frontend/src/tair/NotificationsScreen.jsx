@@ -23,6 +23,8 @@ const FACE = {
   admin_broadcast: ["من طير", "general", Megaphone],
   app_update: ["تحديث التطبيق", "general", Sparkles],
   listing_new: ["إعلان", "general", ShoppingBag],
+  listing_watch: ["طلبك في السوق", "general", ShoppingBag],
+  return_nudge: ["طير", "general", Bell],
   listing: ["إعلان", "general", ShoppingBag],
   story_new: ["قصة", "general", Sparkles],
 };

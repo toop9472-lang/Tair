@@ -678,6 +678,13 @@ export default function ProfileScreen({
           {!isGuest && (
             <>
               <MenuItem
+                icon="notifications-outline"
+                label="تنبيه إعلان"
+                color="#1B3D2F"
+                onPress={() => onNavigate?.("listing_watch")}
+                testID="menu-listing-watch"
+              />
+              <MenuItem
                 icon="clipboard-outline"
                 label="طلباتي"
                 onPress={() => onNavigate?.("orders")}

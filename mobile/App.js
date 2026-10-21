@@ -55,6 +55,7 @@ import StorefrontManagerScreen from "./src/screens/StorefrontManagerScreen";
 import AdminPanelScreen from "./src/screens/AdminPanelScreen";
 import WholesaleScreen from "./src/screens/WholesaleScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
+import ListingWatchScreen from "./src/screens/ListingWatchScreen";
 import UpdateNoticeModal from "./src/components/UpdateNoticeModal";
 import TairShareSheet from "./src/components/TairShareSheet";
 import NameGate, { needsDisplayName } from "./src/components/NameGate";
@@ -220,6 +221,7 @@ function TairApp() {
     else if (t === "story_new" || t === "story") setCurrentPage("forum");
     else if (t.startsWith("chat")) setCurrentPage("messages");
     else if (t.startsWith("order")) setCurrentPage("orders");
+    else if (t === "return_nudge") setCurrentPage("listings");
     else if (t.startsWith("trip")) {
       if (data?.trip_id) setModal({ name: "trip_details", params: { tripId: data.trip_id } });
       else setCurrentPage("trips");
@@ -556,6 +558,8 @@ function TairApp() {
             onOpenProfile={(uid) => setModal({ name: "seller_profile", params: { userId: uid, returnTo: modal } })}
           />
         );
+      case "listing_watch":
+        return <ListingWatchScreen user={user} onBack={closeModal} />;
       case "notifications":
         return (
           <NotificationsScreen
@@ -669,6 +673,7 @@ function TairApp() {
             else if (page === "storefront_manager") setModal({ name: "storefront_manager" });
             else if (page === "admin_panel") setModal({ name: "admin_panel" });
             else if (page === "orders") setCurrentPage("orders");
+            else if (page === "listing_watch") setModal({ name: "listing_watch" });
             else if (page === "wholesale") setModal({ name: "wholesale" });
             else if (page === "forum") setCurrentPage("forum");
             else if (page === "messages") setCurrentPage("messages");

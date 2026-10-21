@@ -101,6 +101,11 @@ async def create_listing(payload: ListingCreate, user_id: str = Query(...), acto
     doc = listing.model_dump()
     await db.listings.insert_one(doc)
     try:
+        from services.listing_watch_notify import notify_listing_watches
+        await notify_listing_watches(db, doc)
+    except Exception as exc:
+        print(f"[listing watch] {exc}")
+    try:
         from services.moderation import notify_staff
         title = (payload.title or "إعلان").strip()
         await notify_staff(
@@ -271,6 +276,12 @@ async def update_listing(
 
     await db.listings.update_one({"listing_id": listing_id}, {"$set": updates})
     fresh = await db.listings.find_one({"listing_id": listing_id})
+    if fresh and fresh.get("status") == "active":
+        try:
+            from services.listing_watch_notify import notify_listing_watches
+            await notify_listing_watches(db, fresh)
+        except Exception as exc:
+            print(f"[listing watch] {exc}")
     return _serialize(fresh)
 
 
@@ -315,6 +326,13 @@ async def unmark_listing_sold(listing_id: str, user_id: str = Query(...), actor:
         {"listing_id": doc.get("listing_id")},
         {"$set": {"status": "active", "updated_at": now}, "$unset": {"sold_at": ""}},
     )
+    fresh = await db.listings.find_one({"listing_id": doc.get("listing_id")})
+    if fresh:
+        try:
+            from services.listing_watch_notify import notify_listing_watches
+            await notify_listing_watches(db, fresh)
+        except Exception as exc:
+            print(f"[listing watch] {exc}")
     return {"success": True}
 
 
