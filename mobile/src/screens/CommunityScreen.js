@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import TairHeader from "../components/TairHeader";
+import { StickerTray, TairSticker, parseSticker } from "../components/TairStickers";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { adminExtApi, communityApi, communityChatApi, storiesApi } from "../services/tairApi";
 import { EmptyState, ErrorState, PressableScale, Skeleton, TairImage } from "../components/TairUI";
@@ -147,6 +148,19 @@ export default function CommunityScreen({
     } finally { setSending(false); }
   };
 
+  const sendSticker = async (token) => {
+    if (sending) return;
+    if (!uid) return Alert.alert("تنبيه", "سجّل الدخول أولاً");
+    stickToEnd.current = true;
+    setSending(true);
+    try {
+      await communityChatApi.send(token, uid);
+      loadChat();
+    } catch (e) {
+      Alert.alert("لم يُرسل", e?.data?.detail || e?.message || "تعذّر الإرسال");
+    } finally { setSending(false); }
+  };
+
   const deleteMsg = (msgId) => {
     Alert.alert("حذف", "حذف الرسالة؟", [
       { text: "إلغاء", style: "cancel" },
@@ -161,7 +175,8 @@ export default function CommunityScreen({
     const mine = item.user_id === uid;
     const when = formatClock(item.created_at);
     const body = item.text || "";
-    const long = body.length > LONG_MSG;
+    const sticker = parseSticker(body);
+    const long = !sticker && body.length > LONG_MSG;
     const open = !!expanded[item.msg_id];
     const shown = long && !open ? `${body.slice(0, LONG_MSG).trim()}…` : body;
     return (
@@ -181,10 +196,10 @@ export default function CommunityScreen({
             <Text style={s.avatarLetter}>{(item.user_name || "؟").charAt(0)}</Text>
           )}
         </TouchableOpacity>
-        <View style={[s.bubble, mine ? s.bubbleMine : s.bubbleOther, item.is_moderator && !mine && s.bubbleMod]}>
+        <View style={[s.bubble, sticker ? s.bubbleSticker : (mine ? s.bubbleMine : s.bubbleOther), item.is_moderator && !mine && !sticker && s.bubbleMod]}>
           <View style={s.nameRow}>
             <Text
-              style={[s.msgName, mine && s.msgNameMine]}
+              style={[s.msgName, mine && !sticker && s.msgNameMine]}
               numberOfLines={1}
               onPress={() => item.user_id && onOpenProfile?.(item.user_id)}
               testID={`chat-name-${item.msg_id}`}
@@ -198,7 +213,14 @@ export default function CommunityScreen({
               </View>
             ) : null}
           </View>
-          <Text style={[s.msgText, mine && s.msgTextMine]}>{shown}</Text>
+          {sticker ? (
+            <View style={s.stickerMsg}>
+              <TairSticker id={sticker.id} size={78} />
+              <Text style={[s.stickerCaption, mine && s.stickerCaptionMine]}>{sticker.label}</Text>
+            </View>
+          ) : (
+            <Text style={[s.msgText, mine && s.msgTextMine]}>{shown}</Text>
+          )}
           {long ? (
             <Text
               style={[s.more, mine && s.moreMine]}
@@ -207,7 +229,7 @@ export default function CommunityScreen({
               {open ? "عرض أقل" : "عرض المزيد"}
             </Text>
           ) : null}
-          {when ? <Text style={[s.msgTime, mine && s.msgTimeMine]}>{when}</Text> : null}
+          {when ? <Text style={[s.msgTime, mine && !sticker && s.msgTimeMine]}>{when}</Text> : null}
         </View>
       </TouchableOpacity>
     );
@@ -221,6 +243,7 @@ export default function CommunityScreen({
       <View style={s.page}>
         <TairHeader
           variant="community"
+          userId={user?.user_id || user?.id}
           onBellPress={onOpenNotifications}
           onMessagesPress={onOpenMessages}
         />
@@ -334,12 +357,16 @@ export default function CommunityScreen({
                       testID="community-chat-error"
                     />
                   ) : (
-                    <EmptyState
-                      icon="chatbubbles-outline"
-                      title="الدردشة هادئة الآن"
-                      subtitle="ابدأ الحديث مع المربّين. الرسائل نص فقط، وتبقى يوماً واحداً."
-                      testID="community-chat-empty"
-                    />
+                    <View style={s.welcome} testID="community-chat-empty">
+                      <Text style={s.welcomeTitle}>حديث المربّين</Text>
+                      <Text style={s.welcomeSub}>المكان هادئ الآن. اكتب سؤالاً عن التغذية أو التفريخ أو الرحلات.</Text>
+                      <View style={s.hintBubble}>
+                        <Text style={s.hintText}>مثال: ما أنسب عجينة للكناري في هذا الجو؟</Text>
+                      </View>
+                      <View style={[s.hintBubble, s.hintMine]}>
+                        <Text style={[s.hintText, { color: TAIR.gold }]}>الرسائل نصية، وتبقى ظاهرة يوماً واحداً.</Text>
+                      </View>
+                    </View>
                   )}
                 </View>
               }
@@ -354,6 +381,7 @@ export default function CommunityScreen({
               <Text style={s.blockNoteText}>{composerBlock}</Text>
             </View>
           ) : null}
+          <StickerTray onPick={sendSticker} disabled={sending} />
           <View style={s.composerRow}>
           <TextInput
             value={text}
@@ -518,7 +546,27 @@ const s = StyleSheet.create({
 
   chatSkeleton: { padding: 16, gap: 12 },
   chatList: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 16, flexGrow: 1 },
-  emptyWrap: { flexGrow: 1, justifyContent: "center" },
+  emptyWrap: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 8 },
+  welcome: {
+    backgroundColor: TAIR.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(198,161,91,0.4)",
+    padding: 16,
+    gap: 8,
+  },
+  welcomeTitle: { color: TAIR.emerald, fontSize: 16, fontWeight: "900", textAlign: "right" },
+  welcomeSub: { color: TAIR.muted, fontSize: 12, fontWeight: "700", textAlign: "right", lineHeight: 18 },
+  hintBubble: {
+    alignSelf: "flex-end",
+    maxWidth: "88%",
+    backgroundColor: TAIR.creamDeep,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  hintMine: { alignSelf: "flex-start", backgroundColor: TAIR.emerald },
+  hintText: { color: TAIR.emerald, fontSize: 12, fontWeight: "700", textAlign: "right", lineHeight: 18 },
 
   msgRow: { flexDirection: "row-reverse", gap: 8, marginBottom: 10, alignItems: "flex-end" },
   msgRowMine: { flexDirection: "row" },
@@ -541,6 +589,15 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 18,
   },
+  bubbleSticker: {
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
+    paddingVertical: 2,
+    borderWidth: 0,
+  },
+  stickerMsg: { alignItems: "center" },
+  stickerCaption: { marginTop: 3, color: TAIR.goldDark, fontSize: 11, fontWeight: "800" },
+  stickerCaptionMine: { color: TAIR.goldDark },
   bubbleMine: {
     backgroundColor: TAIR.emerald,
     borderBottomRightRadius: 6,

@@ -10,7 +10,7 @@ import { TAIR, TAIR_PAGE_STYLE, TairAppHeader } from "./TairAppChrome";
 import { tairApi } from "./tairApi";
 import communityHeader from "../assets/tair-design/headers/community.jpg";
 
-export default function CommunityScreen({ user, onOpenStories, onOpenPride, onOpenAskExperts, onOpenNotifications, onAddStory, onOpenListing }) {
+export default function CommunityScreen({ user, onOpenStories, onOpenPride, onOpenAskExperts, onOpenNotifications, onAddStory, onOpenListing, unreadCount = 0 }) {
   const [stories, setStories] = useState([]);
   const [pride, setPride] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ export default function CommunityScreen({ user, onOpenStories, onOpenPride, onOp
   return (
     <div dir="rtl" style={TAIR_PAGE_STYLE} data-testid="community-screen">
       {/* الهيدر بالصورة كباقي الصفحات */}
-      <TairAppHeader image={communityHeader} onBell={onOpenNotifications} />
+      <TairAppHeader image={communityHeader} onBell={onOpenNotifications} unreadCount={unreadCount} />
 
       {/* === قسم القصص === */}
       <div style={{ display: "flex", flexDirection: "row-reverse", alignItems: "center", gap: 8, padding: "8px 16px 8px" }}>

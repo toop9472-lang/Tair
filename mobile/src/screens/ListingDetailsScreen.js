@@ -105,6 +105,7 @@ export default function ListingDetailsScreen({
       kind: "listing",
       id,
       title: listing.title || "إعلان طير",
+      image: resolveMediaUrl(listing.cover_image || listing.images?.[0]),
       lines: [
         listing.price_sar != null ? `${listing.price_sar} ر.س` : null,
         listing.city || null,

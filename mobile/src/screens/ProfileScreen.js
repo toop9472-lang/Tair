@@ -28,6 +28,8 @@ import {
 import { TAIR_BANNER_IMAGE } from "../constants/tairDesign";
 import { ErrorState, ListSkeleton } from "../components/TairUI";
 import { TAIR_ELEVATION } from "../constants/tairTheme";
+import { shareAppPayload, shareInApp } from "../services/shareContent";
+import { HeaderSheen } from "../components/TairPolish";
 
 const API_BASE =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -345,6 +347,8 @@ export default function ProfileScreen({
       >
         {/* Bottom-to-top scrim so text is readable */}
         <View style={styles.bannerScrim} />
+        <HeaderSheen />
+        <View style={styles.goldRule} pointerEvents="none" />
 
         {/* Identity content stacked at bottom */}
         <View style={styles.identityContent}>
@@ -678,6 +682,13 @@ export default function ProfileScreen({
                 label="طلباتي"
                 onPress={() => onNavigate?.("orders")}
                 testID="menu-orders"
+              />
+              <MenuItem
+                icon="share-social-outline"
+                label="شارك التطبيق"
+                color="#C6A15B"
+                onPress={() => shareInApp(shareAppPayload())}
+                testID="menu-share-app"
               />
               <MenuItem
                 icon="business"
@@ -1155,6 +1166,17 @@ const styles = StyleSheet.create({
     height: 340,
     position: "relative",
     justifyContent: "flex-end",
+    overflow: "hidden",
+  },
+  goldRule: {
+    position: "absolute",
+    left: 28,
+    right: 28,
+    bottom: 0,
+    height: 2,
+    backgroundColor: TAIR_GOLD,
+    opacity: 0.85,
+    zIndex: 4,
   },
   bannerScrim: {
     ...StyleSheet.absoluteFillObject,
@@ -1165,6 +1187,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 20,
     paddingTop: 60,
+    zIndex: 4,
   },
   identityControls: {
     marginTop: 14,

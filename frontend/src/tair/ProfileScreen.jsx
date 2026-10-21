@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import {
   User, Star, Bird, Truck, LogOut, ChevronLeft,
   ShieldCheck, FileText, Trash2, HelpCircle, LogIn, Fingerprint,
-  Camera, Store, Package, Bell, BellOff, Sparkles, BarChart3,
+  Camera, Store, Package, Bell, BellOff, Sparkles, BarChart3, Share2,
 } from "lucide-react";
 import { T, S } from "./tairTheme";
 import { tairApi } from "./tairApi";
@@ -13,8 +13,9 @@ import shukrStrip from "../assets/tair-design/shukr_strip.jpg";
 import { TAIR_PAGE_STYLE, TairAppHeader } from "./TairAppChrome";
 import { isPushSupported, subscribeToPush, unsubscribeFromPush } from "./pushClient";
 import { toast } from "../hooks/use-toast";
+import { shareAppPayload, shareNow } from "./shareContent";
 
-export default function ProfileScreen({ user, onOpenListing, onOpenTrip, onLogout, onOpenKyc, onOpenOrders, onOpenStories, onOpenAnalytics, onOpenNotifications }) {
+export default function ProfileScreen({ user, onOpenListing, onOpenTrip, onLogout, onOpenKyc, onOpenOrders, onOpenStories, onOpenAnalytics, onOpenNotifications, onOpenStore, unreadCount = 0 }) {
   const uid = user.id || user.user_id;
   const isGuest = !!user.isGuest;
   const [pushEnabled, setPushEnabled] = useState(
@@ -118,7 +119,7 @@ export default function ProfileScreen({ user, onOpenListing, onOpenTrip, onLogou
 
   return (
     <div style={{ ...S.screen, ...TAIR_PAGE_STYLE }} data-testid="profile-screen">
-      <TairAppHeader image={accountHeader} onBell={onOpenNotifications} />
+      <TairAppHeader image={accountHeader} onBell={onOpenNotifications} unreadCount={unreadCount} />
       <header style={{
         ...styles.hero,
         backgroundImage: profileBg
@@ -345,6 +346,27 @@ export default function ProfileScreen({ user, onOpenListing, onOpenTrip, onLogou
               label="طلباتي"
               onClick={onOpenOrders}
               testId="menu-orders"
+            />
+          )}
+          <MenuLink
+            icon={<Share2 size={20} strokeWidth={1.8} />}
+            label="شارك التطبيق"
+            onClick={async () => {
+              try {
+                const mode = await shareNow(shareAppPayload());
+                if (mode === "copied") toast({ title: "تم نسخ دعوة التطبيق" });
+              } catch {
+                toast({ title: "تعذّرت المشاركة", variant: "destructive" });
+              }
+            }}
+            testId="menu-share-app"
+          />
+          {onOpenStore && !isGuest && (
+            <MenuLink
+              icon={<Store size={20} strokeWidth={1.8} />}
+              label="إدارة متجري الاحترافي"
+              onClick={onOpenStore}
+              testId="menu-storefront-manager"
             />
           )}
           {onOpenAnalytics && (

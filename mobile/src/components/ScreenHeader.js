@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { TAIR_BANNER_IMAGE } from "../constants/tairDesign";
 import { TAIR } from "../constants/tairTheme";
 import { PressableScale } from "./TairUI";
+import { HeaderSheen } from "./TairPolish";
 
 export default function ScreenHeader({
   title,
@@ -30,6 +31,8 @@ export default function ScreenHeader({
         colors={["rgba(15,36,28,0.28)", "rgba(27,61,47,0.88)"]}
         style={StyleSheet.absoluteFill}
       />
+      <HeaderSheen />
+      <View style={styles.goldRule} pointerEvents="none" />
       <View style={styles.row}>
         {onBack ? (
           <PressableScale
@@ -60,8 +63,18 @@ const styles = StyleSheet.create({
   banner: {
     width: "100%",
     justifyContent: "flex-end",
+    overflow: "hidden",
   },
   image: { resizeMode: "cover" },
+  goldRule: {
+    position: "absolute",
+    left: 28,
+    right: 28,
+    bottom: 0,
+    height: 2,
+    backgroundColor: TAIR.gold,
+    opacity: 0.85,
+  },
   row: {
     flexDirection: "row-reverse",
     alignItems: "center",

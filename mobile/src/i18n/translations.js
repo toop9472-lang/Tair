@@ -11,7 +11,7 @@ export const SUPPORTED_LANGUAGES = [
 export const translations = {
   ar: {
     // Common
-    app_name: 'صقر',
+    app_name: 'طير',
     loading: 'جاري التحميل...',
     error: 'خطأ',
     success: 'تم بنجاح',
@@ -97,8 +97,8 @@ export const translations = {
     about: 'حول التطبيق',
     
     // Currency
-    points: 'جواهر صقر',
-    diamonds: 'جواهر صقر',
+    points: 'جواهر طير',
+    diamonds: 'جواهر طير',
     buy_diamonds: 'جمع الجواهر',
     
     // Ads
@@ -119,7 +119,7 @@ export const translations = {
     streak_master: 'سيد السلسلة',
     streak_master_desc: 'حقق سلسلة 10 فوز متتالي',
     diamond_collector: 'جامع الجواهر',
-    diamond_collector_desc: 'اجمع 1000 جوهرة صقر',
+    diamond_collector_desc: 'اجمع 1000 جوهرة طير',
     point_millionaire: 'مليونير النقاط',
     point_millionaire_desc: 'اجمع 10000 نقطة',
     daily_player: 'لاعب يومي',
@@ -143,7 +143,7 @@ export const translations = {
   
   en: {
     // Common
-    app_name: 'Saqr',
+    app_name: 'Tair',
     loading: 'Loading...',
     error: 'Error',
     success: 'Success',
@@ -229,8 +229,8 @@ export const translations = {
     about: 'About',
     
     // Currency
-    points: 'Saqr Gems',
-    diamonds: 'Saqr Gems',
+    points: 'Tair Gems',
+    diamonds: 'Tair Gems',
     buy_diamonds: 'Earn Gems',
     
     // Ads
@@ -251,7 +251,7 @@ export const translations = {
     streak_master: 'Streak Master',
     streak_master_desc: 'Achieve 10 wins in a row',
     diamond_collector: 'Gem Collector',
-    diamond_collector_desc: 'Collect 1000 Saqr gems',
+    diamond_collector_desc: 'Collect 1000 Tair gems',
     point_millionaire: 'Point Millionaire',
     point_millionaire_desc: 'Collect 10000 points',
     daily_player: 'Daily Player',
@@ -275,7 +275,7 @@ export const translations = {
   
   fr: {
     // Common
-    app_name: 'Saqr',
+    app_name: 'Tair',
     loading: 'Chargement...',
     error: 'Erreur',
     success: 'Succès',
@@ -361,8 +361,8 @@ export const translations = {
     about: 'À propos',
     
     // Currency
-    points: 'Gemmes Saqr',
-    diamonds: 'Gemmes Saqr',
+    points: 'Gemmes Tair',
+    diamonds: 'Gemmes Tair',
     buy_diamonds: 'Gagner des gemmes',
     
     // Ads
@@ -383,7 +383,7 @@ export const translations = {
     streak_master: 'Maître des séries',
     streak_master_desc: 'Obtenez 10 victoires consécutives',
     diamond_collector: 'Collectionneur de gemmes',
-    diamond_collector_desc: 'Collectez 1000 gemmes Saqr',
+    diamond_collector_desc: 'Collectez 1000 gemmes Tair',
     point_millionaire: 'Millionnaire de points',
     point_millionaire_desc: 'Collectez 10000 points',
     daily_player: 'Joueur quotidien',
@@ -407,7 +407,7 @@ export const translations = {
   
   tr: {
     // Common
-    app_name: 'Saqr',
+    app_name: 'Tair',
     loading: 'Yükleniyor...',
     error: 'Hata',
     success: 'Başarılı',
@@ -493,8 +493,8 @@ export const translations = {
     about: 'Hakkında',
     
     // Currency
-    points: 'Saqr Mücevherleri',
-    diamonds: 'Saqr Mücevherleri',
+    points: 'Tair Mücevherleri',
+    diamonds: 'Tair Mücevherleri',
     buy_diamonds: 'Mücevher Kazan',
     
     // Ads
@@ -515,7 +515,7 @@ export const translations = {
     streak_master: 'Seri Ustası',
     streak_master_desc: 'Arka arkaya 10 galibiyet al',
     diamond_collector: 'Mücevher Toplayıcı',
-    diamond_collector_desc: '1000 Saqr mücevheri topla',
+    diamond_collector_desc: '1000 Tair mücevheri topla',
     point_millionaire: 'Puan Milyoneri',
     point_millionaire_desc: '10000 puan topla',
     daily_player: 'Günlük Oyuncu',

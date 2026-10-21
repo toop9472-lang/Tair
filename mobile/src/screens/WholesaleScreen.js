@@ -56,7 +56,7 @@ function SupplierCard({ supplier, categories, onPress }) {
           {supplier.logo_url ? (
             <Image source={{ uri: supplier.logo_url }} style={styles.logo} />
           ) : (
-            <Ionicons name="storefront" size={30} color="#1B3D2F" />
+            <Ionicons name="storefront" size={18} color="#1B3D2F" />
           )}
         </View>
         <View style={{ flex: 1 }}>
@@ -443,8 +443,8 @@ const styles = StyleSheet.create({
     borderBottomColor: "#e2e8f0",
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     backgroundColor: "#f1f5f9",
     borderRadius: 999,
   },
@@ -454,17 +454,17 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 14,
+    padding: 10,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: "#e2e8f0",
   },
   cardHead: { flexDirection: "row-reverse", alignItems: "center", gap: 10, marginBottom: 8 },
   logoWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: "#f0fdfa",
     alignItems: "center",
     justifyContent: "center",

@@ -71,7 +71,7 @@ const DeleteAccountPage = () => {
             onError={(e) => e.target.style.display = 'none'}
           />
           <h1 style={styles.title}>طلب حذف الحساب</h1>
-          <p style={styles.appName}>تطبيق طير - Tair App</p>
+          <p style={styles.appName}>تطبيق طير</p>
         </div>
 
         {/* Warning Box */}
@@ -176,7 +176,7 @@ const DeleteAccountPage = () => {
 const styles = {
   container: {
     minHeight: '100vh',
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#F7F1E8',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -185,7 +185,7 @@ const styles = {
     direction: 'rtl',
   },
   card: {
-    backgroundColor: '#1a1a24',
+    backgroundColor: '#FFFDF8',
     borderRadius: '16px',
     padding: '32px',
     maxWidth: '600px',
@@ -203,7 +203,7 @@ const styles = {
     marginBottom: '16px',
   },
   title: {
-    color: '#fff',
+    color: '#1B3D2F',
     fontSize: '24px',
     margin: '0 0 8px 0',
   },
@@ -232,19 +232,19 @@ const styles = {
     marginBottom: '24px',
   },
   sectionTitle: {
-    color: '#fff',
+    color: '#1B3D2F',
     fontSize: '16px',
     marginBottom: '12px',
   },
   list: {
-    color: '#aaa',
+    color: '#6B5E4A',
     fontSize: '14px',
     lineHeight: '2',
     paddingRight: '20px',
     margin: 0,
   },
   text: {
-    color: '#aaa',
+    color: '#6B5E4A',
     fontSize: '14px',
     lineHeight: '1.6',
     margin: 0,
@@ -257,17 +257,17 @@ const styles = {
   },
   label: {
     display: 'block',
-    color: '#ccc',
+    color: '#1B3D2F',
     fontSize: '14px',
     marginBottom: '8px',
   },
   input: {
     width: '100%',
     padding: '14px 16px',
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#F7F1E8',
     border: '1px solid #333',
     borderRadius: '10px',
-    color: '#fff',
+    color: '#1B3D2F',
     fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box',
@@ -275,10 +275,10 @@ const styles = {
   select: {
     width: '100%',
     padding: '14px 16px',
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#F7F1E8',
     border: '1px solid #333',
     borderRadius: '10px',
-    color: '#fff',
+    color: '#1B3D2F',
     fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box',
@@ -288,9 +288,9 @@ const styles = {
     width: '100%',
     padding: '16px',
     backgroundColor: '#dc2626',
+    color: '#fff',
     border: 'none',
     borderRadius: '12px',
-    color: '#fff',
     fontSize: '16px',
     fontWeight: 'bold',
     cursor: 'pointer',
@@ -325,13 +325,13 @@ const styles = {
     margin: '0 auto 24px',
   },
   successTitle: {
-    color: '#fff',
+    color: '#1B3D2F',
     fontSize: '24px',
     textAlign: 'center',
     marginBottom: '16px',
   },
   successText: {
-    color: '#aaa',
+    color: '#6B5E4A',
     fontSize: '14px',
     textAlign: 'center',
     lineHeight: '1.8',

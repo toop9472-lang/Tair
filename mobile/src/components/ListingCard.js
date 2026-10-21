@@ -2,7 +2,7 @@
  * كرت إعلان السوق — البطاقة الأساسية في طير.
  * صورة يمين، معلومات يسار، شارات هادئة، وظل زمردي خفيف.
  */
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { API_URL } from "../services/api";
@@ -16,7 +16,7 @@ export function resolveMediaUrl(u) {
   return u;
 }
 
-export default function ListingCard({ item, onPress, testID }) {
+function ListingCard({ item, onPress, testID }) {
   const isNew = useMemo(() => {
     if (!item?.created_at) return false;
     const t = new Date(item.created_at).getTime();
@@ -86,6 +86,8 @@ export default function ListingCard({ item, onPress, testID }) {
     </PressableScale>
   );
 }
+
+export default memo(ListingCard);
 
 const styles = StyleSheet.create({
   card: {

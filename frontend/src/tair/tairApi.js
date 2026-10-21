@@ -510,6 +510,52 @@ export const tairApi = {
     return data.items || [];
   },
 
+  storefrontSettings: async (userId) => {
+    const { data } = await client.get("/storefront/settings", { params: { user_id: userId } });
+    return data;
+  },
+  updateStorefront: async (userId, payload) => {
+    const { data } = await client.patch("/storefront/settings", payload, { params: { user_id: userId } });
+    return data;
+  },
+  uploadStoreMedia: async (userId, kind, file) => {
+    const form = new FormData();
+    form.append("file", file);
+    const { data } = await client.post("/storefront/upload-media", form, {
+      params: { user_id: userId, kind },
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data.url;
+  },
+  createFlashSale: async (userId, payload) => {
+    const { data } = await client.post("/storefront/flash-sales", payload, { params: { user_id: userId } });
+    return data;
+  },
+  deleteFlashSale: async (userId, saleId) => {
+    const { data } = await client.delete(`/storefront/flash-sales/${saleId}`, { params: { user_id: userId } });
+    return data;
+  },
+  createCoupon: async (userId, payload) => {
+    const { data } = await client.post("/storefront/coupons", payload, { params: { user_id: userId } });
+    return data;
+  },
+  setCouponActive: async (userId, code, active) => {
+    const { data } = await client.patch(`/storefront/coupons/${encodeURIComponent(code)}`, { active }, { params: { user_id: userId } });
+    return data;
+  },
+  deleteCoupon: async (userId, code) => {
+    const { data } = await client.delete(`/storefront/coupons/${encodeURIComponent(code)}`, { params: { user_id: userId } });
+    return data;
+  },
+  updateInventory: async (userId, payload) => {
+    const { data } = await client.post("/storefront/inventory", payload, { params: { user_id: userId } });
+    return data;
+  },
+  storeAnalytics: async (userId, days = 30) => {
+    const { data } = await client.get("/storefront/analytics", { params: { user_id: userId, days } });
+    return data;
+  },
+
   // AI bird identification
   identifyBirdFromBase64: async (imageBase64, mimeType = "image/jpeg") => {
     const { data } = await client.post("/ai/identify-bird-b64", {
@@ -537,7 +583,7 @@ export const ORDER_STATUS_COLOR = {
   accepted_by_carrier: "#0891b2",
   in_transit: "#3b82f6",
   delivered: "#10b981",
-  completed: "#065f46",
+  completed: "#1B3D2F",
   disputed: "#dc2626",
   cancelled: "#64748b",
 };

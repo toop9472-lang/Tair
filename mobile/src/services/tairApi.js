@@ -248,6 +248,14 @@ export const storefrontApi = {
     req(`/api/storefront/coupons?user_id=${encodeURIComponent(userId)}`, {
       method: "POST", body: JSON.stringify(payload),
     }),
+  setCouponActive: (userId, code, active) =>
+    req(`/api/storefront/coupons/${encodeURIComponent(code)}?user_id=${encodeURIComponent(userId)}`, {
+      method: "PATCH", body: JSON.stringify({ active }),
+    }),
+  deleteCoupon: (userId, code) =>
+    req(`/api/storefront/coupons/${encodeURIComponent(code)}?user_id=${encodeURIComponent(userId)}`, {
+      method: "DELETE",
+    }),
   updateInventory: (userId, payload) =>
     req(`/api/storefront/inventory?user_id=${encodeURIComponent(userId)}`, {
       method: "POST", body: JSON.stringify(payload),

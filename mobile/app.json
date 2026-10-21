@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#c8fce6"
+      "backgroundColor": "#F7F1E8"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -191,7 +191,9 @@
             { "scheme": "saqr", "host": "auction" },
             { "scheme": "saqr", "host": "story" },
             { "scheme": "saqr", "host": "trip" },
-            { "scheme": "saqr", "host": "store" }
+            { "scheme": "saqr", "host": "store" },
+            { "scheme": "saqr", "host": "clinic" },
+            { "scheme": "saqr", "host": "app" }
           ],
           "category": [
             "BROWSABLE",
@@ -205,6 +207,11 @@
               "scheme": "https",
               "host": "saqr-ui-sync.emergent.host",
               "pathPrefix": "/share"
+            },
+            {
+              "scheme": "https",
+              "host": "saqr-ui-sync.emergent.host",
+              "pathPrefix": "/api/share"
             }
           ],
           "category": [
@@ -225,7 +232,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/logo_saqr.png"
+      "favicon": "./assets/tair_logo_v1_0.png"
     },
     "owner": "ziyad333",
     "extra": {

@@ -2,6 +2,7 @@
 # نظام الأصدقاء والرسائل الخاصة والبلاغات
 
 from fastapi import APIRouter, HTTPException
+from services.tair_stickers import sticker_preview
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -378,7 +379,8 @@ async def get_inbox(user_id: str):
             "read": False
         })
 
-        preview = msg["message"][:50] + "..." if len(msg["message"]) > 50 else msg["message"]
+        raw_preview = sticker_preview(msg.get("message") or "")
+        preview = raw_preview[:50] + "..." if len(raw_preview) > 50 else raw_preview
         # لو كانت الرسالة الأخيرة صادرة، أضف بادئة "أنت: " لتوضيح ذلك
         if msg.get("from_user_id") == user_id:
             preview = f"أنت: {preview}"

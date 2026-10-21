@@ -404,6 +404,35 @@ export function InjectAnimations() {
         to { transform: translateY(0); }
       }
       @keyframes tair-spin { to { transform: rotate(360deg); } }
+      @keyframes tair-ring {
+        0% { transform: scale(1); opacity: 0.55; }
+        100% { transform: scale(2.2); opacity: 0; }
+      }
+      @keyframes tair-rise {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes tair-arrive {
+        from { opacity: 0; transform: translateY(18px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes tair-sheen {
+        0% { transform: translateX(-140%) rotate(16deg); }
+        38% { transform: translateX(280%) rotate(16deg); }
+        100% { transform: translateX(280%) rotate(16deg); }
+      }
+      .tair-arrive { animation: tair-arrive 0.48s cubic-bezier(.2,.7,.2,1); }
+      .tair-sheen {
+        position: absolute;
+        top: -12%;
+        bottom: -12%;
+        width: 22%;
+        left: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,248,220,0.12), rgba(255,248,220,0.78), rgba(198,161,91,0.16), transparent);
+        animation: tair-sheen 4.6s ease-in-out infinite;
+        pointer-events: none;
+        z-index: 2;
+      }
       body { -webkit-tap-highlight-color: transparent; }
       button:active { transform: scale(0.98); transition: transform 0.06s; }
       input:focus, textarea:focus, select:focus {

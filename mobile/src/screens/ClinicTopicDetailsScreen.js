@@ -16,16 +16,29 @@ import { TAIR } from "../constants/tairTheme";
 import { clinicTopicsApi, adminExtApi } from "../services/tairApi";
 import api from "../services/api";
 import { DetailSkeleton, ErrorState } from "../components/TairUI";
+import { shareInApp } from "../services/shareContent";
+import ClinicAssistOrb from "../components/ClinicAssistOrb";
 
 const QLABELS = {
-  q_lethargy: "خمول", q_appetite: "الشهية", q_onset: "بداية الأعراض",
-  q_diet: "التغذية", q_gender: "النوع", q_breeding: "حضن/تزاوج",
-  q_medications: "الأدوية", q_seen_vet: "عرض على دكتور",
-  q_age: "العمر", q_time_with_owner: "منذ متى", q_tame: "أليف",
-  q_vomits: "استفراغ", q_mouth_droppings: "فم/براز",
-  chick_serelac_brand: "سريلاك - الشركة", chick_exact_age: "العمر بالضبط",
-  chick_serelac_temp: "حرارة السريلاك", chick_feeding_count: "عدد الغر",
-  chick_feeding_method: "طريقة التأكيل", chick_serelac_leftover: "بواقي السريلاك",
+  q_lethargy: "خمول",
+  q_appetite: "الشهية",
+  q_onset: "بداية الأعراض",
+  q_diet: "التغذية",
+  q_gender: "ذكر أو أنثى",
+  q_breeding: "حضن أو تزاوج",
+  q_medications: "أدوية أخيرة",
+  q_seen_vet: "عُرضت من قبل",
+  q_age: "عمر الطير",
+  q_time_with_owner: "منذ متى عندك",
+  q_tame: "أليف",
+  q_vomits: "استفراغ",
+  q_mouth_droppings: "فم أو رائحة براز",
+  chick_serelac_brand: "شركة السريلاك",
+  chick_exact_age: "عمر الفرخ",
+  chick_serelac_temp: "حرارة السريلاك",
+  chick_feeding_count: "مرات الغر والكمية",
+  chick_feeding_method: "طريقة التأكيل",
+  chick_serelac_leftover: "بواقي السريلاك",
 };
 
 export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpenProfile }) {
@@ -122,6 +135,56 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
     setAiOpen(false);
   };
 
+  const useNote = (text) => {
+    const clean = (text || "").trim();
+    if (!clean) return;
+    setReplyText(clean);
+    setAiOpen(false);
+  };
+
+  const attachLibraryFile = (file) => {
+    if (!file) return;
+    const line = [file.title, file.file_url].filter(Boolean).join("\n");
+    if (line) setReplyText((prev) => (prev ? `${prev}\n${line}` : line));
+    const kind = String(file.file_type || "");
+    const url = file.file_url || file.cover_url || "";
+    if (url && (kind === "image" || kind === "jpg" || /\.(jpg|jpeg|png|webp)(\?|$)/i.test(url))) {
+      setReplyImgs((prev) => (prev.includes(url) || prev.length >= 5 ? prev : [...prev, url]));
+    }
+    setAiOpen(false);
+  };
+
+  const sendLibraryFile = async (file) => {
+    const line = [file?.title, file?.file_url].filter(Boolean).join("\n");
+    if (!line) return;
+    setBusy(true);
+    try {
+      const kind = String(file.file_type || "");
+      const url = file.file_url || "";
+      const images = url && (kind === "image" || kind === "jpg") ? [url] : [];
+      await clinicTopicsApi.addReply(topicId, { text: line, images }, uid);
+      const r = await clinicTopicsApi.listReplies(topicId);
+      setReplies(r?.items || []);
+      setAiOpen(false);
+    } catch (e) {
+      Alert.alert("خطأ", e?.data?.detail || e?.message || "تعذّر إرسال الملف");
+    } finally { setBusy(false); }
+  };
+
+  const baseKeys = Object.keys(QLABELS).filter((k) => !k.startsWith("chick_"));
+  const chickKeys = Object.keys(QLABELS).filter((k) => k.startsWith("chick_"));
+  const missingNow = [
+    ...baseKeys.filter((k) => !(topic?.[k] || "").toString().trim()).map((k) => QLABELS[k]),
+    ...(topic?.is_chick ? chickKeys.filter((k) => !(topic?.[k] || "").toString().trim()).map((k) => QLABELS[k]) : []),
+  ];
+  const modAnswered = replies.some((r) => r.is_moderator && !r.is_bot);
+  const localAlerts = [];
+  if (topic && !modAnswered) localAlerts.push("بانتظار رد المشرف");
+  if (topic && !(topic.images || []).length && !(topic.videos || []).length) localAlerts.push("الحالة بلا صورة أو فيديو");
+  if (missingNow.length) localAlerts.push(`أسئلة ناقصة: ${missingNow.slice(0, 6).join("، ")}`);
+  const assistAlerts = aiData?.alerts?.length ? aiData.alerts : localAlerts;
+  const assistLevel = aiData?.priority || (topic && !modAnswered ? "watch" : "steady");
+
   const deleteReply = (replyId) => {
     Alert.alert("حذف الرد", "هل تريد حذف هذا الرد؟", [
       { text: "إلغاء", style: "cancel" },
@@ -182,11 +245,22 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
         </TouchableOpacity>
         <Text style={s.hTitle} numberOfLines={1}>{topic.title}</Text>
         <View style={{ flexDirection: "row-reverse", gap: 6 }}>
-          {isMod ? (
-            <TouchableOpacity onPress={openAI} style={s.aiBtn} testID="ai-assist-btn">
-              <Ionicons name="sparkles" size={16} color={TAIR.gold} />
-            </TouchableOpacity>
-          ) : null}
+          <TouchableOpacity
+            onPress={() => shareInApp({
+              kind: "clinic",
+              id: topic.topic_id || topicId,
+              title: topic.title || "موضوع في العيادة",
+              image: topic.images?.[0] || "",
+              lines: [
+                topic.user_name ? `من ${topic.user_name}` : null,
+                (topic.description || "").slice(0, 80),
+              ],
+            })}
+            style={s.hBtn}
+            testID="clinic-topic-share"
+          >
+            <Ionicons name="share-social-outline" size={18} color={TAIR.gold} />
+          </TouchableOpacity>
           {(isOwner || isMod) ? (
             <TouchableOpacity onPress={deleteTopic} style={s.hBtn}>
               <Ionicons name="trash-outline" size={18} color={TAIR.gold} />
@@ -219,24 +293,20 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
         {/* Diagnostic questionnaire — نفس نمط الشبكة في شاشة الإنشاء */}
         {answered.length > 0 || topic.is_chick ? (
           <>
-            <Text style={s.sectH}>📋 تشخيص الحالة</Text>
-            <View style={s.qGrid}>
-              {answered.map(({ k, label, v }) => (
-                <View key={k} style={s.qGridItem}>
-                  <View style={s.qGridCard}>
-                    <Text style={s.qGridK} numberOfLines={2}>{label}</Text>
-                    <Text style={s.qGridV} numberOfLines={3}>{v}</Text>
-                  </View>
-                </View>
-              ))}
+            <Text style={s.sectH}>تشخيص الحالة</Text>
+            <View style={s.answerList}>
               {topic.is_chick ? (
-                <View style={s.qGridItem}>
-                  <View style={[s.qGridCard, { backgroundColor: "#FFFBF3", borderColor: TAIR.gold }]}>
-                    <Text style={s.qGridK}>🐣 نوع</Text>
-                    <Text style={s.qGridV}>فرخ</Text>
-                  </View>
+                <View style={s.answerRow}>
+                  <Text style={s.answerK}>فرخ</Text>
+                  <Text style={s.answerV}>نعم</Text>
                 </View>
               ) : null}
+              {answered.map(({ k, label, v }) => (
+                <View key={k} style={s.answerRow}>
+                  <Text style={s.answerK}>{label}</Text>
+                  <Text style={s.answerV}>{v}</Text>
+                </View>
+              ))}
             </View>
           </>
         ) : null}
@@ -382,65 +452,107 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
             </View>
             <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 8, padding: 14, borderBottomWidth: 1, borderBottomColor: TAIR.divider }}>
               <Ionicons name="sparkles" size={20} color={TAIR.gold} />
-              <Text style={{ color: TAIR.emerald, fontSize: 16, fontWeight: "900", flex: 1 }}>مساعدة الذكاء</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: TAIR.emerald, fontSize: 16, fontWeight: "900", textAlign: "right" }}>مساعد المشرف</Text>
+                {aiData?.priority_label ? <Text style={s.levelText}>{aiData.priority_label}</Text> : null}
+              </View>
               <TouchableOpacity onPress={() => setAiOpen(false)}><Ionicons name="close" size={22} color={TAIR.textSoft} /></TouchableOpacity>
             </View>
             {aiBusy ? (
               <View style={{ padding: 40, alignItems: "center" }}>
                 <ActivityIndicator color={TAIR.emerald} />
-                <Text style={{ color: TAIR.textSoft, marginTop: 10 }}>جارٍ تحليل الحالة...</Text>
-              </View>
-            ) : aiData?.error || (aiData?.ai_error && !aiData?.suggested_reply) ? (
-              <View style={{ padding: 20, alignItems: "center" }}>
-                <Ionicons name="refresh-circle-outline" size={28} color={TAIR.textSoft} style={{ marginBottom: 8 }} />
-                <Text style={{ textAlign: "center", color: TAIR.textSoft, fontSize: 13 }}>جرّب مرة أخرى بعد قليل</Text>
-              </View>
-            ) : (!aiData?.suggested_reply && !aiData?.library_matches?.length && !aiData?.similar_topics?.length) ? (
-              <View style={{ padding: 20, alignItems: "center" }}>
-                <Ionicons name="information-circle-outline" size={24} color={TAIR.textSoft} style={{ marginBottom: 6 }} />
-                <Text style={{ textAlign: "center", color: TAIR.textSoft, fontSize: 12 }}>لا توجد نتائج — جرّب لاحقاً</Text>
+                <Text style={{ color: TAIR.textSoft, marginTop: 10 }}>جارٍ جمع ردود المشرفين والملفات...</Text>
               </View>
             ) : (
-              <ScrollView style={{ padding: 14, maxHeight: 500 }}>
+              <ScrollView style={{ padding: 14, maxHeight: 520 }} contentContainerStyle={{ paddingBottom: 24 }}>
+                {assistAlerts.length > 0 ? (
+                  <>
+                    <Text style={s.aiLabel}>تنبيهات الحالة</Text>
+                    {assistAlerts.map((line) => (
+                      <View key={line} style={s.alertRow}>
+                        <Ionicons name="alert-circle" size={14} color="#8B2E24" />
+                        <Text style={s.alertText}>{line}</Text>
+                      </View>
+                    ))}
+                  </>
+                ) : null}
                 {aiData?.suggested_reply ? (
                   <>
-                    <Text style={s.aiLabel}>رد مقترح (قابل للتعديل)</Text>
+                    <Text style={s.aiLabel}>ملاحظة للمراجعة</Text>
                     <View style={s.aiBlock}>
                       <Text style={s.aiText}>{aiData.suggested_reply}</Text>
                     </View>
-                    <TouchableOpacity onPress={useAIReply} style={s.useBtn}>
+                    <TouchableOpacity onPress={useAIReply} style={s.useBtn} testID="ai-use-reply">
                       <Ionicons name="checkmark-circle" size={16} color={TAIR.gold} />
-                      <Text style={{ color: TAIR.gold, fontWeight: "900", fontSize: 13 }}>استخدم هذا الرد</Text>
+                      <Text style={{ color: TAIR.gold, fontWeight: "900", fontSize: 13 }}>ضع الملاحظة في الرد</Text>
                     </TouchableOpacity>
+                  </>
+                ) : aiData?.error ? (
+                  <Text style={{ textAlign: "center", color: TAIR.textSoft, fontSize: 12, marginVertical: 8 }}>تعذّر جلب الملاحظة. التنبيهات والملفات تبقى متاحة.</Text>
+                ) : null}
+                {aiData?.learned_replies?.length > 0 ? (
+                  <>
+                    <Text style={s.aiLabel}>من ردود المشرفين على حالات قريبة</Text>
+                    {aiData.learned_replies.map((x) => (
+                      <View key={x.lesson_id || x.reply_id} style={s.aiBlock}>
+                        <Text style={{ color: TAIR.emerald, fontSize: 13, fontWeight: "900", textAlign: "right" }}>{x.title}</Text>
+                        {x.score ? <Text style={s.scoreText}>قرب الحالة {x.score}</Text> : null}
+                        <Text style={s.aiText}>{x.text}</Text>
+                        <TouchableOpacity onPress={() => useNote(x.text)} style={s.miniBtn}>
+                          <Text style={s.miniBtnText}>استخدم هذا الرد</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
                   </>
                 ) : null}
                 {aiData?.library_matches?.length > 0 ? (
                   <>
-                    <Text style={s.aiLabel}>📚 ملفات مكتبة مطابقة</Text>
+                    <Text style={s.aiLabel}>ملفات مكتبة مطابقة</Text>
                     {aiData.library_matches.map((x) => (
                       <View key={x.library_id} style={s.aiBlock}>
                         <Text style={{ color: TAIR.emerald, fontSize: 13, fontWeight: "900", textAlign: "right" }}>{x.title}</Text>
-                        <Text style={{ color: TAIR.textSoft, fontSize: 11, textAlign: "right", marginTop: 2 }}>{x.description}</Text>
+                        {x.description ? <Text style={{ color: TAIR.textSoft, fontSize: 11, textAlign: "right", marginTop: 2 }}>{x.description}</Text> : null}
+                        <View style={s.fileActions}>
+                          <TouchableOpacity onPress={() => attachLibraryFile(x)} style={s.miniBtn} testID={`ai-attach-${x.library_id}`}>
+                            <Text style={s.miniBtnText}>أرفق بالرد</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => sendLibraryFile(x)} style={s.miniBtn} testID={`ai-send-file-${x.library_id}`}>
+                            <Text style={s.miniBtnText}>أرسله رداً</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     ))}
                   </>
                 ) : null}
                 {aiData?.similar_topics?.length > 0 ? (
                   <>
-                    <Text style={s.aiLabel}>🔗 حالات مشابهة سابقة</Text>
+                    <Text style={s.aiLabel}>حالات مشابهة</Text>
                     {aiData.similar_topics.map((x) => (
                       <View key={x.topic_id} style={s.aiBlock}>
                         <Text style={{ color: TAIR.emerald, fontSize: 13, fontWeight: "900", textAlign: "right" }}>{x.title}</Text>
                         {x.mod_reply_preview ? <Text style={{ color: TAIR.textSoft, fontSize: 11, textAlign: "right", marginTop: 4, lineHeight: 18 }}>{x.mod_reply_preview}</Text> : null}
+                        {x.mod_reply_preview ? (
+                          <TouchableOpacity onPress={() => useNote(x.mod_reply_preview)} style={s.miniBtn}>
+                            <Text style={s.miniBtnText}>استخدم رد المشرف</Text>
+                          </TouchableOpacity>
+                        ) : null}
                       </View>
                     ))}
                   </>
                 ) : null}
+                <TouchableOpacity onPress={pickReplyImage} style={s.useBtn} testID="ai-add-photo">
+                  <Ionicons name="image-outline" size={16} color={TAIR.gold} />
+                  <Text style={{ color: TAIR.gold, fontWeight: "900", fontSize: 13 }}>أضف صورة من الجهاز إلى الرد</Text>
+                </TouchableOpacity>
               </ScrollView>
             )}
           </View>
         </View>
       </Modal>
+
+      {isMod ? (
+        <ClinicAssistOrb badge={assistAlerts.length} level={assistLevel} onPress={openAI} />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -470,15 +582,10 @@ const s = StyleSheet.create({
   qK: { color: TAIR.goldDark, fontSize: 12, fontWeight: "900", textAlign: "right", width: 120 },
   qV: { color: "#0F241C", fontSize: 13, flex: 1, textAlign: "right" },
   // شبكة بطاقات التشخيص على صفحة التفاصيل
-  qGrid: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8 },
-  qGridItem: { width: "32%" },
-  qGridCard: {
-    backgroundColor: TAIR.card, borderRadius: 10,
-    borderWidth: 1, borderColor: TAIR.divider,
-    padding: 8, minHeight: 72,
-  },
-  qGridK: { color: TAIR.goldDark, fontSize: 11, fontWeight: "900", textAlign: "right", marginBottom: 4 },
-  qGridV: { color: "#0F241C", fontSize: 12, textAlign: "right", lineHeight: 17 },
+  answerList: { backgroundColor: TAIR.card, borderRadius: 12, borderWidth: 1, borderColor: TAIR.divider, overflow: "hidden" },
+  answerRow: { flexDirection: "row-reverse", gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: TAIR.divider },
+  answerK: { width: 108, color: TAIR.goldDark, fontSize: 12, fontWeight: "800", textAlign: "right" },
+  answerV: { flex: 1, color: "#0F241C", fontSize: 13, textAlign: "right", lineHeight: 18 },
 
   mediaRow: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8 },
   mediaThumb: { width: 90, height: 90, borderRadius: 10, overflow: "hidden", backgroundColor: TAIR.divider, alignItems: "center", justifyContent: "center" },
@@ -526,4 +633,11 @@ const s = StyleSheet.create({
   aiBlock: { backgroundColor: TAIR.card, borderRadius: 10, padding: 10, marginBottom: 8, borderWidth: 1, borderColor: TAIR.divider },
   aiText: { color: "#0F241C", fontSize: 13, lineHeight: 22, textAlign: "right" },
   useBtn: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: TAIR.emerald, borderRadius: 10, paddingVertical: 10, marginVertical: 6, borderWidth: 1, borderColor: TAIR.gold },
+  alertRow: { flexDirection: "row-reverse", alignItems: "flex-start", gap: 6, backgroundColor: "#F8EBE7", borderRadius: 10, padding: 8, marginBottom: 6 },
+  alertText: { flex: 1, color: "#8B2E24", fontSize: 12, fontWeight: "800", textAlign: "right", lineHeight: 18 },
+  fileActions: { flexDirection: "row-reverse", gap: 8, marginTop: 8 },
+  miniBtn: { marginTop: 8, alignSelf: "flex-end", backgroundColor: TAIR.emerald, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: TAIR.gold },
+  miniBtnText: { color: TAIR.gold, fontSize: 11, fontWeight: "900" },
+  levelText: { color: TAIR.goldDark, fontSize: 11, fontWeight: "800", textAlign: "right", marginTop: 2 },
+  scoreText: { color: TAIR.goldDark, fontSize: 11, fontWeight: "800", textAlign: "right", marginTop: 2 },
 });

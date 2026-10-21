@@ -12,6 +12,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 
 from services.moderation import moderator_scopes, notify_staff
+from services.tair_stickers import sticker_preview
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -144,7 +145,8 @@ async def send_chat(payload: ChatMessage, user_id: str = Query(...)):
             "created_at": {"$gte": since},
         })
         if not recent:
-            preview = text if len(text) <= 80 else text[:77] + "…"
+            preview = sticker_preview(text)
+            preview = preview if len(preview) <= 80 else preview[:77] + "…"
             sender = doc["user_name"]
             await notify_staff(
                 db,

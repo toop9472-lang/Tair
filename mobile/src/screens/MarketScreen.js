@@ -16,8 +16,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import TairHeader from "../components/TairHeader";
-import ListingCard from "../components/ListingCard";
-import { EmptyState, ErrorState, ListingSkeleton, PressableScale } from "../components/TairUI";
+import ListingCard, { resolveMediaUrl } from "../components/ListingCard";
+import { EmptyState, ErrorState, ListingSkeleton, PressableScale, warmMedia } from "../components/TairUI";
 import AuctionMark from "../components/AuctionMark";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
 import { listingsApi, speciesApi } from "../services/tairApi";
@@ -72,7 +72,9 @@ export default function MarketScreen({
     }
     try {
       const r = await listingsApi.feed({ limit: 40, family: pickedCat, city: pickedCity, q: debouncedQuery });
-      setItems(Array.isArray(r?.items) ? r.items : []);
+      const next = Array.isArray(r?.items) ? r.items : [];
+      setItems(next);
+      warmMedia(next.slice(0, 12).map((it) => resolveMediaUrl(it.cover_image || it.images?.[0])));
       setError(null);
     } catch (e) {
       setError(e?.message || "تعذّر تحميل السوق");
@@ -91,11 +93,15 @@ export default function MarketScreen({
   const catLabel = families.find((c) => c.family_id === pickedCat)?.name_ar;
   const familyGroups = useMemo(() => groupFamilies(families), [families]);
   const showSkeleton = loading && items.length === 0 && !error;
+  const renderListing = useCallback(({ item }) => (
+    <ListingCard item={item} onPress={() => onOpenListing?.(item.listing_id || item.id)} />
+  ), [onOpenListing]);
 
   return (
     <View style={styles.page}>
       <TairHeader
         variant="market"
+        userId={user?.user_id || user?.id}
         onBellPress={onOpenNotifications}
         onMessagesPress={onOpenMessages}
       />
@@ -197,9 +203,11 @@ export default function MarketScreen({
         <FlatList
           data={error && listData.length === 0 ? [] : listData}
           keyExtractor={(it) => String(it.listing_id || it.id)}
-          renderItem={({ item }) => (
-            <ListingCard item={item} onPress={() => onOpenListing?.(item.listing_id || item.id)} />
-          )}
+          renderItem={renderListing}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={7}
+          updateCellsBatchingPeriod={40}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -224,20 +232,7 @@ export default function MarketScreen({
               ) : null}
             </>
           }
-          ListFooterComponent={
-            <View style={styles.footer}>
-              <PressableScale
-                style={styles.tripsCta}
-                onPress={onOpenTrips}
-                haptic
-                testID="market-trips-cta"
-              >
-                <Ionicons name="airplane-outline" size={16} color={TAIR.emerald} />
-                <Text style={styles.tripsCtaText}>رحلات الطيور القادمة</Text>
-                <Ionicons name="chevron-back" size={16} color={TAIR.goldDark} />
-              </PressableScale>
-            </View>
-          }
+          ListFooterComponent={<View style={{ height: 24 }} />}
           ListEmptyComponent={
             error ? (
               <ErrorState

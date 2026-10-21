@@ -1,7 +1,7 @@
-# Saqr App - Contracts & Implementation Plan
+# Tair App - Contracts & Implementation Plan
 
 ## Overview
-تطبيق "صقر" - منصة مشاهدة الإعلانات مع نظام النقاط والمكافآت
+تطبيق "طير" - منصة مشاهدة الإعلانات مع نظام النقاط والمكافآت
 
 ## Current Implementation (Frontend with Mock Data)
 

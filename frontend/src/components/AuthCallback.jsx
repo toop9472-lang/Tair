@@ -72,7 +72,7 @@ const AuthCallback = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <div className="text-center">
         <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center animate-pulse">
-          <img src="/logo_saqr.png" alt="صقر" className="w-10 h-10 object-contain" />
+          <img src="/tair_logo.png" alt="طير" className="w-10 h-10 object-contain" />
         </div>
         <p className="text-gray-600 text-lg">جاري تسجيل الدخول...</p>
       </div>

@@ -14,7 +14,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,7 +24,7 @@ import { CityTriggerButton, CitySelectorSheet } from "../components/CitySelector
 import ScreenHeader from "../components/ScreenHeader";
 import TairHeader from "../components/TairHeader";
 import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
-import { EmptyState, ErrorState, ListSkeleton } from "../components/TairUI";
+import { EmptyState, ErrorState, ListSkeleton, PressableScale, SoftPulse, TairImage } from "../components/TairUI";
 import { displayLocalPhone, openWhatsApp, savedContactPhone, toTel } from "../utils/contactPhone";
 import { tripPhase } from "../utils/tripStatus";
 
@@ -67,7 +66,7 @@ const STATUS_FILTERS = [
   { id: "completed", label: "مكتملة" },
 ];
 
-function TripCard({ trip, onPress, onViewOnMap, onContact }) {
+const TripCard = React.memo(function TripCard({ trip, onPress, onViewOnMap, onContact }) {
   const dt = trip.depart_at ? new Date(trip.depart_at) : null;
   const carrierName = trip.carrier_name || "موصل طير";
   const carrierAvatar = trip.carrier_avatar;
@@ -77,10 +76,12 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
   const phase = tripPhase(trip.status, trip);
   const hasWaypoints = Array.isArray(trip.waypoints) && trip.waypoints.length > 0;
 
+  const moving = phase.key === "moving";
+
   return (
-    <TouchableOpacity
+    <PressableScale
       style={styles.card}
-      activeOpacity={0.9}
+      scaleTo={0.985}
       onPress={() => onPress(trip)}
       data-testid={`trip-card-${trip.trip_id}`}
     >
@@ -88,7 +89,7 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
       <View style={styles.carrierHead}>
         <View style={styles.carrierAvatarWrap}>
           {carrierAvatar ? (
-            <Image source={{ uri: carrierAvatar }} style={styles.carrierAvatar} />
+            <TairImage uri={carrierAvatar} style={styles.carrierAvatar} icon="person" iconSize={16} />
           ) : (
             <View style={[styles.carrierAvatar, styles.carrierAvatarPh]}>
               <Text style={styles.carrierInitial}>{carrierName.charAt(0)}</Text>
@@ -108,7 +109,11 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
           </View>
         </View>
         <View style={[styles.statusPill, { backgroundColor: phase.bg }]}>
-          <View style={[styles.statusDot, { backgroundColor: phase.fg }]} />
+          {moving ? (
+            <SoftPulse size={10} color={phase.fg} />
+          ) : (
+            <View style={[styles.statusDot, { backgroundColor: phase.fg }]} />
+          )}
           <Text style={[styles.statusText, { color: phase.fg }]}>{phase.label}</Text>
         </View>
       </View>
@@ -120,7 +125,7 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
           <Text style={styles.routeCityLabel}>الانطلاق</Text>
         </View>
         <View style={styles.routeLine}>
-          <View style={styles.routeDotStart} />
+          {moving ? <SoftPulse size={12} color={TAIR.gold} /> : <View style={styles.routeDotStart} />}
           <View style={styles.routeLineFill} />
           {hasWaypoints && (
             <View style={styles.waypointsPill}>
@@ -208,9 +213,9 @@ function TripCard({ trip, onPress, onViewOnMap, onContact }) {
           {trip.notes}
         </Text>
       ) : null}
-    </TouchableOpacity>
+    </PressableScale>
   );
-}
+});
 
 function CreateTripModal({ visible, user, onClose, onCreated, editingTrip }) {
   const [saving, setSaving] = useState(false);
@@ -567,6 +572,15 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
     setViewMode("map");
   }, []);
 
+  const renderTrip = useCallback(({ item }) => (
+    <TripCard
+      trip={item}
+      onPress={onOpenTrip}
+      onViewOnMap={openOnMap}
+      onContact={(t) => onContactCarrier?.(t.carrier_id, t.carrier_name)}
+    />
+  ), [onOpenTrip, openOnMap, onContactCarrier]);
+
   const filterByCity = useCallback((city, type) => {
     if (type === "from") setFromCity(city);
     else setToCity(city);
@@ -595,7 +609,7 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
 
   const renderHeader = (
     <View>
-      <TairHeader variant="trips" onBellPress={onOpenNotifications} onMessagesPress={onOpenMessages} />
+      <TairHeader variant="trips" userId={user?.user_id || user?.id} onBellPress={onOpenNotifications} onMessagesPress={onOpenMessages} />
       <View style={styles.sectionSwitch} testID="trips-section-switch">
         <TouchableOpacity
           style={[styles.sectionBtn, section === "trips" && styles.sectionBtnOn]}
@@ -613,125 +627,88 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
         </TouchableOpacity>
       </View>
       {section === "trips" ? (
-      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4, flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ color: TAIR.emerald, fontSize: 18, fontWeight: "900" }}>الرحلات المتاحة</Text>
-        <TouchableOpacity
-          style={{
-            width: 40, height: 40, borderRadius: 20,
-            backgroundColor: TAIR.emerald,
-            alignItems: "center", justifyContent: "center",
-          }}
-          onPress={() => setCreateOpen(true)}
-          data-testid="create-trip-cta"
-        >
-          <Ionicons name="add" size={22} color={TAIR.gold} />
-        </TouchableOpacity>
-      </View>
-      ) : null}
-
-      {section === "trips" ? (
-      <View style={styles.filters}>
-        <View style={styles.viewToggle} data-testid="trips-view-toggle">
-          <TouchableOpacity
-            style={[styles.viewToggleBtn, viewMode === "list" && styles.viewToggleBtnActive]}
-            onPress={() => setViewMode("list")}
-            data-testid="trips-view-list"
+      <View style={styles.toolbar}>
+        <View style={styles.tabRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.tabScroll}
           >
-            <Ionicons
-              name="list"
-              size={14}
-              color={viewMode === "list" ? "#fff" : "#6B5E4A"}
-            />
-            <Text
-              style={[
-                styles.viewToggleText,
-                viewMode === "list" && styles.viewToggleTextActive,
-              ]}
+            {STATUS_FILTERS.map((f) => {
+              const on = statusFilter === f.id;
+              return (
+                <TouchableOpacity
+                  key={f.id}
+                  style={[styles.tabChip, on && styles.tabChipOn]}
+                  onPress={() => setStatusFilter(f.id)}
+                  testID={`trips-filter-${f.id}`}
+                >
+                  {f.id === "live" ? <SoftPulse size={8} color={on ? TAIR.gold : TAIR.goldDark} /> : null}
+                  <Text style={[styles.tabChipText, on && styles.tabChipTextOn]}>{f.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.tabTools} data-testid="trips-view-toggle">
+            <TouchableOpacity
+              style={[styles.toolBtn, viewMode === "list" && styles.toolBtnOn]}
+              onPress={() => setViewMode("list")}
+              data-testid="trips-view-list"
+              accessibilityLabel="قائمة"
             >
-              قائمة
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.viewToggleBtn, viewMode === "map" && styles.viewToggleBtnActive]}
-            onPress={() => setViewMode("map")}
-            data-testid="trips-view-map"
-          >
-            <Ionicons
-              name="map"
-              size={14}
-              color={viewMode === "map" ? "#fff" : "#6B5E4A"}
-            />
-            <Text
-              style={[
-                styles.viewToggleText,
-                viewMode === "map" && styles.viewToggleTextActive,
-              ]}
+              <Ionicons name="list" size={16} color={viewMode === "list" ? TAIR.gold : TAIR.emerald} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolBtn, viewMode === "map" && styles.toolBtnOn]}
+              onPress={() => setViewMode("map")}
+              data-testid="trips-view-map"
+              accessibilityLabel="خريطة"
             >
-              خريطة
-            </Text>
-          </TouchableOpacity>
+              <Ionicons name="map" size={15} color={viewMode === "map" ? TAIR.gold : TAIR.emerald} />
+            </TouchableOpacity>
+            <PressableScale
+              onPress={() => setCreateOpen(true)}
+              scaleTo={0.92}
+              haptic
+              style={styles.addIcon}
+              testID="add-trip-cta"
+              data-testid="create-trip-cta"
+              accessibilityLabel="أضف رحلة"
+            >
+              <Ionicons name="add" size={20} color={TAIR.gold} />
+            </PressableScale>
+          </View>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
-          {STATUS_FILTERS.map((f) => {
-            const on = statusFilter === f.id;
-            return (
-              <TouchableOpacity
-                key={f.id}
-                style={[styles.filterChip, on && styles.filterChipOn]}
-                onPress={() => setStatusFilter(f.id)}
-                testID={`trips-filter-${f.id}`}
-              >
-                <Text style={[styles.filterChipText, on && styles.filterChipTextOn]}>{f.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-          <View style={styles.cityPickerRow}>
-            <CityTriggerButton
-              iconName="location"
-              iconColor="#1B3D2F"
-              label="من"
-              value={fromCity}
-              onPress={() => setCitySheet("from")}
-              testId="trips-picker-from"
-            />
-            <View style={styles.arrowBadge}>
-              <Ionicons name="arrow-back" size={16} color="#8A7B66" />
-            </View>
-            <CityTriggerButton
-              iconName="flag"
-              iconColor="#C6A15B"
-              label="إلى"
-              value={toCity}
-              onPress={() => setCitySheet("to")}
-              testId="trips-picker-to"
-            />
-          </View>
-          {(fromCity || toCity) ? (
-            <TouchableOpacity
-              onPress={() => { setFromCity(null); setToCity(null); }}
-              style={styles.clearFiltersBtn}
-              data-testid="trips-clear-filters"
-            >
-              <Ionicons name="close-circle" size={16} color="#8B3A2F" />
-              <Text style={styles.clearFiltersText}>مسح الفلاتر</Text>
-            </TouchableOpacity>
-          ) : null}
-        </ScrollView>
-
-        {/* Prominent "Add Trip" CTA — parity with "أضف إعلان" on Listings */}
-        <TouchableOpacity
-          style={styles.addTripCta}
-          onPress={() => setCreateOpen(true)}
-          testID="add-trip-cta"
-          activeOpacity={0.85}
-        >
-          <Ionicons name="add-circle" size={18} color="#C6A15B" />
-          <Text style={styles.addTripCtaText}>أضف رحلة</Text>
-        </TouchableOpacity>
+        <View style={styles.routeRow}>
+          <TouchableOpacity
+            style={styles.cityChip}
+            onPress={() => setCitySheet("from")}
+            testID="trips-picker-from"
+          >
+            <Text style={styles.cityKicker}>من</Text>
+            <Text style={styles.cityValue} numberOfLines={1}>{fromCity || "أي مدينة"}</Text>
+          </TouchableOpacity>
+          <Ionicons name="arrow-back" size={14} color={TAIR.faint} />
+          <TouchableOpacity
+            style={styles.cityChip}
+            onPress={() => setCitySheet("to")}
+            testID="trips-picker-to"
+          >
+            <Text style={styles.cityKicker}>إلى</Text>
+            <Text style={styles.cityValue} numberOfLines={1}>{toCity || "أي مدينة"}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { setFromCity(null); setToCity(null); }}
+            disabled={!fromCity && !toCity}
+            style={[styles.clearBtn, !(fromCity || toCity) && styles.clearBtnIdle]}
+            data-testid="trips-clear-filters"
+            accessibilityLabel="مسح الفلاتر"
+          >
+            <Ionicons name="close-circle" size={18} color={fromCity || toCity ? "#8B3A2F" : TAIR.faint} />
+          </TouchableOpacity>
+        </View>
       </View>
       ) : null}
     </View>
@@ -805,14 +782,11 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
         <FlatList
           data={trips}
           keyExtractor={(t) => t.trip_id}
-          renderItem={({ item }) => (
-            <TripCard
-              trip={item}
-              onPress={onOpenTrip}
-              onViewOnMap={openOnMap}
-              onContact={(t) => onContactCarrier?.(t.carrier_id, t.carrier_name)}
-            />
-          )}
+          renderItem={renderTrip}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={6}
+          updateCellsBatchingPeriod={40}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={
             loading ? (
@@ -884,6 +858,72 @@ const styles = StyleSheet.create({
   sectionBtnOn: { backgroundColor: TAIR.emerald },
   sectionBtnText: { color: TAIR.emerald, fontWeight: "800", fontSize: 14 },
   sectionBtnTextOn: { color: TAIR.gold },
+  toolbar: {
+    backgroundColor: TAIR.card,
+    marginHorizontal: 12,
+    marginTop: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: TAIR.line,
+    padding: 8,
+    gap: 8,
+  },
+  tabRow: { flexDirection: "row-reverse", alignItems: "center", gap: 6 },
+  tabScroll: { flexDirection: "row-reverse", alignItems: "center", gap: 6, paddingVertical: 2 },
+  tabChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: TAIR.creamDeep,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+  },
+  tabChipOn: { backgroundColor: TAIR.emerald },
+  tabChipText: { color: TAIR.emerald, fontWeight: "800", fontSize: 12 },
+  tabChipTextOn: { color: TAIR.gold },
+  tabTools: { flexDirection: "row-reverse", alignItems: "center", gap: 4 },
+  toolBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: TAIR.creamDeep,
+  },
+  toolBtnOn: { backgroundColor: TAIR.emerald },
+  addIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: TAIR.emerald,
+  },
+  routeRow: { flexDirection: "row-reverse", alignItems: "center", gap: 6 },
+  cityChip: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 12,
+    backgroundColor: TAIR.cream,
+    borderWidth: 1,
+    borderColor: TAIR.line,
+    paddingHorizontal: 8,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+  },
+  cityKicker: { color: TAIR.goldDark, fontSize: 11, fontWeight: "800" },
+  cityValue: { flex: 1, color: TAIR.ink, fontSize: 12, fontWeight: "700", textAlign: "right" },
+  clearBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8EBE7",
+  },
+  clearBtnIdle: { backgroundColor: TAIR.creamDeep },
   filterChips: { flexDirection: "row-reverse", gap: 8, paddingVertical: 8 },
   filterChip: {
     paddingHorizontal: 12,

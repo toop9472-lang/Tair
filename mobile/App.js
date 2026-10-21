@@ -56,7 +56,10 @@ import WholesaleScreen from "./src/screens/WholesaleScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import UpdateNoticeModal from "./src/components/UpdateNoticeModal";
 import TairShareSheet from "./src/components/TairShareSheet";
+import NameGate, { needsDisplayName } from "./src/components/NameGate";
 import { parseIncomingLink } from "./src/services/shareContent";
+import { ScreenArrive } from "./src/components/TairPolish";
+import { watchUnread } from "./src/services/unreadNotifications";
 import api from "./src/services/api";
 import {
   installErrorReporter,
@@ -87,14 +90,32 @@ try {
 } catch {}
 
 const TABS = ["listings", "trips", "messages", "forum", "account"];
+const KEEP_TABS = ["listings", "trips", "messages", "clinic", "forum", "orders", "account"];
+const hiddenTab = { display: "none" };
 
 function TairApp() {
   const [booting, setBooting] = useState(true);
   const [user, setUser] = useState(null);
   const [seenOnboarding, setSeenOnboarding] = useState(false);
   const [currentPage, setCurrentPage] = useState("listings");
+  const [mountedTabs, setMountedTabs] = useState({ listings: true });
   // Modal stack (route + params)
   const [modal, setModal] = useState(null);
+
+  useEffect(() => {
+    setMountedTabs((prev) => (prev[currentPage] ? prev : { ...prev, [currentPage]: true }));
+  }, [currentPage]);
+
+  useEffect(() => {
+    const uid = user?.user_id || user?.id;
+    if (!uid) return;
+    watchUnread(uid, async (id) => {
+      const res = await api.fetch(`/api/tair-notifications/list?user_id=${encodeURIComponent(id)}&limit=1`);
+      if (!res?.ok) return 0;
+      const data = await res.json().catch(() => null);
+      return data?.unread_count || 0;
+    });
+  }, [user]);
 
   // Boot: load token and user
   useEffect(() => {
@@ -157,6 +178,7 @@ function TairApp() {
     else if (parsed.kind === "store") setModal({ name: "seller_profile", params: { userId: parsed.id } });
     else if (parsed.kind === "story") setModal({ name: "story_viewer", params: { storyId: parsed.id } });
     else if (parsed.kind === "auction") setModal({ name: "auction", params: { auctionId: parsed.id } });
+    else if (parsed.kind === "clinic") setModal({ name: "clinic_topic", params: { topicId: parsed.id } });
   }, []);
 
   useEffect(() => {
@@ -184,32 +206,31 @@ function TairApp() {
     openFromLink(url);
   }, [booting, user, openFromLink]);
 
-  // Handle notification taps — navigate to the right screen based on payload.type
-  useEffect(() => {
-    const unsub = onNotificationTap((data) => {
-      try {
-        const t = data?.type || "";
-        if (t === "admin_broadcast" || t === "app_update") setModal({ name: "notifications" });
-        else if (t === "clinic_topic" || t === "clinic_reply") {
-          if (data?.topic_id) setModal({ name: "clinic_topic", params: { topicId: data.topic_id } });
-          else setCurrentPage("clinic");
-        }
-        else if (t === "listing_new" && data?.listing_id) setModal({ name: "listing_details", params: { listingId: data.listing_id } });
-        else if (t === "story_new") setCurrentPage("forum");
-        else if (t.startsWith("chat")) setCurrentPage("messages");
-        else if (t.startsWith("order")) setCurrentPage("orders");
-        else if (t.startsWith("trip")) {
-          if (data?.trip_id) setModal({ name: "trip_details", params: { tripId: data.trip_id } });
-          else setCurrentPage("trips");
-        }
-        else if (t === "community_chat") setCurrentPage("forum");
-        else if (t.startsWith("listing") && data?.listing_id) {
-          setModal({ name: "listing_details", params: { listingId: data.listing_id } });
-        }
-      } catch {}
-    });
-    return unsub;
+  const openNotification = useCallback((data) => {
+    const t = data?.type || "";
+    if (t === "admin_broadcast" || t === "app_update") setModal({ name: "notifications" });
+    else if (t === "clinic_topic" || t === "clinic_reply") {
+      if (data?.topic_id) setModal({ name: "clinic_topic", params: { topicId: data.topic_id } });
+      else setCurrentPage("clinic");
+    }
+    else if ((t === "listing_new" || t.startsWith("listing")) && data?.listing_id) {
+      setModal({ name: "listing_details", params: { listingId: data.listing_id } });
+    }
+    else if (t === "story_new" || t === "story") setCurrentPage("forum");
+    else if (t.startsWith("chat")) setCurrentPage("messages");
+    else if (t.startsWith("order")) setCurrentPage("orders");
+    else if (t.startsWith("trip")) {
+      if (data?.trip_id) setModal({ name: "trip_details", params: { tripId: data.trip_id } });
+      else setCurrentPage("trips");
+    }
+    else if (t === "community_chat") setCurrentPage("forum");
+    else if (data?.topic_id) setModal({ name: "clinic_topic", params: { topicId: data.topic_id } });
+    else if (data?.listing_id) setModal({ name: "listing_details", params: { listingId: data.listing_id } });
+    else if (data?.trip_id) setModal({ name: "trip_details", params: { tripId: data.trip_id } });
   }, []);
+
+  // Handle notification taps — navigate to the right screen based on payload.type
+  useEffect(() => onNotificationTap(openNotification), [openNotification]);
 
   // Keep the reporter's "current screen" tag in sync with active tab / modal
   useEffect(() => {
@@ -334,8 +355,8 @@ function TairApp() {
     return <AuthScreen onAuthenticated={onAuthed} />;
   }
 
-  // Modal stack
-  if (modal) {
+  const renderModal = () => {
+    if (!modal) return null;
     switch (modal.name) {
       case "create_listing":
         return (
@@ -472,6 +493,10 @@ function TairApp() {
               await refreshUser();
             }}
             onUserChanged={updateUser}
+            onPreview={() => setModal({
+              name: "seller_profile",
+              params: { userId: user?.user_id || user?.id, returnTo: { name: "storefront_manager" } },
+            })}
           />
         );
       case "admin_panel":
@@ -527,17 +552,25 @@ function TairApp() {
           />
         );
       case "notifications":
-        return <NotificationsScreen user={user} onBack={closeModal} />;
+        return (
+          <NotificationsScreen
+            user={user}
+            onBack={closeModal}
+            onOpenItem={(item) => {
+              closeModal();
+              openNotification({ type: item?.type, ...(item?.data || {}) });
+            }}
+          />
+        );
       default:
         return null;
     }
-  }
+  };
 
-  // Main tabs
-  let content = null;
-  switch (currentPage) {
+  const renderTab = (page) => {
+    switch (page) {
     case "listings":
-      content = (
+      return (
         <MarketScreen
           user={user}
           activeTab="market"
@@ -560,9 +593,8 @@ function TairApp() {
           onCreateListing={() => setModal({ name: "create_listing" })}
         />
       );
-      break;
     case "trips":
-      content = (
+      return (
         <TripsScreen
           user={user}
           onOpenTrip={openTrip}
@@ -572,9 +604,8 @@ function TairApp() {
           onOpenAskExperts={() => setModal({ name: "ask_experts" })}
         />
       );
-      break;
     case "messages":
-      content = (
+      return (
         <PrivateMessagesScreen
           user={user}
           onClose={() => setCurrentPage("listings")}
@@ -586,9 +617,8 @@ function TairApp() {
           }
         />
       );
-      break;
     case "clinic":
-      content = (
+      return (
         <ClinicScreen
           user={user}
           onBellPress={() => setModal({ name: "notifications" })}
@@ -598,9 +628,8 @@ function TairApp() {
           onOpenTopic={(tid) => setModal({ name: "clinic_topic", params: { topicId: tid } })}
         />
       );
-      break;
     case "forum":
-      content = (
+      return (
         <CommunityScreen
           user={user}
           onOpenStories={(storyId) => setModal({ name: "story_viewer", params: { storyId } })}
@@ -613,12 +642,10 @@ function TairApp() {
           onOpenProfile={(uid) => setModal({ name: "seller_profile", params: { userId: uid } })}
         />
       );
-      break;
     case "orders":
-      content = <OrdersScreen user={user} onOpenOrder={openOrder} />;
-      break;
+      return <OrdersScreen user={user} onOpenOrder={openOrder} />;
     case "account":
-      content = (
+      return (
         <ProfileScreen
           user={user}
           onOpenSettings={() => setModal({ name: "settings" })}
@@ -643,16 +670,36 @@ function TairApp() {
           }}
         />
       );
-      break;
     default:
-      content = null;
+      return null;
   }
+  };
+
+  const modalNode = renderModal();
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F7F1E8" }}>
       <StatusBar style="dark" backgroundColor="transparent" translucent />
-      {content}
-      <UpdateNoticeModal />
+      <View style={{ flex: 1 }} pointerEvents={modal ? "none" : "auto"}>
+        {KEEP_TABS.map((tab) => {
+          if (!mountedTabs[tab]) return null;
+          return (
+            <View key={tab} style={currentPage === tab ? { flex: 1 } : hiddenTab}>
+              <ScreenArrive active={currentPage === tab}>
+                {renderTab(tab)}
+              </ScreenArrive>
+            </View>
+          );
+        })}
+      </View>
+      {modalNode ? (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#F7F1E8", zIndex: 20 }}>
+          <ScreenArrive key={modal?.name || "modal"} active>
+            {modalNode}
+          </ScreenArrive>
+        </View>
+      ) : null}
+      {!modal ? <UpdateNoticeModal /> : null}
       {!modal && (
         <TairBottomBar
           active={
@@ -678,6 +725,7 @@ function TairApp() {
       {!modal && user && currentPage !== "messages" && currentPage !== "forum" && (
         <MessagesFab user={user} onPress={() => setCurrentPage("messages")} />
       )}
+      {needsDisplayName(user) ? <NameGate user={user} onSaved={updateUser} /> : null}
     </View>
   );
 }

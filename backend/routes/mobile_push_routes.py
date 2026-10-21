@@ -91,6 +91,11 @@ async def send_expo_push(
     """Send a push notification to one or more Expo tokens. Silent on failure."""
     if not tokens:
         return {"skipped": "no tokens"}
+    safe_data = {}
+    for key, value in (data or {}).items():
+        if value is None:
+            continue
+        safe_data[str(key)] = value if isinstance(value, str) else str(value)
     messages = [
         {
             "to": t,
@@ -98,7 +103,8 @@ async def send_expo_push(
             "body": body,
             "sound": "default",
             "priority": "high",
-            "data": data or {},
+            "channelId": "default",
+            "data": safe_data,
         }
         for t in tokens
     ]
@@ -134,14 +140,24 @@ async def _push_identity_ids(user_id: str) -> List[str]:
     ids = {user_id} if user_id else set()
     if not user_id:
         return []
-    user = await db.users.find_one(
-        {"$or": [{"user_id": user_id}, {"id": user_id}, {"email": user_id}]},
-        {"_id": 0, "user_id": 1, "id": 1, "email": 1},
-    )
-    if user:
+    queries = [{"user_id": user_id}, {"id": user_id}, {"email": user_id}]
+    user = await db.users.find_one({"$or": queries}, {"_id": 0, "user_id": 1, "id": 1, "email": 1})
+    admin = await db.admins.find_one({"$or": queries}, {"_id": 0, "user_id": 1, "id": 1, "email": 1})
+    for doc in (user, admin):
+        if not doc:
+            continue
         for key in ("user_id", "id", "email"):
-            if user.get(key):
-                ids.add(user[key])
+            if doc.get(key):
+                ids.add(doc[key])
+    emails = [doc.get("email") for doc in (user, admin) if doc and doc.get("email")]
+    if emails:
+        async for linked in db.users.find(
+            {"email": {"$in": emails}},
+            {"_id": 0, "user_id": 1, "id": 1, "email": 1},
+        ):
+            for key in ("user_id", "id", "email"):
+                if linked.get(key):
+                    ids.add(linked[key])
     return list(ids)
 
 

@@ -84,6 +84,8 @@ const styles = StyleSheet.create({
   },
   pillActive: {
     backgroundColor: TAIR.emeraldWash,
+    borderWidth: 1,
+    borderColor: "rgba(198,161,91,0.75)",
   },
   label: {
     fontSize: 10,
@@ -96,9 +98,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 5,
+    height: 5,
+    borderRadius: 3,
     marginTop: 4,
     backgroundColor: "transparent",
   },

@@ -224,3 +224,13 @@ SEED_SPECIES: List[dict] = [
     _sp("svc_reserve_setup", "تجهيز محمية", "Reserve setup", "services"),
     _sp("reserve_land", "محمية للبيع أو الإيجار", "Reserve land", "reserves"),
 ]
+
+
+def family_match(family: str):
+    """أسماء العائلة ومعرّفات الأنواع التي يجب أن يطابقها فلتر السوق."""
+    aliases = [family, *FAMILY_QUERY_ALIASES.get(family, [])]
+    arabic = next((f["name_ar"] for f in FAMILIES if f["family_id"] == family), None)
+    if arabic and arabic not in aliases:
+        aliases.append(arabic)
+    species_ids = [s["species_id"] for s in SEED_SPECIES if s.get("family") == family]
+    return aliases, species_ids
