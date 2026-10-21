@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconn
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from models.chat import ChatThread, ChatMessage, ChatStartRequest, ChatSendRequest
+from services.tair_stickers import sticker_preview
 
 router = APIRouter(prefix="/chat", tags=["Tair-Chat"])
 
@@ -156,7 +157,8 @@ async def _send_message(thread_id: str, sender_id: str, body: str, sender_name: 
         # In-app notification (persist)
         try:
             from routes.tair_notifications_routes import create_tair_notification
-            preview = body if len(body) <= 80 else body[:77] + "..."
+            preview = sticker_preview(body)
+            preview = preview if len(preview) <= 80 else preview[:77] + "..."
             title = sender_name or f"مستخدم {sender_id[-4:]}"
             if thread.get("listing_title"):
                 title = f"{title} — {thread['listing_title']}"
@@ -221,6 +223,7 @@ async def list_threads(user_id: str = Query(...), limit: int = 50):
         t["peer_avatar"] = peer_avatar
         t["peer_identity_color"] = peer_identity_color
         t["peer_verified"] = peer_verified
+        t["last_message"] = sticker_preview(t.get("last_message") or "")
         items.append(t)
 
     return {"items": items, "total": len(items)}

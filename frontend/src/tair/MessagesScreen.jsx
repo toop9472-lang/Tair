@@ -6,6 +6,7 @@ import {
 import { T, S } from "./tairTheme";
 import { tairApi } from "./tairApi";
 import { TopBar, EmptyState } from "./TairUI";
+import { StickerTray, TairSticker, parseSticker, stickerPreview } from "./TairStickers";
 import messagesHeader from "../assets/tair-design/headers/messages.jpg";
 import { TAIR_PAGE_STYLE, TairAppHeader } from "./TairAppChrome";
 
@@ -135,7 +136,7 @@ function ThreadRow({ thread, uid, onClick }) {
           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
           textAlign: "right", marginTop: 2,
         }}>
-          {thread.last_message || "لا رسائل بعد"}
+          {stickerPreview(thread.last_message) || "لا رسائل بعد"}
         </div>
       </div>
       {isUnread && <span style={{ ...styles.unreadDot, background: peerColor }} />}
@@ -230,14 +231,14 @@ export function ChatThreadScreen({ user, threadId, onBack }) {
     }
   };
 
-  const send = async () => {
-    const text = body.trim();
-    if (!text) return;
+  const send = async (raw) => {
+    const text = (typeof raw === "string" ? raw : body).trim();
+    if (!text || sending) return;
     setSending(true);
     try {
       const authorName = user?.name && user.name !== "زائر" ? user.name : null;
       const newMsg = await tairApi.chatSend(threadId, text, uid, authorName);
-      setBody("");
+      if (typeof raw !== "string") setBody("");
       // Append locally (WS may or may not push back to sender)
       setMessages((m) => {
         if (m.some((x) => x.msg_id === newMsg.msg_id)) return m;
@@ -255,7 +256,7 @@ export function ChatThreadScreen({ user, threadId, onBack }) {
   const title = thread?.listing_title ? `${peerName} · ${thread.listing_title}` : peerName;
 
   return (
-    <div style={{ ...S.screen, paddingBottom: 140 }} data-testid="chat-thread-screen">
+    <div style={{ ...S.screen, paddingBottom: 230 }} data-testid="chat-thread-screen">
       <TopBar title={title} subtitle={thread?.listing_title ? `الإعلان: ${thread.listing_title}` : undefined} onBack={onBack} />
 
       {loading ? (
@@ -299,6 +300,8 @@ export function ChatThreadScreen({ user, threadId, onBack }) {
 
       {/* Composer */}
       <div style={styles.composer}>
+        <div style={styles.composerStack}>
+          <StickerTray onPick={(token) => send(token)} disabled={sending} />
         <div style={styles.composerInner}>
           <input
             style={styles.composerInput}
@@ -318,12 +321,26 @@ export function ChatThreadScreen({ user, threadId, onBack }) {
             <Send size={18} strokeWidth={2.4} />
           </button>
         </div>
+        </div>
       </div>
     </div>
   );
 }
 
 function MessageBubble({ msg, mine }) {
+  const sticker = parseSticker(msg.body);
+  const when = new Date(msg.created_at).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" });
+  if (sticker) {
+    return (
+      <div style={{ display: "flex", justifyContent: mine ? "flex-start" : "flex-end", marginBottom: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-start" : "flex-end", gap: 2 }}>
+          <TairSticker id={sticker.id} size={88} />
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#8A6A2E" }}>{sticker.label}</div>
+          <div style={{ fontSize: 10, color: T.textFaint, fontWeight: 600 }}>{when}</div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{
       display: "flex",
@@ -346,7 +363,7 @@ function MessageBubble({ msg, mine }) {
           textAlign: mine ? "left" : "right",
           fontWeight: 600,
         }}>
-          {new Date(msg.created_at).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}
+          {when}
         </div>
       </div>
     </div>
@@ -461,8 +478,16 @@ const styles = {
     right: 0,
     background: T.surface,
     borderTop: `1px solid ${T.border}`,
-    padding: "10px 12px",
+    padding: "8px 12px 10px",
     zIndex: 40,
+  },
+  composerStack: {
+    maxWidth: 900,
+    margin: "0 auto",
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
   },
   composerInner: {
     maxWidth: 900,

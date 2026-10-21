@@ -19,6 +19,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import TairHeader from '../components/TairHeader';
+import { StickerTray, TairSticker, parseSticker, stickerPreview } from '../components/TairStickers';
 import { TAIR, TAIR_ELEVATION } from '../constants/tairTheme';
 import api from '../services/api';
 import { ErrorState, ListSkeleton } from '../components/TairUI';
@@ -112,7 +113,7 @@ const InboxItem = ({ item, onPress }) => {
             ]}
             numberOfLines={1}
           >
-            {item.last_message}
+            {stickerPreview(item.last_message)}
           </Text>
           {isUnread ? (
             <View style={[styles.unreadPill, { backgroundColor: color }]}>
@@ -129,6 +130,7 @@ const InboxItem = ({ item, onPress }) => {
 
 // ---------- Message bubble ----------
 const MessageItem = ({ message, isOwn, showAvatar, peerAvatar, peerName, peerColor, onReport }) => {
+  const sticker = parseSticker(message.message);
   return (
     <View style={[styles.msgRow, isOwn && styles.msgRowOwn]}>
       {!isOwn && showAvatar ? (
@@ -146,25 +148,32 @@ const MessageItem = ({ message, isOwn, showAvatar, peerAvatar, peerName, peerCol
       <TouchableOpacity
         style={[
           styles.bubble,
-          isOwn
-            ? styles.bubbleOwn
-            : styles.bubblePeer,
+          sticker ? styles.bubbleSticker : (isOwn ? styles.bubbleOwn : styles.bubblePeer),
         ]}
         onLongPress={() => !isOwn && onReport && onReport(message)}
         activeOpacity={0.9}
       >
-        <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn]}>
-          {message.message}
-        </Text>
+        {sticker ? (
+          <View style={styles.stickerMsg}>
+            <TairSticker id={sticker.id} size={84} />
+            <Text style={[styles.stickerCaption, isOwn && styles.stickerCaptionOwn]}>{sticker.label}</Text>
+          </View>
+        ) : (
+          <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn]}>
+            {message.message}
+          </Text>
+        )}
         <View style={styles.bubbleFooter}>
-          <Text style={[styles.bubbleTime, isOwn && styles.bubbleTimeOwn]}>
+          <Text style={[styles.bubbleTime, isOwn && !sticker && styles.bubbleTimeOwn]}>
             {formatClock(message.created_at)}
           </Text>
           {isOwn ? (
             <Ionicons
               name={message.read ? 'checkmark-done' : 'checkmark'}
               size={13}
-              color={message.read ? '#E0C580' : 'rgba(247,241,232,0.55)'}
+              color={isOwn && !sticker
+                ? (message.read ? '#E0C580' : 'rgba(247,241,232,0.55)')
+                : (message.read ? TAIR.emerald : TAIR.faint)}
             />
           ) : null}
         </View>
@@ -336,18 +345,8 @@ const ConversationView = ({ user, friend, onBack, onReport, onOpenUserProfile })
           />
         )}
 
-        {/* Quick reactions */}
         <View style={styles.stickerBar}>
-          {['❤️', '🔥', '👍', '😂', '🎉', '🙏', '👏', '⚡'].map((e) => (
-            <TouchableOpacity
-              key={e}
-              style={styles.stickerBtn}
-              activeOpacity={0.7}
-              onPress={() => sendMessage(e)}
-            >
-              <Text style={styles.stickerEmoji}>{e}</Text>
-            </TouchableOpacity>
-          ))}
+          <StickerTray onPick={(token) => sendMessage(token)} disabled={sending} />
         </View>
 
         {/* Input */}
@@ -661,6 +660,15 @@ const styles = StyleSheet.create({
     borderColor: TAIR.divider,
     ...TAIR_ELEVATION.hair,
   },
+  bubbleSticker: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+  },
+  stickerMsg: { alignItems: 'center' },
+  stickerCaption: { marginTop: 3, color: TAIR.goldDark, fontSize: 11, fontWeight: '800' },
+  stickerCaptionOwn: { color: TAIR.goldDark },
   bubbleText: { color: TAIR.ink, fontSize: 15, lineHeight: 22, textAlign: 'right' },
   bubbleTextOwn: { color: "#F7F1E8" },
   bubbleFooter: {
@@ -678,20 +686,10 @@ const styles = StyleSheet.create({
 
   // ---------- Sticker bar ----------
   stickerBar: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
     backgroundColor: TAIR.card,
     borderTopWidth: 1,
     borderTopColor: TAIR.divider,
   },
-  stickerBtn: {
-    width: 34, height: 34, borderRadius: 17,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  stickerEmoji: { fontSize: 20 },
 
   // ---------- Input ----------
   inputRow: {
