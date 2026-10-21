@@ -469,7 +469,7 @@ const s = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: TAIR.card,
   },
-  storyLabel: { color: TAIR.emerald, fontSize: 10, fontWeight: "800", textAlign: "center" },
+  storyLabel: { color: TAIR.emerald, fontSize: 11, fontWeight: "800", textAlign: "center" },
   storyLabelTop: { color: TAIR.goldDark },
   addOuter: {
     width: 64,

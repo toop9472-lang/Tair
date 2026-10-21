@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(198,161,91,0.75)",
   },
   label: {
-    fontSize: 10,
+    fontSize: 11,
     color: TAIR.faint,
     fontWeight: "700",
     marginTop: 2,

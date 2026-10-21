@@ -96,7 +96,7 @@ export default function ClinicScreen({
             <Text style={s.member} numberOfLines={1}>{item.user_name || "عضو"}</Text>
             <Text style={s.when}>{whenLabel(item.updated_at || item.created_at)}</Text>
           </View>
-          <Text style={s.subject} numberOfLines={1}>{item.title}</Text>
+          <Text style={s.subject} numberOfLines={2}>{item.title}</Text>
           <View style={s.meta}>
             <Ionicons name="chatbubble-outline" size={11} color={TAIR.textSoft} />
             <Text style={s.metaText}>{item.replies_count || 0}</Text>
@@ -266,8 +266,8 @@ const s = StyleSheet.create({
   avatarLetter: { color: TAIR.emerald, fontSize: 14, fontWeight: "900" },
   rowTop: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", gap: 8 },
   member: { flex: 1, color: TAIR.goldDark, fontSize: 12, fontWeight: "800", textAlign: "right" },
-  when: { color: TAIR.textSoft, fontSize: 10, fontWeight: "700" },
-  subject: { color: "#0F241C", fontSize: 14, fontWeight: "800", textAlign: "right", marginTop: 2 },
+  when: { color: TAIR.textSoft, fontSize: 11, fontWeight: "700" },
+  subject: { color: "#0F241C", fontSize: 16, lineHeight: 22, fontWeight: "800", textAlign: "right", marginTop: 2 },
   meta: { flexDirection: "row-reverse", alignItems: "center", gap: 4, marginTop: 4 },
   metaText: { color: TAIR.textSoft, fontSize: 11, fontWeight: "700" },
   tag: { color: TAIR.emerald, fontSize: 10, fontWeight: "800", backgroundColor: TAIR.creamDeep, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1 },
