@@ -183,6 +183,7 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
   if (topic && !(topic.images || []).length && !(topic.videos || []).length) localAlerts.push("الحالة بلا صورة أو فيديو");
   if (missingNow.length) localAlerts.push(`أسئلة ناقصة: ${missingNow.slice(0, 6).join("، ")}`);
   const assistAlerts = aiData?.alerts?.length ? aiData.alerts : localAlerts;
+  const assistLevel = aiData?.priority || (topic && !modAnswered ? "watch" : "steady");
 
   const deleteReply = (replyId) => {
     Alert.alert("حذف الرد", "هل تريد حذف هذا الرد؟", [
@@ -451,7 +452,10 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
             </View>
             <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 8, padding: 14, borderBottomWidth: 1, borderBottomColor: TAIR.divider }}>
               <Ionicons name="sparkles" size={20} color={TAIR.gold} />
-              <Text style={{ color: TAIR.emerald, fontSize: 16, fontWeight: "900", flex: 1 }}>مساعد المشرف</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: TAIR.emerald, fontSize: 16, fontWeight: "900", textAlign: "right" }}>مساعد المشرف</Text>
+                {aiData?.priority_label ? <Text style={s.levelText}>{aiData.priority_label}</Text> : null}
+              </View>
               <TouchableOpacity onPress={() => setAiOpen(false)}><Ionicons name="close" size={22} color={TAIR.textSoft} /></TouchableOpacity>
             </View>
             {aiBusy ? (
@@ -492,6 +496,7 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
                     {aiData.learned_replies.map((x) => (
                       <View key={x.lesson_id || x.reply_id} style={s.aiBlock}>
                         <Text style={{ color: TAIR.emerald, fontSize: 13, fontWeight: "900", textAlign: "right" }}>{x.title}</Text>
+                        {x.score ? <Text style={s.scoreText}>قرب الحالة {x.score}</Text> : null}
                         <Text style={s.aiText}>{x.text}</Text>
                         <TouchableOpacity onPress={() => useNote(x.text)} style={s.miniBtn}>
                           <Text style={s.miniBtnText}>استخدم هذا الرد</Text>
@@ -546,7 +551,7 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
       </Modal>
 
       {isMod ? (
-        <ClinicAssistOrb badge={assistAlerts.length} onPress={openAI} />
+        <ClinicAssistOrb badge={assistAlerts.length} level={assistLevel} onPress={openAI} />
       ) : null}
     </KeyboardAvoidingView>
   );
@@ -633,4 +638,6 @@ const s = StyleSheet.create({
   fileActions: { flexDirection: "row-reverse", gap: 8, marginTop: 8 },
   miniBtn: { marginTop: 8, alignSelf: "flex-end", backgroundColor: TAIR.emerald, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: TAIR.gold },
   miniBtnText: { color: TAIR.gold, fontSize: 11, fontWeight: "900" },
+  levelText: { color: TAIR.goldDark, fontSize: 11, fontWeight: "800", textAlign: "right", marginTop: 2 },
+  scoreText: { color: TAIR.goldDark, fontSize: 11, fontWeight: "800", textAlign: "right", marginTop: 2 },
 });

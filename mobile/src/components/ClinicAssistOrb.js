@@ -19,7 +19,9 @@ function clamp(x, y, bottomInset, snap) {
   return { x: nx, y: ny };
 }
 
-export default function ClinicAssistOrb({ badge = 0, onPress, bottomInset = 128 }) {
+const RING = { review: "#8B2E24", watch: "#C6A15B", steady: "#3D6B54" };
+
+export default function ClinicAssistOrb({ badge = 0, level = "watch", onPress, bottomInset = 128 }) {
   const [pos, setPos] = useState(() => {
     const { height } = Dimensions.get("window");
     return { x: 10, y: Math.max(140, height - bottomInset - SIZE - 36) };
@@ -64,7 +66,7 @@ export default function ClinicAssistOrb({ badge = 0, onPress, bottomInset = 128 
 
   return (
     <View
-      style={[styles.orb, { left: pos.x, top: pos.y }]}
+      style={[styles.orb, { left: pos.x, top: pos.y, borderColor: RING[level] || RING.watch }]}
       {...pan.panHandlers}
       testID="ai-assist-btn"
     >
