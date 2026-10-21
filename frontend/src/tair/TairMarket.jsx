@@ -46,7 +46,7 @@ function toArabicNumerals(n) {
   return String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d, 10)]);
 }
 
-export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, activeTab = "market", onTabChange, onOpenNotifications }) {
+export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, activeTab = "market", onTabChange, onOpenNotifications, unreadCount = 0 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -89,7 +89,7 @@ export default function TairMarket({ onOpenListing, onOpenTrips, onOpenAuction, 
 
   return (
     <div dir="rtl" style={TAIR_PAGE_STYLE}>
-      <TairAppHeader image={marketHeader} onBell={onOpenNotifications} hasNotif={true} />
+      <TairAppHeader image={marketHeader} onBell={onOpenNotifications} unreadCount={unreadCount} />
 
       {/* صف البحث + الفئات */}
       <div style={{ display: "flex", flexDirection: "row-reverse", gap: 8, padding: "0 16px", alignItems: "center" }}>

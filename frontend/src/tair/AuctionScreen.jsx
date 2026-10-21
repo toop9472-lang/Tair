@@ -22,7 +22,7 @@ function countdownStr(ms) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-export default function AuctionScreen({ user, onBack, onOpenNotifications }) {
+export default function AuctionScreen({ user, onBack, onOpenNotifications, unreadCount = 0 }) {
   const uid = user?.id || user?.user_id;
   const [oath, setOath] = useState({ accepted: null, text: "" });
   const [showOath, setShowOath] = useState(false);
@@ -99,7 +99,7 @@ export default function AuctionScreen({ user, onBack, onOpenNotifications }) {
 
   return (
     <div dir="rtl" style={TAIR_PAGE_STYLE} data-testid="auction-screen">
-      <TairAppHeader image={auctionHeader} onBell={onOpenNotifications} />
+      <TairAppHeader image={auctionHeader} onBell={onOpenNotifications} unreadCount={unreadCount} />
 
       {/* Top action row */}
       <div style={{ display: "flex", flexDirection: "row-reverse", padding: "0 16px", marginTop: 12, marginBottom: 8, gap: 8, alignItems: "center" }}>

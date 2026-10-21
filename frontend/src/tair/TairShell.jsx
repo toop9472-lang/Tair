@@ -283,13 +283,14 @@ export default function TairShell({ user, onLogout }) {
           onOpenTrips={() => setTab("trips")}
           onOpenAuction={() => setTab("auction")}
           onOpenNotifications={() => setOverlay({ name: "notifications" })}
+          unreadCount={unreadNotifs}
         />
       )}
       {tab === "trips" && (
-        <TripsScreen user={user} focusTripId={focusTripId} onOpenTrip={openTrip} onOpenNotifications={() => setOverlay({ name: "notifications" })} />
+        <TripsScreen user={user} focusTripId={focusTripId} onOpenTrip={openTrip} onOpenNotifications={() => setOverlay({ name: "notifications" })} unreadCount={unreadNotifs} />
       )}
       {tab === "messages" && (
-        <MessagesScreen user={user} onOpenThread={openThread} onOpenNotifications={() => setOverlay({ name: "notifications" })} />
+        <MessagesScreen user={user} onOpenThread={openThread} onOpenNotifications={() => setOverlay({ name: "notifications" })} unreadCount={unreadNotifs} />
       )}
       {tab === "forum" && (
         <CommunityScreen
@@ -298,6 +299,7 @@ export default function TairShell({ user, onLogout }) {
           onOpenPride={() => setOverlay({ name: "pride" })}
           onOpenAskExperts={() => setOverlay({ name: "ask_experts" })}
           onOpenNotifications={() => setOverlay({ name: "notifications" })}
+          unreadCount={unreadNotifs}
           onOpenListing={openListing}
           onAddStory={() => setOverlay({ name: "add_story" })}
         />
@@ -314,6 +316,7 @@ export default function TairShell({ user, onLogout }) {
           onOpenAnalytics={() => setOverlay({ name: "seller_analytics" })}
           onOpenStore={() => setOverlay({ name: "storefront_manager" })}
           onOpenNotifications={() => setOverlay({ name: "notifications" })}
+          unreadCount={unreadNotifs}
         />
       )}
       {tab === "auction" && (
@@ -321,6 +324,7 @@ export default function TairShell({ user, onLogout }) {
           user={user}
           onBack={() => setTab("home")}
           onOpenNotifications={() => setOverlay({ name: "notifications" })}
+          unreadCount={unreadNotifs}
         />
       )}
       {tab !== "home" && tab !== "auction" && (

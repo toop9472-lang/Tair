@@ -177,6 +177,7 @@ function TairApp() {
     else if (parsed.kind === "store") setModal({ name: "seller_profile", params: { userId: parsed.id } });
     else if (parsed.kind === "story") setModal({ name: "story_viewer", params: { storyId: parsed.id } });
     else if (parsed.kind === "auction") setModal({ name: "auction", params: { auctionId: parsed.id } });
+    else if (parsed.kind === "clinic") setModal({ name: "clinic_topic", params: { topicId: parsed.id } });
   }, []);
 
   useEffect(() => {

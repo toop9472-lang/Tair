@@ -64,12 +64,13 @@ export function timeAgo12(iso) {
  *   onBell?: click handler for bell (optional, shown if provided)
  *   hasNotif?: boolean — show gold dot on bell
  */
-export function TairAppHeader({ image, onBell, hasNotif = false }) {
+export function TairAppHeader({ image, onBell, hasNotif = false, unreadCount = 0 }) {
+  const count = Number(unreadCount) || 0;
   return (
     <div style={{
       position: "relative",
       width: "100%",
-      aspectRatio: "1.49 / 1",  // ثابت لكل الهيدرات
+      aspectRatio: "1.486 / 1",
       maxHeight: 260,
       background: TAIR.bg,
       overflow: "hidden",
@@ -82,8 +83,7 @@ export function TairAppHeader({ image, onBell, hasNotif = false }) {
           inset: 0,
           width: "100%",
           height: "100%",
-          objectFit: "cover",
-          objectPosition: "center top",
+          objectFit: "fill",
           display: "block",
         }}
       />
@@ -102,33 +102,43 @@ export function TairAppHeader({ image, onBell, hasNotif = false }) {
           data-testid="header-bell"
           style={{
             position: "absolute",
-            top: "51%",
-            right: "3.5%",
-            width: "14%",
+            top: "45%",
+            left: "78%",
+            width: "18%",
             aspectRatio: "1",
             borderRadius: "50%",
-            background: TAIR.card,
-            border: "none",
-            boxShadow: "0 3px 8px rgba(27,61,47,0.18)",
+            background: "#1B3D2F",
+            border: `3px solid ${TAIR.gold}`,
+            boxShadow: "0 4px 12px rgba(15,36,28,0.35)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
             padding: 0,
+            zIndex: 5,
           }}
         >
-          <Bell size={22} color={TAIR.emerald} strokeWidth={1.8} />
-          {hasNotif && (
+          <Bell size={22} color={TAIR.gold} strokeWidth={2.4} />
+          {(count > 0 || hasNotif) && (
             <span style={{
               position: "absolute",
-              top: "16%",
-              right: "20%",
-              width: 10,
-              height: 10,
-              borderRadius: 5,
-              background: TAIR.gold,
-              border: `2px solid ${TAIR.card}`,
-            }} />
+              top: -4,
+              left: -4,
+              minWidth: 22,
+              height: 22,
+              borderRadius: 11,
+              padding: "0 4px",
+              background: "#8B2E24",
+              border: "2px solid #1B3D2F",
+              color: "#fff",
+              fontSize: 11,
+              fontWeight: 900,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              {count > 99 ? "99+" : (count > 0 ? count : "")}
+            </span>
           )}
         </button>
       )}

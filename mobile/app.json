@@ -191,7 +191,9 @@
             { "scheme": "saqr", "host": "auction" },
             { "scheme": "saqr", "host": "story" },
             { "scheme": "saqr", "host": "trip" },
-            { "scheme": "saqr", "host": "store" }
+            { "scheme": "saqr", "host": "store" },
+            { "scheme": "saqr", "host": "clinic" },
+            { "scheme": "saqr", "host": "app" }
           ],
           "category": [
             "BROWSABLE",
@@ -205,6 +207,11 @@
               "scheme": "https",
               "host": "saqr-ui-sync.emergent.host",
               "pathPrefix": "/share"
+            },
+            {
+              "scheme": "https",
+              "host": "saqr-ui-sync.emergent.host",
+              "pathPrefix": "/api/share"
             }
           ],
           "category": [

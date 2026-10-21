@@ -16,6 +16,7 @@ import { TAIR } from "../constants/tairTheme";
 import { clinicTopicsApi, adminExtApi } from "../services/tairApi";
 import api from "../services/api";
 import { DetailSkeleton, ErrorState } from "../components/TairUI";
+import { shareInApp } from "../services/shareContent";
 
 const QLABELS = {
   q_lethargy: "خمول",
@@ -193,6 +194,22 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
         </TouchableOpacity>
         <Text style={s.hTitle} numberOfLines={1}>{topic.title}</Text>
         <View style={{ flexDirection: "row-reverse", gap: 6 }}>
+          <TouchableOpacity
+            onPress={() => shareInApp({
+              kind: "clinic",
+              id: topic.topic_id || topicId,
+              title: topic.title || "موضوع في العيادة",
+              image: topic.images?.[0] || "",
+              lines: [
+                topic.user_name ? `من ${topic.user_name}` : null,
+                (topic.description || "").slice(0, 80),
+              ],
+            })}
+            style={s.hBtn}
+            testID="clinic-topic-share"
+          >
+            <Ionicons name="share-social-outline" size={18} color={TAIR.gold} />
+          </TouchableOpacity>
           {isMod ? (
             <TouchableOpacity onPress={openAI} style={s.aiBtn} testID="ai-assist-btn">
               <Ionicons name="sparkles" size={16} color={TAIR.gold} />

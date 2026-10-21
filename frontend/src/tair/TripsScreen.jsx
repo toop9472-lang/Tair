@@ -23,7 +23,7 @@ const STATUS_FILTERS = [
   { id: "completed", label: "مكتملة" },
 ];
 
-export default function TripsScreen({ user, onOpenTrip, onOpenNotifications, focusTripId }) {
+export default function TripsScreen({ user, onOpenTrip, onOpenNotifications, focusTripId, unreadCount = 0 }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fromCity, setFromCity] = useState(null);
@@ -64,7 +64,7 @@ export default function TripsScreen({ user, onOpenTrip, onOpenNotifications, foc
 
   return (
     <div style={{ ...S.screen, ...TAIR_PAGE_STYLE }} data-testid="trips-screen">
-      <TairAppHeader image={tripsHeader} onBell={onOpenNotifications} hasNotif={false} />
+      <TairAppHeader image={tripsHeader} onBell={onOpenNotifications} unreadCount={unreadCount} />
 
       <div style={styles.toolbar}>
         <div style={styles.tabRow}>

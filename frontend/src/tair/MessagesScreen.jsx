@@ -20,7 +20,7 @@ function timeAgo(iso) {
   return new Date(iso).toLocaleDateString("ar-SA");
 }
 
-export default function MessagesScreen({ user, onOpenThread, onOpenNotifications }) {
+export default function MessagesScreen({ user, onOpenThread, onOpenNotifications, unreadCount = 0 }) {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const uid = user.id || user.user_id;
@@ -36,7 +36,7 @@ export default function MessagesScreen({ user, onOpenThread, onOpenNotifications
 
   return (
     <div style={{ ...S.screen, ...TAIR_PAGE_STYLE }} data-testid="messages-screen">
-      <TairAppHeader image={messagesHeader} onBell={onOpenNotifications} />
+      <TairAppHeader image={messagesHeader} onBell={onOpenNotifications} unreadCount={unreadCount} />
       <div style={styles.subBar}>
         <div style={styles.subBarText}>محادثاتك مع البائعين والمشترين</div>
       </div>

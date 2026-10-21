@@ -28,6 +28,7 @@ import {
 import { TAIR_BANNER_IMAGE } from "../constants/tairDesign";
 import { ErrorState, ListSkeleton } from "../components/TairUI";
 import { TAIR_ELEVATION } from "../constants/tairTheme";
+import { shareAppPayload, shareInApp } from "../services/shareContent";
 
 const API_BASE =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -678,6 +679,13 @@ export default function ProfileScreen({
                 label="طلباتي"
                 onPress={() => onNavigate?.("orders")}
                 testID="menu-orders"
+              />
+              <MenuItem
+                icon="share-social-outline"
+                label="شارك التطبيق"
+                color="#C6A15B"
+                onPress={() => shareInApp(shareAppPayload())}
+                testID="menu-share-app"
               />
               <MenuItem
                 icon="business"

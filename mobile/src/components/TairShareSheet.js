@@ -14,6 +14,8 @@ const KIND_LABEL = {
   story: "قصة",
   trip: "رحلة",
   store: "متجر",
+  clinic: "عيادة",
+  app: "التطبيق",
 };
 
 export default function TairShareSheet() {
@@ -48,6 +50,7 @@ export default function TairShareSheet() {
           <View style={s.sheet}>
             <View style={s.handle} />
             <Text style={s.brand}>مشاركة من طير</Text>
+            {payload.hook ? <Text style={s.hook}>{payload.hook}</Text> : null}
             {payload.image ? <Image source={{ uri: payload.image }} style={s.preview} /> : null}
             <View style={s.kindRow}>
               <View style={s.kindPill}>
@@ -100,6 +103,7 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   brand: { color: TAIR.goldDark, fontSize: 12, fontWeight: "900", textAlign: "center" },
+  hook: { color: TAIR.emerald, fontSize: 16, fontWeight: "900", textAlign: "center", marginTop: 8 },
   preview: { width: "100%", height: 160, borderRadius: 14, marginTop: 12, backgroundColor: TAIR.creamDeep },
   kindRow: { alignItems: "center", marginTop: 8 },
   kindPill: {
