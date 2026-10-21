@@ -126,7 +126,7 @@ async def send_expo_push(
                 for i, item in enumerate(data_arr):
                     if isinstance(item, dict) and item.get("status") == "error":
                         err = (item.get("details") or {}).get("error")
-                        if err in ("DeviceNotRegistered", "InvalidCredentials"):
+                        if err == "DeviceNotRegistered":
                             try:
                                 await db.mobile_push_tokens.delete_one({"token": tokens[i]})
                             except Exception:

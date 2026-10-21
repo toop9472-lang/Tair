@@ -2,7 +2,7 @@
   "expo": {
     "name": "طير",
     "slug": "saqr-app",
-    "version": "8.6.5",
+    "version": "8.6.6",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -49,6 +49,13 @@
       ],
       "expo-font",
       [
+        "expo-notifications",
+        {
+          "color": "#1B3D2F",
+          "defaultChannel": "default"
+        }
+      ],
+      [
         "react-native-edge-to-edge",
         {
           "android": {
@@ -71,7 +78,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.saqr.rewards",
-      "buildNumber": "216",
+      "buildNumber": "217",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -167,7 +174,7 @@
         "monochromeImage": "./assets/adaptive-icon.png"
       },
       "package": "com.saqr.rewards",
-      "versionCode": 216,
+      "versionCode": 217,
       "softwareKeyboardLayoutMode": "resize",
       "intentFilters": [
         {
@@ -223,6 +230,7 @@
       "permissions": [
         "INTERNET",
         "VIBRATE",
+        "POST_NOTIFICATIONS",
         "AD_ID",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"

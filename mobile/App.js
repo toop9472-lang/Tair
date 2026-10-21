@@ -10,6 +10,7 @@ import {
   I18nManager,
   Alert,
   Linking,
+  AppState,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LanguageProvider } from "./src/i18n/LanguageContext";
@@ -239,13 +240,17 @@ function TairApp() {
     } catch {}
   }, [currentPage, modal]);
 
-  // Register Expo push notifications when a user is signed in
+  // Register Expo push when the account is known, and again each time the app returns.
   useEffect(() => {
-    const uid = user?.id || user?.user_id;
-    if (!uid || String(uid).startsWith("guest_")) return;
-    import("./src/services/pushService")
-      .then((m) => m.registerForPushNotifications(uid).catch(() => null))
-      .catch(() => null);
+    const uid = user?.user_id || user?.id;
+    if (!uid || String(uid).startsWith("guest_")) return undefined;
+    initPushNotifications({ apiUrl: API_URL, userId: uid }).catch(() => {});
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        initPushNotifications({ apiUrl: API_URL, userId: uid }).catch(() => {});
+      }
+    });
+    return () => sub.remove();
   }, [user]);
 
   const finishOnboarding = useCallback(async () => {
