@@ -215,7 +215,7 @@ export default function CommunityScreen({
           </View>
           {sticker ? (
             <View style={s.stickerMsg}>
-              <TairSticker id={sticker.id} size={78} animated interactive />
+              <TairSticker id={sticker.id} size={104} animated interactive />
               <Text style={[s.stickerCaption, mine && s.stickerCaptionMine]}>{sticker.label}</Text>
             </View>
           ) : (

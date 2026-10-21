@@ -155,7 +155,7 @@ const MessageItem = ({ message, isOwn, showAvatar, peerAvatar, peerName, peerCol
       >
         {sticker ? (
           <View style={styles.stickerMsg}>
-            <TairSticker id={sticker.id} size={84} animated interactive />
+            <TairSticker id={sticker.id} size={112} animated interactive />
             <Text style={[styles.stickerCaption, isOwn && styles.stickerCaptionOwn]}>{sticker.label}</Text>
           </View>
         ) : (

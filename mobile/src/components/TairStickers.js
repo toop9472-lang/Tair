@@ -1,7 +1,7 @@
 // ملصقات طير — طائر زمردي بمنقار ذهبي على بطاقة كريمية.
 // الرسالة تُخزَّن كنص [[tair:id]] حتى تعمل في الدردشة الخاصة والعامة دون صور.
 import React, { useEffect, useRef } from "react";
-import { Animated, Easing, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Easing, Image, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { TAIR } from "../constants/tairTheme";
 
@@ -359,6 +359,25 @@ function Falcon({ id, size }) {
   );
 }
 
+const STICKER_ART = {
+  hello: require("../../assets/stickers/hello.png"),
+  thanks: require("../../assets/stickers/thanks.png"),
+  laugh: require("../../assets/stickers/laugh.png"),
+  love: require("../../assets/stickers/love.png"),
+  wow: require("../../assets/stickers/wow.png"),
+  sad: require("../../assets/stickers/sad.png"),
+  ok: require("../../assets/stickers/ok.png"),
+  deal: require("../../assets/stickers/deal.png"),
+  fly: require("../../assets/stickers/fly.png"),
+  care: require("../../assets/stickers/care.png"),
+  ask: require("../../assets/stickers/ask.png"),
+  celebrate: require("../../assets/stickers/celebrate.png"),
+  welcome: require("../../assets/stickers/welcome.png"),
+  bid: require("../../assets/stickers/bid.png"),
+  sold: require("../../assets/stickers/sold.png"),
+  wait: require("../../assets/stickers/wait.png"),
+};
+
 // حركة كل ملصق: تمايل، قفز، نبض، اهتزاز، طيران
 const MOTION = {
   hello: "wave", thanks: "nod", laugh: "shake", love: "pulse", wow: "jump", sad: "droop",
@@ -413,21 +432,14 @@ export function TairSticker({ id, size = 78, animated = false, interactive = fal
     <Animated.View
       accessibilityRole="image"
       accessibilityLabel={`ملصق ${label}`}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size * 0.28,
-        backgroundColor: CREAM,
-        borderWidth: Math.max(1, size * 0.028),
-        borderColor: GOLD,
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-        transform: [{ scale: tap }],
-      }}
+      style={{ width: size, height: size, alignItems: "center", justifyContent: "center", transform: [{ scale: tap }] }}
     >
       <Animated.View style={motion}>
-        <Falcon id={id} size={size * 0.92} />
+        {STICKER_ART[id] ? (
+          <Image source={STICKER_ART[id]} style={{ width: size, height: size }} resizeMode="contain" />
+        ) : (
+          <Falcon id={id} size={size * 0.92} />
+        )}
       </Animated.View>
     </Animated.View>
   );
@@ -456,7 +468,7 @@ export function StickerTray({ onPick, disabled }) {
           onPress={() => onPick(stickerToken(s.id))}
           accessibilityLabel={`ملصق ${s.label}`}
         >
-          <TairSticker id={s.id} size={48} />
+          <TairSticker id={s.id} size={60} />
           <Text style={tray.caption}>{s.label}</Text>
         </TouchableOpacity>
       ))}
