@@ -18,14 +18,25 @@ import api from "../services/api";
 import { DetailSkeleton, ErrorState } from "../components/TairUI";
 
 const QLABELS = {
-  q_lethargy: "خمول", q_appetite: "الشهية", q_onset: "بداية الأعراض",
-  q_diet: "التغذية", q_gender: "النوع", q_breeding: "حضن/تزاوج",
-  q_medications: "الأدوية", q_seen_vet: "عرض على دكتور",
-  q_age: "العمر", q_time_with_owner: "منذ متى", q_tame: "أليف",
-  q_vomits: "استفراغ", q_mouth_droppings: "فم/براز",
-  chick_serelac_brand: "سريلاك - الشركة", chick_exact_age: "العمر بالضبط",
-  chick_serelac_temp: "حرارة السريلاك", chick_feeding_count: "عدد الغر",
-  chick_feeding_method: "طريقة التأكيل", chick_serelac_leftover: "بواقي السريلاك",
+  q_lethargy: "خمول",
+  q_appetite: "الشهية",
+  q_onset: "بداية الأعراض",
+  q_diet: "التغذية",
+  q_gender: "ذكر أو أنثى",
+  q_breeding: "حضن أو تزاوج",
+  q_medications: "أدوية أخيرة",
+  q_seen_vet: "عُرضت من قبل",
+  q_age: "عمر الطير",
+  q_time_with_owner: "منذ متى عندك",
+  q_tame: "أليف",
+  q_vomits: "استفراغ",
+  q_mouth_droppings: "فم أو رائحة براز",
+  chick_serelac_brand: "شركة السريلاك",
+  chick_exact_age: "عمر الفرخ",
+  chick_serelac_temp: "حرارة السريلاك",
+  chick_feeding_count: "مرات الغر والكمية",
+  chick_feeding_method: "طريقة التأكيل",
+  chick_serelac_leftover: "بواقي السريلاك",
 };
 
 export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpenProfile }) {
@@ -219,24 +230,20 @@ export default function ClinicTopicDetailsScreen({ user, topicId, onBack, onOpen
         {/* Diagnostic questionnaire — نفس نمط الشبكة في شاشة الإنشاء */}
         {answered.length > 0 || topic.is_chick ? (
           <>
-            <Text style={s.sectH}>📋 تشخيص الحالة</Text>
-            <View style={s.qGrid}>
-              {answered.map(({ k, label, v }) => (
-                <View key={k} style={s.qGridItem}>
-                  <View style={s.qGridCard}>
-                    <Text style={s.qGridK} numberOfLines={2}>{label}</Text>
-                    <Text style={s.qGridV} numberOfLines={3}>{v}</Text>
-                  </View>
-                </View>
-              ))}
+            <Text style={s.sectH}>تشخيص الحالة</Text>
+            <View style={s.answerList}>
               {topic.is_chick ? (
-                <View style={s.qGridItem}>
-                  <View style={[s.qGridCard, { backgroundColor: "#FFFBF3", borderColor: TAIR.gold }]}>
-                    <Text style={s.qGridK}>🐣 نوع</Text>
-                    <Text style={s.qGridV}>فرخ</Text>
-                  </View>
+                <View style={s.answerRow}>
+                  <Text style={s.answerK}>فرخ</Text>
+                  <Text style={s.answerV}>نعم</Text>
                 </View>
               ) : null}
+              {answered.map(({ k, label, v }) => (
+                <View key={k} style={s.answerRow}>
+                  <Text style={s.answerK}>{label}</Text>
+                  <Text style={s.answerV}>{v}</Text>
+                </View>
+              ))}
             </View>
           </>
         ) : null}
@@ -470,15 +477,10 @@ const s = StyleSheet.create({
   qK: { color: TAIR.goldDark, fontSize: 12, fontWeight: "900", textAlign: "right", width: 120 },
   qV: { color: "#0F241C", fontSize: 13, flex: 1, textAlign: "right" },
   // شبكة بطاقات التشخيص على صفحة التفاصيل
-  qGrid: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8 },
-  qGridItem: { width: "32%" },
-  qGridCard: {
-    backgroundColor: TAIR.card, borderRadius: 10,
-    borderWidth: 1, borderColor: TAIR.divider,
-    padding: 8, minHeight: 72,
-  },
-  qGridK: { color: TAIR.goldDark, fontSize: 11, fontWeight: "900", textAlign: "right", marginBottom: 4 },
-  qGridV: { color: "#0F241C", fontSize: 12, textAlign: "right", lineHeight: 17 },
+  answerList: { backgroundColor: TAIR.card, borderRadius: 12, borderWidth: 1, borderColor: TAIR.divider, overflow: "hidden" },
+  answerRow: { flexDirection: "row-reverse", gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: TAIR.divider },
+  answerK: { width: 108, color: TAIR.goldDark, fontSize: 12, fontWeight: "800", textAlign: "right" },
+  answerV: { flex: 1, color: "#0F241C", fontSize: 13, textAlign: "right", lineHeight: 18 },
 
   mediaRow: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8 },
   mediaThumb: { width: 90, height: 90, borderRadius: 10, overflow: "hidden", backgroundColor: TAIR.divider, alignItems: "center", justifyContent: "center" },

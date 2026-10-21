@@ -11,11 +11,24 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import TairHeader from "../components/TairHeader";
-import { TAIR, TAIR_ELEVATION } from "../constants/tairTheme";
+import { TAIR } from "../constants/tairTheme";
 import { clinicTopicsApi, adminExtApi } from "../services/tairApi";
 import { EmptyState, ErrorState, ListSkeleton, PressableScale, TairImage } from "../components/TairUI";
 
 const EMERGENCY_TG = "https://t.me/parrotsnbirds2020";
+
+function whenLabel(iso) {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "";
+  const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (mins < 60) return mins <= 1 ? "الآن" : `قبل ${mins} د`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `قبل ${hours} س`;
+  const days = Math.round(hours / 24);
+  if (days < 14) return `قبل ${days} ي`;
+  return new Date(iso).toLocaleDateString("ar-SA", { day: "numeric", month: "short" });
+}
 
 export default function ClinicScreen({
   user, onBellPress, onOpenMessages,
@@ -62,40 +75,32 @@ export default function ClinicScreen({
   };
 
   const renderTopic = ({ item }) => {
-    const img = (item.images && item.images[0]) || item.user_avatar;
+    const waiting = !item.replies_count;
     return (
       <PressableScale
         onPress={() => onOpenTopic?.(item.topic_id)}
-        style={s.topicCard}
+        style={s.row}
         haptic
         testID={`clinic-topic-${item.topic_id}`}
       >
-        <View style={s.topicLeft}>
-          {img ? (
-            <TairImage uri={img} style={s.topicImg} icon="medkit-outline" />
+        <View style={s.avatar}>
+          {item.user_avatar ? (
+            <TairImage uri={item.user_avatar} style={s.avatarImg} icon="person-outline" />
           ) : (
-            <View style={[s.topicImg, { backgroundColor: TAIR.creamDeep, alignItems: "center", justifyContent: "center" }]}>
-              <Ionicons name="medkit-outline" size={22} color={TAIR.emerald} />
-            </View>
+            <Text style={s.avatarLetter}>{(item.user_name || "ع").charAt(0)}</Text>
           )}
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={s.topicTitle} numberOfLines={2}>
-            {item.user_name ? `${item.user_name} — ` : ""}{item.title}
-          </Text>
-          <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 10, marginTop: 6 }}>
-            <View style={s.replyChip}>
-              <Ionicons name="chatbubbles-outline" size={11} color={TAIR.emerald} />
-              <Text style={s.replyChipText}>
-                {item.replies_count || 0} ردود
-              </Text>
-            </View>
-            {item.views_count ? (
-              <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 3 }}>
-                <Ionicons name="eye-outline" size={11} color={TAIR.textSoft} />
-                <Text style={{ color: TAIR.textSoft, fontSize: 11 }}>{item.views_count}</Text>
-              </View>
-            ) : null}
+          <View style={s.rowTop}>
+            <Text style={s.member} numberOfLines={1}>{item.user_name || "عضو"}</Text>
+            <Text style={s.when}>{whenLabel(item.updated_at || item.created_at)}</Text>
+          </View>
+          <Text style={s.subject} numberOfLines={1}>{item.title}</Text>
+          <View style={s.meta}>
+            <Ionicons name="chatbubble-outline" size={11} color={TAIR.textSoft} />
+            <Text style={s.metaText}>{item.replies_count || 0}</Text>
+            {item.is_chick ? <Text style={s.tag}>فرخ</Text> : null}
+            {waiting ? <Text style={s.wait}>بانتظار الرد</Text> : null}
           </View>
         </View>
       </PressableScale>
@@ -138,7 +143,10 @@ export default function ClinicScreen({
 
             {/* Section header + Add topic */}
             <View style={s.sectionHead}>
-              <Text style={s.sectionTitle}>المواضيع</Text>
+              <View>
+                <Text style={s.sectionTitle}>المواضيع</Text>
+                <Text style={s.sectionSub}>الأحدث نشاطاً، الاسم ثم الموضوع</Text>
+              </View>
               <TouchableOpacity onPress={onCreateTopic} style={s.addBtn} testID="clinic-add-topic">
                 <Ionicons name="add-circle" size={16} color={TAIR.gold} />
                 <Text style={s.addBtnText}>إضافة موضوع</Text>
@@ -220,7 +228,8 @@ const s = StyleSheet.create({
     alignItems: "center", paddingHorizontal: 16,
     marginTop: 18, marginBottom: 10,
   },
-  sectionTitle: { color: TAIR.emerald, fontSize: 16, fontWeight: "900" },
+  sectionTitle: { color: TAIR.emerald, fontSize: 16, fontWeight: "900", textAlign: "right" },
+  sectionSub: { color: TAIR.textSoft, fontSize: 11, textAlign: "right", marginTop: 2 },
   addBtn: {
     flexDirection: "row-reverse", alignItems: "center", gap: 5,
     backgroundColor: TAIR.emerald, borderRadius: 999,
@@ -229,24 +238,25 @@ const s = StyleSheet.create({
   },
   addBtnText: { color: TAIR.gold, fontSize: 12, fontWeight: "900" },
 
-  topicCard: {
-    flexDirection: "row-reverse", alignItems: "center", gap: 12,
-    marginHorizontal: 16, marginBottom: 10,
-    backgroundColor: TAIR.card, borderRadius: 18,
-    paddingHorizontal: 12, paddingVertical: 12,
-    borderWidth: 1, borderColor: TAIR.divider,
-    ...TAIR_ELEVATION.card,
+  row: {
+    flexDirection: "row-reverse", alignItems: "center", gap: 10,
+    marginHorizontal: 14, paddingVertical: 10, paddingHorizontal: 4,
+    borderBottomWidth: 1, borderBottomColor: TAIR.divider,
   },
-  topicLeft: {},
-  topicImg: { width: 54, height: 54, borderRadius: 27, backgroundColor: TAIR.divider, overflow: "hidden" },
-  topicTitle: { color: "#0F241C", fontSize: 14, fontWeight: "800", textAlign: "right", lineHeight: 22 },
-  replyChip: {
-    flexDirection: "row-reverse", alignItems: "center", gap: 4,
-    backgroundColor: "#EEF6F0", borderRadius: 999,
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1, borderColor: TAIR.divider,
+  avatar: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: TAIR.creamDeep,
+    alignItems: "center", justifyContent: "center", overflow: "hidden",
   },
-  replyChipText: { color: TAIR.emerald, fontSize: 11, fontWeight: "800" },
+  avatarImg: { width: 36, height: 36, borderRadius: 18 },
+  avatarLetter: { color: TAIR.emerald, fontSize: 14, fontWeight: "900" },
+  rowTop: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  member: { flex: 1, color: TAIR.goldDark, fontSize: 12, fontWeight: "800", textAlign: "right" },
+  when: { color: TAIR.textSoft, fontSize: 10, fontWeight: "700" },
+  subject: { color: "#0F241C", fontSize: 14, fontWeight: "800", textAlign: "right", marginTop: 2 },
+  meta: { flexDirection: "row-reverse", alignItems: "center", gap: 4, marginTop: 4 },
+  metaText: { color: TAIR.textSoft, fontSize: 11, fontWeight: "700" },
+  tag: { color: TAIR.emerald, fontSize: 10, fontWeight: "800", backgroundColor: TAIR.creamDeep, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1 },
+  wait: { color: "#8B3A2F", fontSize: 10, fontWeight: "800" },
 
   empty: { alignItems: "center", padding: 40, gap: 10 },
   emptyTitle: { color: TAIR.emerald, fontSize: 15, fontWeight: "900", marginTop: 8 },

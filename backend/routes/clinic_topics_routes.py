@@ -178,8 +178,10 @@ async def _enrich_topic(t: dict):
             {"$or": [{"user_id": uid}, {"email": uid}, {"id": uid}]},
             {"_id": 0, "name": 1, "avatar": 1, "profile_image": 1},
         ) or {}
-        if not t.get("user_name") or t.get("user_name") == "مستخدم":
-            t["user_name"] = u.get("name") or t.get("user_name") or "مستخدم"
+        if u.get("name"):
+            t["user_name"] = u["name"]
+        elif not t.get("user_name"):
+            t["user_name"] = "عضو"
         if not t.get("user_avatar"):
             t["user_avatar"] = u.get("avatar") or u.get("profile_image")
     return t
@@ -187,7 +189,12 @@ async def _enrich_topic(t: dict):
 
 @router.get("/topics")
 async def list_topics(limit: int = Query(30, le=100), skip: int = 0):
-    cursor = db.tair_clinic_topics.find({"status": {"$ne": "deleted"}}).sort("created_at", -1).skip(skip).limit(limit)
+    cursor = (
+        db.tair_clinic_topics.find({"status": {"$ne": "deleted"}})
+        .sort([("updated_at", -1), ("created_at", -1)])
+        .skip(skip)
+        .limit(limit)
+    )
     items = [_clean(d) async for d in cursor]
     for t in items:
         await _enrich_topic(t)
@@ -224,6 +231,7 @@ async def create_topic(payload: Topic, user_id: str = Query(...)):
         "user_name": (user or {}).get("name") or "مستخدم",
         "user_avatar": (user or {}).get("avatar") or (user or {}).get("profile_image"),
         "created_at": _now(),
+        "updated_at": _now(),
         "replies_count": 0,
         "views_count": 0,
         "status": "open",
@@ -285,7 +293,7 @@ async def create_topic(payload: Topic, user_id: str = Query(...)):
         await db.tair_clinic_replies.insert_one(bot_reply_doc)
         await db.tair_clinic_topics.update_one(
             {"topic_id": tid},
-            {"$inc": {"replies_count": 1}},
+            {"$inc": {"replies_count": 1}, "$set": {"updated_at": _now()}},
         )
         preview = (bot_result.get("reply") or "").strip().replace("\n", " ")
         if len(preview) > 90:
@@ -376,7 +384,10 @@ async def create_reply(topic_id: str, payload: Reply, user_id: str = Query(...))
         "images": payload.images or [],
         "created_at": _now(),
     })
-    await db.tair_clinic_topics.update_one({"topic_id": topic_id}, {"$inc": {"replies_count": 1}})
+    await db.tair_clinic_topics.update_one(
+        {"topic_id": topic_id},
+        {"$inc": {"replies_count": 1}, "$set": {"updated_at": _now()}},
+    )
     try:
         preview = payload.text.strip().replace("\n", " ")
         if len(preview) > 90:
