@@ -11,7 +11,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { TAIR, TAIR_ELEVATION, TAIR_HEADERS } from "../constants/tairTheme";
 import { subscribeUnread } from "../services/unreadNotifications";
-import { HeaderSheen } from "./TairPolish";
 
 export default function TairHeader({
   variant = "market",
@@ -29,7 +28,6 @@ export default function TairHeader({
   return (
     <View style={styles.wrap} testID={testID || `tair-header-${variant}`}>
       <Image source={source} style={styles.img} resizeMode="contain" />
-      <HeaderSheen />
 
       {/* تدرّج تلاشي إلى الخلفية الكريمية */}
       <LinearGradient
@@ -119,7 +117,7 @@ const styles = StyleSheet.create({
   askBtn: {
     position: "absolute",
     top: "38%",
-    left: "5%",
+    right: "5%",
     width: "16%",
     aspectRatio: 1,
     borderRadius: 999,
@@ -161,7 +159,7 @@ const styles = StyleSheet.create({
   bellHit: {
     position: "absolute",
     top: "45%",
-    left: "78%",
+    left: "4%",
     width: "18%",
     aspectRatio: 1,
     borderRadius: 999,
@@ -176,7 +174,7 @@ const styles = StyleSheet.create({
   countBadge: {
     position: "absolute",
     top: -3,
-    left: -3,
+    right: -3,
     minWidth: 22,
     height: 22,
     borderRadius: 11,

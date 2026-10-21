@@ -14,7 +14,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ordersApi } from "../services/tairApi";
 import RateUserModal from "../components/RateUserModal";
 import { logPositiveEvent, maybeAskForReview } from "../services/rateApp";
-import { HeaderSheen } from "../components/TairPolish";
 
 const statusMeta = {
   pending: { color: "#0891b2", label: "قيد الانتظار", icon: "time-outline" },
@@ -182,7 +181,6 @@ export default function OrdersScreen({ user, onOpenOrder }) {
         colors={["#1B3D2F", "#0F241C"]}
         style={styles.hero}
       >
-        <HeaderSheen />
         <View style={styles.goldRule} pointerEvents="none" />
         <View style={styles.heroCopy}>
           <Text style={styles.heroTitle}>طلباتي</Text>

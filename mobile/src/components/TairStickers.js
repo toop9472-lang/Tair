@@ -1,7 +1,8 @@
 // ملصقات طير — طائر زمردي بمنقار ذهبي على بطاقة كريمية.
 // الرسالة تُخزَّن كنص [[tair:id]] حتى تعمل في الدردشة الخاصة والعامة دون صور.
-import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Easing, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { TAIR } from "../constants/tairTheme";
 
 export const TAIR_STICKERS = [
@@ -17,6 +18,10 @@ export const TAIR_STICKERS = [
   { id: "care", label: "عناية" },
   { id: "ask", label: "سؤال" },
   { id: "celebrate", label: "مبروك" },
+  { id: "welcome", label: "حيّاك" },
+  { id: "bid", label: "أزايد" },
+  { id: "sold", label: "انباع" },
+  { id: "wait", label: "لحظة" },
 ];
 
 const EM = "#1B3D2F";
@@ -287,6 +292,46 @@ function expression(id, p) {
       </>
     );
   }
+  if (id === "welcome") {
+    return (
+      <>
+        <Eye p={p} x={25} y={18} />
+        <Smile p={p} />
+        <Heart p={p} x={44} y={8} s={8} />
+        <Heart p={p} x={8} y={16} s={6} />
+      </>
+    );
+  }
+  if (id === "bid") {
+    return (
+      <>
+        <Eye p={p} x={25} y={18} look={1} />
+        <Smile p={p} />
+        <Box p={p} x={42} y={10} w={16} h={7} r={2} color={GOLD} rotate="-30deg" />
+        <Box p={p} x={47} y={16} w={3} h={16} r={1} color={GOLDL} rotate="-30deg" />
+      </>
+    );
+  }
+  if (id === "sold") {
+    return (
+      <>
+        <Eye p={p} x={24} y={18} shut />
+        <Smile p={p} />
+        <Box p={p} x={38} y={8} w={22} h={11} r={3} color={GOLD} rotate="12deg" />
+        <Text style={{ position: "absolute", left: p(40.5), top: p(8.4), color: CARD, fontSize: p(6.8), fontWeight: "900", transform: [{ rotate: "12deg" }] }}>مباع</Text>
+      </>
+    );
+  }
+  if (id === "wait") {
+    return (
+      <>
+        <Eye p={p} x={25} y={18} s={7} />
+        <Box p={p} x={44} y={12} w={4} h={4} r={2} color={GOLD} />
+        <Box p={p} x={50} y={12} w={4} h={4} r={2} color={GOLD} />
+        <Box p={p} x={56} y={12} w={4} h={4} r={2} color={GOLD} />
+      </>
+    );
+  }
   return (
     <>
       <Eye p={p} x={24} y={18} shut />
@@ -314,11 +359,58 @@ function Falcon({ id, size }) {
   );
 }
 
-export function TairSticker({ id, size = 78 }) {
+// حركة كل ملصق: تمايل، قفز، نبض، اهتزاز، طيران
+const MOTION = {
+  hello: "wave", thanks: "nod", laugh: "shake", love: "pulse", wow: "jump", sad: "droop",
+  ok: "nod", deal: "pulse", fly: "float", care: "pulse", ask: "wave", celebrate: "jump",
+  welcome: "wave", bid: "shake", sold: "jump", wait: "pulse",
+};
+
+function useStickerMotion(id, animated) {
+  const v = useRef(new Animated.Value(0)).current;
+  const pop = useRef(new Animated.Value(animated ? 0.4 : 1)).current;
+  useEffect(() => {
+    if (!animated) return undefined;
+    Animated.spring(pop, { toValue: 1, friction: 4, tension: 120, useNativeDriver: true }).start();
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(v, { toValue: 1, duration: 520, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(v, { toValue: 0, duration: 520, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.delay(900),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [animated, v, pop]);
+  const kind = MOTION[id] || "nod";
+  const t = [];
+  if (kind === "wave") t.push({ rotate: v.interpolate({ inputRange: [0, 0.5, 1], outputRange: ["0deg", "-10deg", "8deg"] }) });
+  if (kind === "nod") t.push({ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, 3] }) });
+  if (kind === "shake") t.push({ translateX: v.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [0, -3, 3, -3, 0] }) });
+  if (kind === "pulse") t.push({ scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) });
+  if (kind === "jump") t.push({ translateY: v.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -7, 0] }) });
+  if (kind === "droop") t.push({ rotate: v.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "5deg"] }) });
+  if (kind === "float") {
+    t.push({ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [2, -5] }) });
+    t.push({ translateX: v.interpolate({ inputRange: [0, 1], outputRange: [-2, 3] }) });
+  }
+  return { transform: [{ scale: pop }, ...t] };
+}
+
+export function TairSticker({ id, size = 78, animated = false, interactive = false }) {
   const sticker = TAIR_STICKERS.find((s) => s.id === id);
   const label = sticker?.label || "ملصق";
-  return (
-    <View
+  const motion = useStickerMotion(id, animated);
+  const tap = useRef(new Animated.Value(1)).current;
+  const onTap = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+    Animated.sequence([
+      Animated.timing(tap, { toValue: 1.25, duration: 120, useNativeDriver: true }),
+      Animated.spring(tap, { toValue: 1, friction: 3, tension: 160, useNativeDriver: true }),
+    ]).start();
+  };
+  const body = (
+    <Animated.View
       accessibilityRole="image"
       accessibilityLabel={`ملصق ${label}`}
       style={{
@@ -331,10 +423,19 @@ export function TairSticker({ id, size = 78 }) {
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
+        transform: [{ scale: tap }],
       }}
     >
-      <Falcon id={id} size={size * 0.92} />
-    </View>
+      <Animated.View style={motion}>
+        <Falcon id={id} size={size * 0.92} />
+      </Animated.View>
+    </Animated.View>
+  );
+  if (!interactive) return body;
+  return (
+    <Pressable onPress={onTap} hitSlop={6} testID={`sticker-${id}`}>
+      {body}
+    </Pressable>
   );
 }
 

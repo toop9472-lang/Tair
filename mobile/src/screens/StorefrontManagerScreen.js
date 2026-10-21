@@ -13,6 +13,7 @@ import { coordsFor } from "../constants/cityCoords";
 
 const TEAL = "#1B3D2F";
 const BORDER = "#e2e8f0";
+const GOLD = "#C6A15B";
 
 const resolveMediaUrl = (u) =>
   !u ? "" : u.startsWith("http") ? u : `${API_URL}${u}`;
@@ -69,24 +70,43 @@ function Section({ title, children, onSave, savedLabel }) {
 function StorefrontHeader({ title, subtitle, onBack, onPreview }) {
   return (
     <View style={styles.storefrontHeader}>
-      <TouchableOpacity
-        style={styles.headerCloseBtn}
-        onPress={onBack}
-        testID="storefront-close-btn"
-      >
-        <Ionicons name="close" size={22} color="#fff" />
-        <Text style={styles.headerCloseText}>خروج</Text>
+      <TouchableOpacity style={styles.headerIconBtn} onPress={onBack} hitSlop={8} testID="storefront-close-btn" accessibilityLabel="رجوع">
+        <Ionicons name="chevron-forward" size={22} color={GOLD} />
       </TouchableOpacity>
-      <View style={{ flex: 1, alignItems: "center" }}>
-        <Text style={styles.headerTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}
+      <View style={{ flex: 1, alignItems: "center", paddingHorizontal: 8 }}>
+        <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
+        {subtitle ? <Text style={styles.headerSubtitle} numberOfLines={1}>{subtitle}</Text> : null}
       </View>
       {onPreview ? (
-        <TouchableOpacity style={styles.headerCloseBtn} onPress={onPreview} testID="storefront-preview-btn">
-          <Ionicons name="eye" size={16} color="#fff" />
-          <Text style={styles.headerCloseText}>عرض</Text>
+        <TouchableOpacity style={styles.headerPreviewBtn} onPress={onPreview} testID="storefront-preview-btn">
+          <Ionicons name="eye" size={15} color={TEAL} />
+          <Text style={styles.headerPreviewText}>معاينة</Text>
         </TouchableOpacity>
-      ) : <View style={{ width: 88 }} />}
+      ) : <View style={{ width: 40 }} />}
+    </View>
+  );
+}
+
+function ToolGrid({ tab, onChange }) {
+  return (
+    <View style={styles.toolGrid} testID="sf-tool-grid">
+      {TABS.map((t) => {
+        const on = tab === t.id;
+        return (
+          <TouchableOpacity
+            key={t.id}
+            style={[styles.toolTile, on && styles.toolTileOn]}
+            onPress={() => onChange(t.id)}
+            activeOpacity={0.8}
+            testID={`sf-tab-${t.id}`}
+          >
+            <View style={[styles.toolIcon, on && styles.toolIconOn]}>
+              <Ionicons name={t.icon} size={17} color={on ? TEAL : GOLD} />
+            </View>
+            <Text style={[styles.toolLabel, on && styles.toolLabelOn]} numberOfLines={1}>{t.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -200,20 +220,7 @@ export default function StorefrontManagerScreen({ user, onBack, onUserChanged, o
         subtitle={saving ? "جاري الحفظ…" : (s.store_paused ? "المتجر متوقف عن الاستقبال" : "خصّص متجرك بحرية")}
       />
 
-      {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsRow} contentContainerStyle={{ paddingHorizontal: 12 }}>
-        {TABS.map((t) => (
-          <TouchableOpacity
-            key={t.id}
-            style={[styles.tab, tab === t.id && styles.tabActive]}
-            onPress={() => setTab(t.id)}
-            testID={`sf-tab-${t.id}`}
-          >
-            <Ionicons name={t.icon} size={13} color={tab === t.id ? "#fff" : TEAL} />
-            <Text style={[styles.tabText, tab === t.id && styles.tabTextActive]}>{t.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <ToolGrid tab={tab} onChange={setTab} />
 
       <ScrollView
         contentContainerStyle={{ padding: 14, paddingBottom: 60 }}
@@ -1015,10 +1022,33 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     paddingTop: 50,
-    paddingBottom: 14,
-    paddingHorizontal: 14,
+    paddingBottom: 12,
+    paddingHorizontal: 12,
     backgroundColor: TEAL,
   },
+  headerIconBtn: {
+    width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(198,161,91,0.14)", borderWidth: 1, borderColor: "rgba(198,161,91,0.5)",
+  },
+  headerPreviewBtn: {
+    flexDirection: "row-reverse", alignItems: "center", gap: 4, height: 36, paddingHorizontal: 12,
+    borderRadius: 18, backgroundColor: GOLD,
+  },
+  headerPreviewText: { color: TEAL, fontSize: 12, fontWeight: "900" },
+  toolGrid: {
+    flexDirection: "row-reverse", flexWrap: "wrap", justifyContent: "space-between", rowGap: 8,
+    paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, backgroundColor: "#F7F1E8",
+    borderBottomWidth: 1, borderBottomColor: "rgba(198,161,91,0.35)",
+  },
+  toolTile: {
+    width: "23.5%", alignItems: "center", paddingVertical: 8, borderRadius: 14,
+    backgroundColor: "#FFFDF8", borderWidth: 1, borderColor: "rgba(198,161,91,0.3)",
+  },
+  toolTileOn: { backgroundColor: TEAL, borderColor: GOLD },
+  toolIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(27,61,47,0.07)" },
+  toolIconOn: { backgroundColor: GOLD },
+  toolLabel: { marginTop: 4, fontSize: 11, fontWeight: "800", color: TEAL },
+  toolLabelOn: { color: GOLD },
   headerCloseBtn: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -1033,7 +1063,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerCloseText: { color: "#fff", fontSize: 13, fontWeight: "800" },
-  headerTitle: { color: "#fff", fontSize: 15, fontWeight: "900" },
+  headerTitle: { color: GOLD, fontSize: 16, fontWeight: "900" },
   headerSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 11, marginTop: 2, fontWeight: "600" },
   colorGrid: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 10 },
   colorSwatch: { width: 44, height: 44, borderRadius: 22, borderWidth: 3, borderColor: "transparent", alignItems: "center", justifyContent: "center" },

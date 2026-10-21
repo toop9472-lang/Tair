@@ -29,7 +29,6 @@ import { TAIR_BANNER_IMAGE } from "../constants/tairDesign";
 import { ErrorState, ListSkeleton } from "../components/TairUI";
 import { TAIR_ELEVATION } from "../constants/tairTheme";
 import { shareAppPayload, shareInApp } from "../services/shareContent";
-import { HeaderSheen } from "../components/TairPolish";
 
 const API_BASE =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -347,7 +346,6 @@ export default function ProfileScreen({
       >
         {/* Bottom-to-top scrim so text is readable */}
         <View style={styles.bannerScrim} />
-        <HeaderSheen />
         <View style={styles.goldRule} pointerEvents="none" />
 
         {/* Identity content stacked at bottom */}

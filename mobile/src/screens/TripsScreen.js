@@ -627,6 +627,25 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
         </TouchableOpacity>
       </View>
       {section === "trips" ? (
+        <PressableScale
+          onPress={() => setCreateOpen(true)}
+          scaleTo={0.97}
+          haptic
+          style={styles.addTripCta}
+          testID="add-trip-cta"
+          accessibilityLabel="أضف رحلة"
+        >
+          <View style={styles.addTripIcon}>
+            <Ionicons name="add" size={24} color={TAIR.emerald} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.addTripTitle}>أضف رحلتك</Text>
+            <Text style={styles.addTripSub}>انشر رحلة واستقبل حجوزات الأقفاص</Text>
+          </View>
+          <Ionicons name="chevron-back" size={18} color={TAIR.gold} />
+        </PressableScale>
+      ) : null}
+      {section === "trips" ? (
       <View style={styles.toolbar}>
         <View style={styles.tabRow}>
           <ScrollView
@@ -667,17 +686,6 @@ export default function TripsScreen({ user, onOpenTrip, onContactCarrier, onOpen
             >
               <Ionicons name="map" size={15} color={viewMode === "map" ? TAIR.gold : TAIR.emerald} />
             </TouchableOpacity>
-            <PressableScale
-              onPress={() => setCreateOpen(true)}
-              scaleTo={0.92}
-              haptic
-              style={styles.addIcon}
-              testID="add-trip-cta"
-              data-testid="create-trip-cta"
-              accessibilityLabel="أضف رحلة"
-            >
-              <Ionicons name="add" size={20} color={TAIR.gold} />
-            </PressableScale>
           </View>
         </View>
 
@@ -869,6 +877,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tabRow: { flexDirection: "row-reverse", alignItems: "center", gap: 6 },
+  addTripCta: {
+    flexDirection: "row-reverse", alignItems: "center", gap: 12,
+    marginHorizontal: 16, marginTop: 10, marginBottom: 2,
+    paddingVertical: 12, paddingHorizontal: 14, borderRadius: 18,
+    backgroundColor: TAIR.emerald, borderWidth: 1.5, borderColor: TAIR.gold,
+    shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5,
+  },
+  addTripIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: TAIR.gold, alignItems: "center", justifyContent: "center" },
+  addTripTitle: { color: TAIR.gold, fontSize: 16, fontWeight: "900", textAlign: "right" },
+  addTripSub: { color: "rgba(247,241,232,0.85)", fontSize: 12, fontWeight: "600", textAlign: "right", marginTop: 2 },
   tabScroll: { flexDirection: "row-reverse", alignItems: "center", gap: 6, paddingVertical: 2 },
   tabChip: {
     paddingHorizontal: 10,
