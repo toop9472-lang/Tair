@@ -1,6 +1,6 @@
 // طير — Seller storefront: modern immersive identity-driven design
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowRight, MapPin, Star, Package, Clock, ShieldCheck, UserPlus, UserCheck, Users, Store, Award, Heart, Eye, MessageCircle, Phone } from "lucide-react";
+import { ArrowRight, MapPin, Star, Package, Clock, ShieldCheck, UserPlus, UserCheck, Users, Store, Award, Heart, Eye, MessageCircle, Phone, Megaphone, Ticket, Truck } from "lucide-react";
 import { T, S } from "./tairTheme";
 import { tairApi } from "./tairApi";
 import { EmptyState } from "./TairUI";
@@ -62,6 +62,67 @@ const summarizeHours = (arr) => {
       return { label, value };
     });
 };
+
+function StoreFacts({ profile, brand }) {
+  const paused = !!profile.store_paused;
+  const cities = Array.isArray(profile.delivery_cities) ? profile.delivery_cities : [];
+  const sales = Array.isArray(profile.flash_sales) ? profile.flash_sales : [];
+  const coupons = Array.isArray(profile.coupons) ? profile.coupons : [];
+  const hasPolicy = profile.shipping_note || profile.return_note || cities.length || profile.pickup_enabled || profile.location?.city;
+  if (!paused && !profile.announcement && !sales.length && !coupons.length && !hasPolicy && !profile.response_promise) return null;
+  const copy = async (code) => {
+    try { await navigator.clipboard.writeText(code); } catch { /* the code stays visible */ }
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }} data-testid="store-facts">
+      {(paused || profile.announcement) && (
+        <div style={{ padding: 12, borderRadius: 14, background: "#FFF8EC", textAlign: "right" }}>
+          <div style={{ display: "flex", flexDirection: "row-reverse", gap: 8, alignItems: "center", color: "#8A6A2E", fontWeight: 900, fontSize: 13 }}>
+            <Megaphone size={16} />
+            <span>{paused ? "المتجر متوقف مؤقتاً" : "من المتجر"}</span>
+          </div>
+          {profile.announcement ? <div style={{ marginTop: 6, color: "#334155", fontSize: 13, lineHeight: 1.6 }}>{profile.announcement}</div> : null}
+        </div>
+      )}
+      {profile.response_promise ? (
+        <div style={{ textAlign: "right", color: brand, fontWeight: 800, fontSize: 12.5 }}>يرد {profile.response_promise}</div>
+      ) : null}
+      {sales.map((sale) => (
+        <div key={sale.id} style={{ display: "flex", flexDirection: "row-reverse", gap: 10, alignItems: "center", padding: 10, borderRadius: 12, background: "#F7F1E8" }}>
+          <div style={{ background: "#8B3A2F", color: "#fff", borderRadius: 10, minWidth: 46, textAlign: "center", fontWeight: 900, padding: "6px 4px" }}>{sale.discount_pct}%</div>
+          <div style={{ flex: 1, textAlign: "right" }}>
+            <div style={{ fontWeight: 900, color: "#0F241C" }}>{sale.title}</div>
+            <div style={{ fontSize: 11, color: "#6B5E4A" }}>
+              {sale.listing_titles?.length ? sale.listing_titles.slice(0, 2).join("، ") : "عرض على واجهة المتجر"}
+            </div>
+          </div>
+        </div>
+      ))}
+      {coupons.map((c) => (
+        <button key={c.code} type="button" onClick={() => copy(c.code)} data-testid={`coupon-${c.code}`} style={{ display: "flex", flexDirection: "row-reverse", gap: 10, alignItems: "center", padding: 10, borderRadius: 12, border: `1px dashed ${brand}`, background: "#fff", cursor: "pointer", fontFamily: "inherit" }}>
+          <Ticket size={16} color={brand} />
+          <div style={{ flex: 1, textAlign: "right" }}>
+            <div style={{ fontWeight: 900, color: brand, letterSpacing: 1 }}>{c.code}</div>
+            <div style={{ fontSize: 11, color: "#6B5E4A" }}>خصم {c.discount_pct}% — اضغط للنسخ واذكره عند التواصل</div>
+          </div>
+        </button>
+      ))}
+      {hasPolicy ? (
+        <div style={{ textAlign: "right", fontSize: 13, color: "#334155", lineHeight: 1.7 }}>
+          <div style={{ display: "flex", flexDirection: "row-reverse", gap: 6, alignItems: "center", color: brand, fontWeight: 900, marginBottom: 4 }}>
+            <Truck size={15} />
+            <span>التوصيل والاستلام</span>
+          </div>
+          {profile.location?.city ? <div>{profile.location.city}{profile.location.address_label && profile.location.address_label !== profile.location.city ? ` — ${profile.location.address_label}` : ""}</div> : null}
+          {profile.pickup_enabled ? <div>الاستلام من المتجر متاح{profile.pickup_note ? `: ${profile.pickup_note}` : ""}</div> : null}
+          {cities.length ? <div>التوصيل إلى: {cities.join(" · ")}</div> : null}
+          {profile.shipping_note ? <div>{profile.shipping_note}</div> : null}
+          {profile.return_note ? <div>{profile.return_note}</div> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export default function SellerStorefrontScreen({ userId, viewerId, onBack, onOpenListing, onContactSeller }) {
   const [profile, setProfile] = useState(null);
@@ -418,6 +479,9 @@ export default function SellerStorefrontScreen({ userId, viewerId, onBack, onOpe
 
         {/* Content pane — floating rounded surface, no hard borders */}
         <section style={styles.pane}>
+          <div style={{ padding: "14px 14px 0" }}>
+            <StoreFacts profile={profile} brand={brand} />
+          </div>
           {/* Pill tabs — no borders, only pill background on active */}
           <div style={styles.tabs}>
             <button

@@ -117,7 +117,7 @@ async def start_thread(payload: ChatStartRequest, user_id: str = Query(...)):
     return _serialize(doc)
 
 
-async def _send_message(thread_id: str, sender_id: str, body: str, sender_name: Optional[str]) -> dict:
+async def _send_message(thread_id: str, sender_id: str, body: str, sender_name: Optional[str], skip_auto: bool = False) -> dict:
     thread = await db.chat_threads.find_one({"thread_id": thread_id})
     if not thread:
         raise HTTPException(404, "Thread not found")
@@ -169,6 +169,13 @@ async def _send_message(thread_id: str, sender_id: str, body: str, sender_name: 
             )
         except Exception as exc:  # pragma: no cover
             print(f"[chat notif] failed: {exc}")
+
+    if not skip_auto:
+        try:
+            from services.store_auto_reply import maybe_store_auto_reply
+            await maybe_store_auto_reply(db, thread, sender_id, _send_message)
+        except Exception as exc:  # pragma: no cover
+            print(f"[store auto reply] failed: {exc}")
 
     return serialized_msg
 

@@ -17,6 +17,7 @@ import {
   Modal,
   Dimensions,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import api, { API_URL } from "../services/api";
@@ -269,13 +270,18 @@ export default function SellerStorefrontScreen({
               {profile.is_verified_carrier && (
                 <Badge icon="car" text="موصل معتمد" color="#1B3D2F" />
               )}
-              {openToday && (
+              {profile.store_paused ? (
+                <Badge icon="pause-circle" text="المتجر متوقف" color="#8B3A2F" />
+              ) : openToday ? (
                 <Badge
                   icon={openToday.closed ? "close-circle" : "time"}
                   text={openToday.closed ? "مغلق اليوم" : `مفتوح ${openToday.open} - ${openToday.close}`}
                   color={openToday.closed ? "#8B3A2F" : "#059669"}
                 />
-              )}
+              ) : null}
+              {profile.response_promise ? (
+                <Badge icon="chatbubble-ellipses" text={`يرد ${profile.response_promise}`} color="#1B3D2F" />
+              ) : null}
             </View>
 
             {/* Follow button — brand-tinted glass pill */}
@@ -388,6 +394,18 @@ export default function SellerStorefrontScreen({
           </View>
         ) : null}
 
+        {profile.store_paused || profile.announcement ? (
+          <View style={[s.aboutCard, { borderColor: "#C6A15B55", backgroundColor: "#FFF8EC" }]}>
+            <View style={[s.aboutIconWrap, { backgroundColor: "#C6A15B22" }]}>
+              <Ionicons name={profile.store_paused ? "pause-circle" : "megaphone"} size={20} color="#8A6A2E" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.aboutTitle, { color: "#8A6A2E" }]}>{profile.store_paused ? "المتجر متوقف مؤقتاً" : "من المتجر"}</Text>
+              {profile.announcement ? <Text style={s.aboutText}>{profile.announcement}</Text> : null}
+            </View>
+          </View>
+        ) : null}
+
         {/* ==== KPI strip — merchant identity ==== */}
         <View style={s.kpiStrip}>
           <Kpi
@@ -466,6 +484,16 @@ export default function SellerStorefrontScreen({
           </SectionCard>
         ) : null}
 
+        {(profile.shipping_note || profile.return_note || profile.delivery_cities?.length) ? (
+          <SectionCard icon="cube-outline" title="التوصيل والاسترجاع" color={identity}>
+            {profile.delivery_cities?.length ? (
+              <Text style={s.locLabel}>التوصيل إلى: {profile.delivery_cities.join(" · ")}</Text>
+            ) : null}
+            {profile.shipping_note ? <Text style={s.pickupNote}>{profile.shipping_note}</Text> : null}
+            {profile.return_note ? <Text style={s.pickupNote}>{profile.return_note}</Text> : null}
+          </SectionCard>
+        ) : null}
+
         {/* ==== Portfolio (media gallery) — Instagram-style circles + tap to open ==== */}
         {profile.portfolio_images?.length ? (
           <SectionCard icon="camera-outline" title="معرض المتجر" color={identity}>
@@ -508,6 +536,7 @@ export default function SellerStorefrontScreen({
                   <Text style={s.saleTitle}>{sale.title}</Text>
                   <Text style={s.saleMeta}>
                     ينتهي {new Date(sale.ends_at).toLocaleString("ar-SA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    {sale.listing_titles?.length ? ` • ${sale.listing_titles.slice(0, 2).join("، ")}` : ""}
                   </Text>
                 </View>
               </View>
@@ -522,11 +551,13 @@ export default function SellerStorefrontScreen({
               <TouchableOpacity
                 key={c.code || i}
                 activeOpacity={0.7}
-                onPress={() => {
+                onPress={async () => {
                   try {
-                    // Just show for now — copy is native module; alert works everywhere
-                    Alert.alert("كوبون خصم", `الكود: ${c.code}\nاستخدمه عند التواصل مع البائع.`);
-                  } catch {}
+                    await Clipboard.setStringAsync(String(c.code || ""));
+                    Alert.alert("تم نسخ الكوبون", `${c.code}\nاذكره عند التواصل مع البائع.`);
+                  } catch {
+                    Alert.alert("كوبون خصم", c.code);
+                  }
                 }}
                 style={[s.couponRow, { borderColor: identity + "40", backgroundColor: identity + "0F" }]}
               >

@@ -14,7 +14,7 @@ import { TAIR_PAGE_STYLE, TairAppHeader } from "./TairAppChrome";
 import { isPushSupported, subscribeToPush, unsubscribeFromPush } from "./pushClient";
 import { toast } from "../hooks/use-toast";
 
-export default function ProfileScreen({ user, onOpenListing, onOpenTrip, onLogout, onOpenKyc, onOpenOrders, onOpenStories, onOpenAnalytics, onOpenNotifications }) {
+export default function ProfileScreen({ user, onOpenListing, onOpenTrip, onLogout, onOpenKyc, onOpenOrders, onOpenStories, onOpenAnalytics, onOpenNotifications, onOpenStore }) {
   const uid = user.id || user.user_id;
   const isGuest = !!user.isGuest;
   const [pushEnabled, setPushEnabled] = useState(
@@ -345,6 +345,14 @@ export default function ProfileScreen({ user, onOpenListing, onOpenTrip, onLogou
               label="طلباتي"
               onClick={onOpenOrders}
               testId="menu-orders"
+            />
+          )}
+          {onOpenStore && !isGuest && (
+            <MenuLink
+              icon={<Store size={20} strokeWidth={1.8} />}
+              label="إدارة متجري الاحترافي"
+              onClick={onOpenStore}
+              testId="menu-storefront-manager"
             />
           )}
           {onOpenAnalytics && (

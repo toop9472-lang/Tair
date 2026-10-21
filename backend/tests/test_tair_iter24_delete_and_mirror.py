@@ -238,6 +238,7 @@ class TestStorefrontMirrorStability:
         # profile_bg_url via storefront banner_slides mirror (explicit)
         requests.patch(
             f"{API}/storefront/settings", params={"user_id": uid},
+            headers={"Authorization": f"Bearer {owner['token']}"},
             json={"banner_slides": ["https://cdn.example.com/iter24_bg.jpg"]},
             timeout=30,
         )
@@ -250,6 +251,7 @@ class TestStorefrontMirrorStability:
         ]
         r = requests.patch(
             f"{API}/storefront/settings", params={"user_id": uid},
+            headers={"Authorization": f"Bearer {owner['token']}"},
             json={"business_hours": new_hours},
             timeout=30,
         )
@@ -264,15 +266,16 @@ class TestStorefrontMirrorStability:
     def test_explicit_identity_patches_do_mirror(self, owner):
         uid = owner["user_id"]
         # about_text → bio
-        r1 = requests.patch(f"{API}/storefront/settings", params={"user_id": uid},
+        auth = {"Authorization": f"Bearer {owner['token']}"}
+        r1 = requests.patch(f"{API}/storefront/settings", params={"user_id": uid}, headers=auth,
                             json={"about_text": "iter24_new_bio"}, timeout=30)
         assert r1.status_code == 200, r1.text
         # logo_url → avatar
-        r2 = requests.patch(f"{API}/storefront/settings", params={"user_id": uid},
+        r2 = requests.patch(f"{API}/storefront/settings", params={"user_id": uid}, headers=auth,
                             json={"logo_url": "https://cdn.example.com/iter24_new_logo.jpg"}, timeout=30)
         assert r2.status_code == 200, r2.text
         # banner_slides[0] → profile_bg_url
-        r3 = requests.patch(f"{API}/storefront/settings", params={"user_id": uid},
+        r3 = requests.patch(f"{API}/storefront/settings", params={"user_id": uid}, headers=auth,
                             json={"banner_slides": ["https://cdn.example.com/iter24_new_bg.jpg",
                                                     "https://cdn.example.com/iter24_new_bg2.jpg"]},
                             timeout=30)

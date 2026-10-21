@@ -17,6 +17,7 @@ from fastapi import APIRouter, HTTPException, Query
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from services.moderation import moderator_scopes
+from services.storefront_logic import active_flash_sales
 
 router = APIRouter(prefix="/sellers", tags=["sellers"])
 
@@ -136,11 +137,39 @@ async def get_seller_profile(user_id: str, viewer_id: Optional[str] = None):
         "location": sf.get("location"),
         "pickup_enabled": bool(sf.get("pickup_enabled", False)),
         "pickup_note": sf.get("pickup_note", ""),
-        "flash_sales": sf.get("flash_sales", []),
+        "flash_sales": await _public_flash_sales(sf.get("flash_sales") or []),
         "coupons": [c for c in sf.get("coupons", []) if c.get("active")],
-        "auto_reply_enabled": bool(sf.get("auto_reply_enabled", False)),
-        "auto_reply_message": sf.get("auto_reply_message", ""),
+        "announcement": sf.get("announcement") or "",
+        "shipping_note": sf.get("shipping_note") or "",
+        "return_note": sf.get("return_note") or "",
+        "delivery_cities": sf.get("delivery_cities") or [],
+        "store_paused": bool(sf.get("store_paused")),
+        "response_promise": sf.get("response_promise") or "",
     }
+
+
+async def _public_flash_sales(sales) -> list:
+    fresh = active_flash_sales(sales)
+    ids = []
+    for sale in fresh:
+        ids.extend([i for i in (sale.get("listing_ids") or []) if isinstance(i, str)])
+    titles = {}
+    if ids:
+        cursor = db.listings.find(
+            {"listing_id": {"$in": list(set(ids))}},
+            {"_id": 0, "listing_id": 1, "title": 1},
+        )
+        async for row in cursor:
+            if row.get("listing_id"):
+                titles[row["listing_id"]] = row.get("title") or ""
+    public = []
+    for sale in fresh:
+        item = dict(sale)
+        item["listing_titles"] = [
+            titles[i] for i in (sale.get("listing_ids") or []) if titles.get(i)
+        ]
+        public.append(item)
+    return public
 
 
 @router.get("/{user_id}/listings")

@@ -491,6 +491,10 @@ function TairApp() {
               await refreshUser();
             }}
             onUserChanged={updateUser}
+            onPreview={() => setModal({
+              name: "seller_profile",
+              params: { userId: user?.user_id || user?.id, returnTo: { name: "storefront_manager" } },
+            })}
           />
         );
       case "admin_panel":

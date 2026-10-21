@@ -18,6 +18,7 @@ import OnboardingScreen from "./OnboardingScreen";
 import WholesaleScreen from "./WholesaleScreen";
 import SellerStorefrontScreen from "./SellerStorefrontScreen";
 import SellerAnalyticsScreen from "./SellerAnalyticsScreen";
+import StorefrontManagerScreen from "./StorefrontManagerScreen";
 import IdentifyBirdModal from "./IdentifyBirdModal";
 import AuctionScreen from "./AuctionScreen";
 import AddStoryModal from "./AddStoryModal";
@@ -234,7 +235,7 @@ export default function TairShell({ user, onLogout }) {
       <SellerStorefrontScreen
         userId={overlay.userId}
         viewerId={user?.user_id || user?.id}
-        onBack={() => setOverlay(null)}
+        onBack={() => setOverlay(overlay.fromManager ? { name: "storefront_manager" } : null)}
         onOpenListing={(id) => setOverlay({ name: "listing-details", payload: { listingId: id } })}
         onContactSeller={(sellerId) => {
           // start (or resume) chat with this seller
@@ -243,6 +244,15 @@ export default function TairShell({ user, onLogout }) {
             .then((t) => t?.thread_id && setOverlay({ name: "chat-thread", payload: { threadId: t.thread_id } }))
             .catch(() => setTab("messages"));
         }}
+      />
+    );
+  }
+  if (overlay?.name === "storefront_manager") {
+    return (
+      <StorefrontManagerScreen
+        user={user}
+        onBack={() => setOverlay(null)}
+        onPreview={() => setOverlay({ name: "seller_profile", userId: uid, fromManager: true })}
       />
     );
   }
@@ -302,6 +312,7 @@ export default function TairShell({ user, onLogout }) {
           onOpenOrders={() => setOverlay({ name: "orders" })}
           onOpenStories={() => setOverlay({ name: "stories" })}
           onOpenAnalytics={() => setOverlay({ name: "seller_analytics" })}
+          onOpenStore={() => setOverlay({ name: "storefront_manager" })}
           onOpenNotifications={() => setOverlay({ name: "notifications" })}
         />
       )}

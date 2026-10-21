@@ -125,6 +125,7 @@ class TestStorefrontMirroring:
         r = requests.patch(
             f"{API}/storefront/settings",
             params={"user_id": uid},
+            headers={"Authorization": f"Bearer {guest['token']}"},
             json={
                 "about_text": new_bio,
                 "logo_url": new_logo,
