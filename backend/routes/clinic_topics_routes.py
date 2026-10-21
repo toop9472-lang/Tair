@@ -373,6 +373,7 @@ async def create_reply(topic_id: str, payload: Reply, user_id: str = Query(...))
         {"_id": 0, "name": 1, "avatar": 1, "profile_image": 1},
     )
     rid = f"crep_{uuid.uuid4().hex[:12]}"
+    reply_text = payload.text.strip()
     await db.tair_clinic_replies.insert_one({
         "reply_id": rid,
         "topic_id": topic_id,
@@ -380,10 +381,26 @@ async def create_reply(topic_id: str, payload: Reply, user_id: str = Query(...))
         "user_name": (user or {}).get("name") or "مستخدم",
         "user_avatar": (user or {}).get("avatar") or (user or {}).get("profile_image"),
         "is_moderator": is_mod,
-        "text": payload.text.strip(),
+        "text": reply_text,
         "images": payload.images or [],
         "created_at": _now(),
     })
+    if is_mod:
+        try:
+            from services.clinic_assist import lesson_text
+            learned = lesson_text(reply_text)
+            if learned:
+                await db.tair_clinic_lessons.insert_one({
+                    "lesson_id": f"cles_{uuid.uuid4().hex[:12]}",
+                    "topic_id": topic_id,
+                    "reply_id": rid,
+                    "moderator_id": user_id,
+                    "title": (t.get("title") or "")[:160],
+                    "text": learned,
+                    "created_at": _now(),
+                })
+        except Exception as exc:
+            logger.warning("clinic lesson save failed: %s", exc)
     await db.tair_clinic_topics.update_one(
         {"topic_id": topic_id},
         {"$inc": {"replies_count": 1}, "$set": {"updated_at": _now()}},
@@ -533,6 +550,27 @@ async def ai_assist(topic_id: str, user_id: str = Query(...)):
                 d2["mod_reply_preview"] = (top_reply.get("text") or "")[:220]
             similar.append(d2)
 
+    from services.clinic_assist import case_alerts, lesson_text
+    learned = []
+    if keywords:
+        regex = "|".join(keywords[:8])
+        async for d in db.tair_clinic_lessons.find({
+            "topic_id": {"$ne": topic_id},
+            "$or": [
+                {"title": {"$regex": regex, "$options": "i"}},
+                {"text": {"$regex": regex, "$options": "i"}},
+            ],
+        }).sort("created_at", -1).limit(4):
+            row = _clean(d)
+            row["text"] = lesson_text(row.get("text") or "")
+            if row["text"]:
+                learned.append(row)
+    mod_reply = await db.tair_clinic_replies.find_one(
+        {"topic_id": topic_id, "is_moderator": True, "user_id": {"$ne": "clinic_bot"}},
+        {"_id": 1},
+    )
+    alerts = case_alerts(topic, has_mod_reply=bool(mod_reply))
+
     # 2) AI drafted reply using Gemini
     suggested_reply = ""
     ai_error = None
@@ -550,6 +588,10 @@ async def ai_assist(topic_id: str, user_id: str = Query(...)):
                 f"- حالة سابقة: {x.get('title')} → رد المشرف: {x.get('mod_reply_preview', '—')[:200]}"
                 for x in similar
             ) or "لا توجد حالات مشابهة"
+            learned_ctx = "\n".join(
+                f"- {x.get('title')}: {x.get('text', '')[:240]}"
+                for x in learned
+            ) or "لا توجد ردود مشرفين محفوظة لحالة قريبة"
             from services.clinic_bot import match_entries
             kb_hits = match_entries(
                 f"{topic.get('title') or ''}\n{topic.get('description') or ''}",
@@ -559,13 +601,13 @@ async def ai_assist(topic_id: str, user_id: str = Query(...)):
                 f"- {e.get('name_ar')} ({e.get('name_en')}): {(e.get('definition') or '')[:220]} | افعل: {(e.get('action') or '')}"
                 for _, e in kb_hits
             ) or "لا توجد بطاقة مطابقة"
-            prompt = f"""أنت مساعد لمشرف عيادة طير. اكتب رداً مقترحاً بالعربية الواضحة.
-الرد:
+            prompt = f"""أنت مساعد لمشرف عيادة طير. اكتب ملاحظة قصيرة بالعربية يراجعها المشرف قبل الإرسال.
+القواعد:
 - من 4 إلى 8 أسطر
-- مبني على بطاقات العيادة إن وُجدت، بلا اختراع مرض
-- بلا جرعات وبلا مليغرام وبلا شرح مخبري لزرع الممرض
-- تشخيص مبدئي فقط، ويطلب تأكيد المشرف
-- إن كانت الحالة تنفسية شديدة أو النفوق جماعياً فابدأ بالعزل والإبلاغ
+- ابنِ الملاحظة على ردود المشرفين السابقة إن وُجدت، ولا تخترع حالة
+- بلا جرعات وبلا مليغرام وبلا شرح مخبري
+- لا تكتب خطة علاج. سمّها ملاحظة للمراجعة
+- اختم بأن المشرف يراجع الملاحظة قبل إرسالها لصاحب الحالة
 
 عنوان الحالة: {topic.get('title')}
 
@@ -580,24 +622,35 @@ async def ai_assist(topic_id: str, user_id: str = Query(...)):
 
 حالات مشابهة سابقة:
 {sim_ctx}
+
+ردود المشرفين على حالات قريبة:
+{learned_ctx}
 """
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"clinic_ai_{topic_id}",
-                system_message="أنت مساعد مشرف عيادة طير. تلخّص المعرفة البيطرية التعليمية بالعربية بلا جرعات وبلا طرق زرع.",
+                system_message="أنت مساعد مشرف عيادة طير. تكتب ملاحظة للمراجعة بالعربية بلا جرعات وبلا طرق زرع وبلا خطة علاج.",
             ).with_model("gemini", "gemini-3-flash-preview")
             resp = await chat.send_message(UserMessage(text=prompt))
-            suggested_reply = (resp or "").strip()[:1800]
-            if not suggested_reply:
+            suggested_reply = lesson_text((resp or "").strip()) or ""
+            if len((resp or "").strip()) >= 12 and not suggested_reply:
+                ai_error = "الملاحظة أُزيلت لأنها احتوت جرعة أو شرحاً مخبرياً"
+            elif not suggested_reply:
                 ai_error = "النموذج أعاد رداً فارغاً"
     except Exception as e:
         logger.warning("AI assist failed for topic %s: %s", topic_id, e)
         ai_error = f"{type(e).__name__}: {str(e)[:200]}"
         suggested_reply = ""
 
+    if not suggested_reply and learned:
+        suggested_reply = "ملاحظة من رد مشرف على حالة قريبة، راجعها قبل الإرسال:\n" + learned[0]["text"][:700]
+        ai_error = None
+
     return {
         "library_matches": lib_matches,
         "similar_topics": similar,
+        "learned_replies": learned,
+        "alerts": alerts,
         "suggested_reply": suggested_reply,
         "keywords": keywords[:10],
         "ai_error": ai_error,

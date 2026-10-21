@@ -10,6 +10,7 @@ import {
   RefreshControl, Linking, Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import TairHeader from "../components/TairHeader";
 import { TAIR } from "../constants/tairTheme";
 import { clinicTopicsApi, adminExtApi } from "../services/tairApi";
@@ -125,6 +126,19 @@ export default function ClinicScreen({
               style={s.banner}
               testID="clinic-library-banner"
             >
+              <LinearGradient
+                colors={["#0F241C", "#1B3D2F", "#3D6B54"]}
+                start={{ x: 1, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <LinearGradient
+                colors={["transparent", "rgba(198,161,91,0.42)", "transparent"]}
+                start={{ x: 0, y: 0.2 }}
+                end={{ x: 1, y: 0.8 }}
+                style={s.bannerGlow}
+                pointerEvents="none"
+              />
               <View style={s.bannerIconBox}>
                 <Ionicons name="book" size={22} color={TAIR.gold} />
               </View>
@@ -202,11 +216,12 @@ const s = StyleSheet.create({
   banner: {
     marginHorizontal: 14, marginTop: 10,
     flexDirection: "row-reverse", alignItems: "center", gap: 12,
-    backgroundColor: TAIR.emerald, borderRadius: 16,
-    paddingHorizontal: 14, paddingVertical: 14,
+    borderRadius: 16, overflow: "hidden",
+    paddingHorizontal: 14, paddingVertical: 16,
     borderWidth: 1.5, borderColor: TAIR.gold,
-    shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3,
+    shadowColor: "#0F241C", shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
   },
+  bannerGlow: { ...StyleSheet.absoluteFillObject },
   bannerIconBox: {
     width: 42, height: 42, borderRadius: 10,
     backgroundColor: "rgba(198,161,91,0.18)",
